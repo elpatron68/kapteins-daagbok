@@ -60,35 +60,33 @@ These requirements are deferred to future milestones.
 
 ## Traceability
 
-*Will be populated during roadmap creation.*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| UI-01 | Pending | Pending |
-| UI-02 | Pending | Pending |
-| UI-03 | Pending | Pending |
-| VESSEL-01 | Pending | Pending |
-| VESSEL-02 | Pending | Pending |
-| VESSEL-03 | Pending | Pending |
-| DEV-01 | Pending | Pending |
-| DEV-02 | Pending | Pending |
-| LOG-01 | Pending | Pending |
-| LOG-02 | Pending | Pending |
-| LOG-03 | Pending | Pending |
-| LOG-04 | Pending | Pending |
-| LOG-05 | Pending | Pending |
-| INT-01 | Pending | Pending |
-| INT-02 | Pending | Pending |
-| INT-03 | Pending | Pending |
-| SYS-01 | Pending | Pending |
-| SYS-02 | Pending | Pending |
-| SYS-03 | Pending | Pending |
-| SYS-04 | Pending | Pending |
+| UI-01 | Phase 4 | Pending |
+| UI-02 | Phase 1 | Pending |
+| UI-03 | Phase 1 | Pending |
+| VESSEL-01 | Phase 2 | Pending |
+| VESSEL-02 | Phase 2 | Pending |
+| VESSEL-03 | Phase 2 | Pending |
+| DEV-01 | Phase 2 | Pending |
+| DEV-02 | Phase 2 | Pending |
+| LOG-01 | Phase 3 | Pending |
+| LOG-02 | Phase 3 | Pending |
+| LOG-03 | Phase 3 | Pending |
+| LOG-04 | Phase 3 | Pending |
+| LOG-05 | Phase 3 | Pending |
+| INT-01 | Phase 3 | Pending |
+| INT-02 | Phase 3 | Pending |
+| INT-03 | Phase 3 | Pending |
+| SYS-01 | Phase 1 | Pending |
+| SYS-02 | Phase 1 | Pending |
+| SYS-03 | Phase 4 | Pending |
+| SYS-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-05-26*
