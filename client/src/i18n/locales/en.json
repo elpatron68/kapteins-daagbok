@@ -44,6 +44,18 @@
       "coordinates": "Coordinates",
       "weather": "Weather Conditions",
       "save": "Save Entry"
+    },
+    "dashboard": {
+      "title": "Your Logbooks",
+      "subtitle": "Select a logbook or create a new one to manage your journeys.",
+      "create_btn": "Create Logbook",
+      "new_logbook_placeholder": "Logbook or Yacht Name",
+      "logout": "Logout",
+      "delete_confirm": "Are you sure you want to permanently delete this logbook? All local cache and server backups will be destroyed.",
+      "no_logbooks": "No logbooks found. Create your first logbook to begin!",
+      "loading": "Loading logbooks...",
+      "status_synced": "Synced",
+      "status_local": "Local Cache Only"
     }
   }
 }

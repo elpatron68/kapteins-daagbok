@@ -101,6 +101,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
   if (result.verified) {
     activeMasterKey = masterKey
     localStorage.setItem('active_username', username)
+    localStorage.setItem('active_userid', result.userId)
   }
 
   return {
@@ -116,6 +117,7 @@ export interface LoginResult {
     encryptedMasterKeyRec: string
     encryptedMasterKeyRecIv: string
     encryptedMasterKeyRecTag: string
+    userId: string
   }
 }
 
@@ -181,6 +183,7 @@ export async function loginUser(username: string): Promise<LoginResult> {
       )
       activeMasterKey = decryptedMaster
       localStorage.setItem('active_username', username)
+      localStorage.setItem('active_userid', result.userId)
       return { verified: true, prfSuccess: true }
     } catch (e) {
       console.warn('PRF decryption failed, falling back to recovery phrase:', e)
@@ -194,7 +197,8 @@ export async function loginUser(username: string): Promise<LoginResult> {
     encryptedPayloads: {
       encryptedMasterKeyRec: result.encryptedMasterKeyRec,
       encryptedMasterKeyRecIv: result.encryptedMasterKeyRecIv,
-      encryptedMasterKeyRecTag: result.encryptedMasterKeyRecTag
+      encryptedMasterKeyRecTag: result.encryptedMasterKeyRecTag,
+      userId: result.userId
     }
   }
 }
@@ -207,6 +211,7 @@ export async function completeLoginWithRecovery(
     encryptedMasterKeyRec: string
     encryptedMasterKeyRecIv: string
     encryptedMasterKeyRecTag: string
+    userId: string
   }
 ): Promise<boolean> {
   try {
@@ -219,6 +224,7 @@ export async function completeLoginWithRecovery(
     )
     activeMasterKey = decryptedMaster
     localStorage.setItem('active_username', username)
+    localStorage.setItem('active_userid', encryptedPayloads.userId)
     return true
   } catch (error) {
     console.error('Failed to decrypt master key with recovery phrase:', error)
@@ -229,4 +235,5 @@ export async function completeLoginWithRecovery(
 export function logoutUser() {
   activeMasterKey = null
   localStorage.removeItem('active_username')
+  localStorage.removeItem('active_userid')
 }
