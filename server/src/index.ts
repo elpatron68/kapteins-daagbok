@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import authRouter from './routes/auth.js'
 import logbooksRouter from './routes/logbooks.js'
+import syncRouter from './routes/sync.js'
 
 dotenv.config()
 
@@ -15,6 +16,7 @@ app.use(express.json())
 // Mount routes
 app.use('/api/auth', authRouter)
 app.use('/api/logbooks', logbooksRouter)
+app.use('/api/sync', syncRouter)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

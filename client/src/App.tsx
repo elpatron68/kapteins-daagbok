@@ -3,6 +3,7 @@ import './App.css'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
+import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks } from './services/sync.js'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,7 +16,10 @@ function App() {
   const [online, setOnline] = useState(navigator.onLine)
 
   useEffect(() => {
-    const handleOnline = () => setOnline(true)
+    const handleOnline = () => {
+      setOnline(true)
+      syncAllLogbooks()
+    }
     const handleOffline = () => setOnline(false)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -24,6 +28,17 @@ function App() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      startBackgroundSync()
+    } else {
+      stopBackgroundSync()
+    }
+    return () => {
+      stopBackgroundSync()
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     const savedUser = localStorage.getItem('active_username')
