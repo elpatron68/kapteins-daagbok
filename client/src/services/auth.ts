@@ -45,10 +45,10 @@ export async function registerUser(username: string): Promise<RegistrationResult
   const options = await optionsRes.json()
 
   // Request the PRF extension in the browser options
-  if (!options.publicKey.extensions) {
-    options.publicKey.extensions = {}
+  if (!options.extensions) {
+    options.extensions = {}
   }
-  options.publicKey.extensions.prf = {}
+  options.extensions.prf = {}
 
   // 2. Start biometric Passkey creation
   const credentialResponse = await startRegistration(options)
@@ -137,10 +137,10 @@ export async function loginUser(username: string): Promise<LoginResult> {
   const options = await optionsRes.json()
 
   // Add PRF extension evaluation input
-  if (!options.publicKey.extensions) {
-    options.publicKey.extensions = {}
+  if (!options.extensions) {
+    options.extensions = {}
   }
-  options.publicKey.extensions.prf = {
+  options.extensions.prf = {
     eval: {
       first: PRF_SALT
     }
