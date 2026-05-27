@@ -5,6 +5,7 @@ import LogbookDashboard from './components/LogbookDashboard.tsx'
 import VesselForm from './components/VesselForm.tsx'
 import CrewForm from './components/CrewForm.tsx'
 import DeviationForm from './components/DeviationForm.tsx'
+import LogEntriesList from './components/LogEntriesList.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks } from './services/sync.js'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -178,11 +179,7 @@ function App() {
         {/* Tab Content Panels (Placeholder until Phase 3) */}
         <main className="app-content">
           {activeTab === 'logs' && (
-            <div className="tab-placeholder">
-              <FileText size={48} className="header-logo" />
-              <h3>{t('nav.logs')}</h3>
-              <p>Journal event entries, GPS navigation records, and meteorological reports will be listed and edited here.</p>
-            </div>
+            <LogEntriesList logbookId={activeLogbookId} />
           )}
 
           {activeTab === 'vessel' && (

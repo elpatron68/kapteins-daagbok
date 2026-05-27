@@ -1,0 +1,235 @@
+import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { db } from '../services/db.js'
+import { getActiveMasterKey } from '../services/auth.js'
+import { decryptJson, encryptJson } from '../services/crypto.js'
+import { syncLogbook } from '../services/sync.js'
+import LogEntryEditor from './LogEntryEditor.tsx'
+import { FileText, Plus, Trash2, ChevronRight, Calendar } from 'lucide-react'
+
+interface LogEntriesListProps {
+  logbookId: string
+}
+
+interface DecryptedEntryItem {
+  id: string
+  date: string
+  dayOfTravel: string
+  departure: string
+  destination: string
+  updatedAt: string
+}
+
+export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
+  const { t } = useTranslation()
+  const [entries, setEntries] = useState<DecryptedEntryItem[]>([])
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!selectedEntryId) {
+      loadEntries()
+    }
+  }, [logbookId, selectedEntryId])
+
+  const loadEntries = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const masterKey = getActiveMasterKey()
+      if (!masterKey) throw new Error('Master key not found. Please log in.')
+
+      const local = await db.entries.where({ logbookId }).toArray()
+      
+      const list: DecryptedEntryItem[] = []
+      
+      for (const entry of local) {
+        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+        if (decrypted) {
+          list.push({
+            id: entry.payloadId,
+            date: decrypted.date || '',
+            dayOfTravel: decrypted.dayOfTravel || '',
+            departure: decrypted.departure || '',
+            destination: decrypted.destination || '',
+            updatedAt: entry.updatedAt
+          })
+        }
+      }
+
+      // Sort chronological descending (by date, or dayOfTravel numerical)
+      list.sort((a, b) => {
+        const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+        if (dateCompare !== 0) return dateCompare
+        return Number(b.dayOfTravel) - Number(a.dayOfTravel)
+      })
+
+      setEntries(list)
+    } catch (err: any) {
+      console.error('Failed to load log entries:', err)
+      setError(err.message || 'Decryption failed. Could not load journal list.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const masterKey = getActiveMasterKey()
+      if (!masterKey) throw new Error('Master key not found. Please log in.')
+
+      const localId = window.crypto.randomUUID()
+      const nowStr = new Date().toISOString()
+      const todayStr = nowStr.substring(0, 10)
+
+      // Calculate next travel day number
+      const nextDayNum = String(entries.length + 1)
+
+      const initialPayload = {
+        date: todayStr,
+        dayOfTravel: nextDayNum,
+        departure: '',
+        destination: '',
+        freshwater: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+        fuel: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+        signSkipper: '',
+        signCrew: '',
+        events: []
+      }
+
+      const encrypted = await encryptJson(initialPayload, masterKey)
+
+      // Save locally
+      await db.entries.put({
+        payloadId: localId,
+        logbookId,
+        encryptedData: encrypted.ciphertext,
+        iv: encrypted.iv,
+        tag: encrypted.tag,
+        updatedAt: nowStr
+      })
+
+      // Queue for background sync
+      await db.syncQueue.put({
+        action: 'create',
+        type: 'entry',
+        payloadId: localId,
+        logbookId,
+        data: JSON.stringify(encrypted),
+        updatedAt: nowStr
+      })
+
+      // Open immediately in details editor
+      setSelectedEntryId(localId)
+      syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+    } catch (err: any) {
+      console.error('Failed to create entry:', err)
+      setError(err.message || 'Failed to create new log entry.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (entryId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent selecting the card
+    
+    if (window.confirm(t('logs.delete_confirm'))) {
+      setError(null)
+      try {
+        const now = new Date().toISOString()
+        
+        await db.entries.delete(entryId)
+        
+        await db.syncQueue.put({
+          action: 'delete',
+          type: 'entry',
+          payloadId: entryId,
+          logbookId,
+          data: '',
+          updatedAt: now
+        })
+
+        setEntries((prev) => prev.filter((item) => item.id !== entryId))
+        syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+      } catch (err: any) {
+        console.error('Failed to delete log entry:', err)
+        setError(err.message || 'Failed to delete log entry.')
+      }
+    }
+  }
+
+  if (selectedEntryId) {
+    return (
+      <LogEntryEditor
+        entryId={selectedEntryId}
+        logbookId={logbookId}
+        onBack={() => setSelectedEntryId(null)}
+      />
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="tab-placeholder">
+        <FileText className="header-logo spin" size={48} />
+        <p>{t('logs.loading')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="form-card">
+      <div className="section-title-bar mb-6">
+        <div className="form-header" style={{ margin: 0 }}>
+          <Calendar size={24} className="form-icon" />
+          <h2>{t('logs.title')}</h2>
+        </div>
+        <button className="btn primary" onClick={handleCreate} style={{ width: 'auto', padding: '8px 16px' }}>
+          <Plus size={16} />
+          {t('logs.new_entry')}
+        </button>
+      </div>
+
+      {error && <div className="auth-error mb-4">{error}</div>}
+
+      {entries.length === 0 ? (
+        <div className="dashboard-status-msg">{t('logs.no_entries')}</div>
+      ) : (
+        <div className="logbooks-grid">
+          {entries.map((item) => (
+            <div key={item.id} className="logbook-card glass" onClick={() => setSelectedEntryId(item.id)}>
+              <div className="card-icon">
+                <FileText size={24} />
+              </div>
+
+              <div className="card-info">
+                <h3 style={{ textTransform: 'capitalize' }}>
+                  {item.departure && item.destination
+                    ? `${item.departure} → ${item.destination}`
+                    : t('logs.new_entry')}
+                </h3>
+                <div className="card-meta">
+                  <span className="sync-badge synced">
+                    {t('logs.day_of_travel')} {item.dayOfTravel}
+                  </span>
+                  <span className="date-badge">
+                    {new Date(item.date).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
+                <Trash2 size={18} />
+              </button>
+              
+              <ChevronRight size={18} style={{ color: '#475569', marginLeft: 'auto' }} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
