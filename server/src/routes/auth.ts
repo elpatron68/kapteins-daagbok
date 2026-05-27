@@ -1,0 +1,235 @@
+import { Router } from 'express'
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse
+} from '@simplewebauthn/server'
+import { prisma } from '../db.js'
+
+const router = Router()
+
+const rpName = 'Kapteins Daagbox'
+const rpID = process.env.RP_ID || 'localhost'
+const origin = process.env.ORIGIN || 'http://localhost:5173'
+
+// In-memory challenge stores
+const registrationChallenges = new Map<string, string>()
+const authenticationChallenges = new Map<string, { challenge: string; userId: string }>()
+
+// 1. Generate Registration Options
+router.post('/register-options', async (req, res) => {
+  try {
+    const { username } = req.body
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' })
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username }
+    })
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' })
+    }
+
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID: username,
+      userName: username,
+      userDisplayName: username,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'required',
+        userVerification: 'preferred'
+      },
+      supportedAlgorithmIDs: [-7, -257] // ES256 and RS256
+    })
+
+    // Store challenge
+    registrationChallenges.set(username, options.challenge)
+
+    return res.json(options)
+  } catch (error: any) {
+    console.error('Error generating registration options:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 2. Verify Registration Response
+router.post('/register-verify', async (req, res) => {
+  try {
+    const {
+      username,
+      credentialResponse,
+      encryptedMasterKeyPrf,
+      encryptedMasterKeyPrfIv,
+      encryptedMasterKeyPrfTag,
+      encryptedMasterKeyRec,
+      encryptedMasterKeyRecIv,
+      encryptedMasterKeyRecTag
+    } = req.body
+
+    if (!username || !credentialResponse) {
+      return res.status(400).json({ error: 'Username and credentialResponse are required' })
+    }
+
+    const expectedChallenge = registrationChallenges.get(username)
+    if (!expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge not found or expired' })
+    }
+
+    const verification = await verifyRegistrationResponse({
+      response: credentialResponse,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID
+    })
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ error: 'WebAuthn verification failed' })
+    }
+
+    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
+
+    // Save user and credential
+    const user = await prisma.user.create({
+      data: {
+        username,
+        encryptedMasterKeyPrf,
+        encryptedMasterKeyPrfIv,
+        encryptedMasterKeyPrfTag,
+        encryptedMasterKeyRec,
+        encryptedMasterKeyRecIv,
+        encryptedMasterKeyRecTag,
+        credentials: {
+          create: {
+            credentialId: Buffer.from(credentialID).toString('base64url'),
+            publicKey: Buffer.from(credentialPublicKey),
+            counter: BigInt(counter),
+            transports: credentialResponse.response.transports || []
+          }
+        }
+      }
+    })
+
+    registrationChallenges.delete(username)
+
+    return res.json({ verified: true, userId: user.id })
+  } catch (error: any) {
+    console.error('Error verifying registration response:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 3. Generate Authentication Options
+router.post('/login-options', async (req, res) => {
+  try {
+    const { username } = req.body
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: { credentials: true }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const options = await generateAuthenticationOptions({
+      rpID,
+      allowCredentials: user.credentials.map(cred => ({
+        id: Buffer.from(cred.credentialId, 'base64url'),
+        type: 'public-key',
+        transports: cred.transports as any[]
+      })),
+      userVerification: 'preferred'
+    })
+
+    authenticationChallenges.set(username, {
+      challenge: options.challenge,
+      userId: user.id
+    })
+
+    return res.json(options)
+  } catch (error: any) {
+    console.error('Error generating authentication options:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 4. Verify Authentication Response
+router.post('/login-verify', async (req, res) => {
+  try {
+    const { username, credentialResponse } = req.body
+    if (!username || !credentialResponse) {
+      return res.status(400).json({ error: 'Username and credentialResponse are required' })
+    }
+
+    const expectedChallengeInfo = authenticationChallenges.get(username)
+    if (!expectedChallengeInfo) {
+      return res.status(400).json({ error: 'Challenge not found or expired' })
+    }
+
+    const dbCred = await prisma.credential.findUnique({
+      where: { credentialId: credentialResponse.id }
+    })
+
+    if (!dbCred || dbCred.userId !== expectedChallengeInfo.userId) {
+      return res.status(400).json({ error: 'Credential not recognized for this user' })
+    }
+
+    const verification = await verifyAuthenticationResponse({
+      response: credentialResponse,
+      expectedChallenge: expectedChallengeInfo.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      authenticator: {
+        credentialID: Buffer.from(dbCred.credentialId, 'base64url'),
+        credentialPublicKey: dbCred.publicKey,
+        counter: Number(dbCred.counter)
+      }
+    })
+
+    if (!verification.verified || !verification.authenticationInfo) {
+      return res.status(400).json({ error: 'Authentication failed' })
+    }
+
+    // Update counter
+    await prisma.credential.update({
+      where: { id: dbCred.id },
+      data: { counter: BigInt(verification.authenticationInfo.newCounter) }
+    })
+
+    authenticationChallenges.delete(username)
+
+    // Retrieve user keys
+    const user = await prisma.user.findUnique({
+      where: { username }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    return res.json({
+      verified: true,
+      userId: user.id,
+      encryptedMasterKeyPrf: user.encryptedMasterKeyPrf,
+      encryptedMasterKeyPrfIv: user.encryptedMasterKeyPrfIv,
+      encryptedMasterKeyPrfTag: user.encryptedMasterKeyPrfTag,
+      encryptedMasterKeyRec: user.encryptedMasterKeyRec,
+      encryptedMasterKeyRecIv: user.encryptedMasterKeyRecIv,
+      encryptedMasterKeyRecTag: user.encryptedMasterKeyRecTag
+    })
+  } catch (error: any) {
+    console.error('Error verifying authentication response:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+export default router

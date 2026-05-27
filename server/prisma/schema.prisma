@@ -8,11 +8,17 @@ generator client {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  username    String       @unique
-  createdAt   DateTime     @default(now())
-  credentials Credential[]
-  logbooks    Logbook[]
+  id                       String       @id @default(uuid())
+  username                 String       @unique
+  createdAt                DateTime     @default(now())
+  encryptedMasterKeyPrf    String?      // Encrypted using PRF-derived key
+  encryptedMasterKeyPrfIv  String?
+  encryptedMasterKeyPrfTag String?
+  encryptedMasterKeyRec    String       // Encrypted using 12-word recovery phrase
+  encryptedMasterKeyRecIv  String
+  encryptedMasterKeyRecTag String
+  credentials              Credential[]
+  logbooks                 Logbook[]
 }
 
 model Credential {

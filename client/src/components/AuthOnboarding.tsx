@@ -1,0 +1,230 @@
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { registerUser, loginUser, completeLoginWithRecovery } from '../services/auth.js'
+import { KeyRound, ShieldAlert, Languages, HelpCircle } from 'lucide-react'
+
+interface AuthOnboardingProps {
+  onAuthenticated: () => void
+}
+
+export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps) {
+  const { t, i18n } = useTranslation()
+  const [username, setUsername] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Registration recovery phrase flow
+  const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  // Login recovery phrase fallback flow
+  const [showRecoveryFallback, setShowRecoveryFallback] = useState(false)
+  const [recoveryInput, setRecoveryInput] = useState('')
+  const [encryptedPayloads, setEncryptedPayloads] = useState<any>(null)
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim()) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await registerUser(username.trim())
+      if (result.verified) {
+        setRecoveryPhrase(result.recoveryPhrase)
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim()) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await loginUser(username.trim())
+      if (result.verified) {
+        if (result.prfSuccess) {
+          // Biometric E2E decryption succeeded
+          onAuthenticated()
+        } else {
+          // Biometrics succeeded but PRF key wasn't supported/available, fall back to recovery phrase
+          setEncryptedPayloads(result.encryptedPayloads)
+          setShowRecoveryFallback(true)
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!recoveryInput.trim() || !encryptedPayloads) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const success = await completeLoginWithRecovery(username.trim(), recoveryInput.trim(), encryptedPayloads)
+      if (success) {
+        onAuthenticated()
+      } else {
+        setError('Incorrect recovery phrase. Decryption failed.')
+      }
+    } catch (err: any) {
+      setError('Decryption failed. Please check your recovery phrase.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
+    i18n.changeLanguage(nextLang)
+  }
+
+  const copyToClipboard = () => {
+    if (recoveryPhrase) {
+      navigator.clipboard.writeText(recoveryPhrase)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  // Render 1: Display new registration recovery phrase
+  if (recoveryPhrase) {
+    return (
+      <div className="auth-card glass">
+        <div className="auth-header">
+          <ShieldAlert className="auth-icon warn" size={48} />
+          <h2>{t('auth.recovery_title')}</h2>
+        </div>
+        <p className="recovery-warning">{t('auth.recovery_warning')}</p>
+        
+        <div className="phrase-grid">
+          {recoveryPhrase.split(" ").map((word, idx) => (
+            <div key={idx} className="phrase-word">
+              <span className="word-num">{idx + 1}</span> {word}
+            </div>
+          ))}
+        </div>
+
+        <div className="auth-actions">
+          <button className="btn secondary" onClick={copyToClipboard}>
+            {copied ? 'Copied!' : 'Copy Phrase'}
+          </button>
+          <button className="btn primary" onClick={onAuthenticated}>
+            {t('auth.confirm_recovery')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Render 2: Ask for recovery phrase fallback if biometric PRF fails
+  if (showRecoveryFallback) {
+    return (
+      <div className="auth-card glass">
+        <div className="auth-header">
+          <KeyRound className="auth-icon accent" size={48} />
+          <h2>Enter Recovery Phrase</h2>
+        </div>
+        <p className="recovery-warning">
+          Your Passkey authenticated successfully, but your device does not support hardware key derivation. Enter your 12-word recovery phrase to decrypt your logbook.
+        </p>
+
+        <form onSubmit={handleRecoverySubmit} className="auth-form">
+          <textarea
+            className="input-textarea"
+            placeholder="Enter your 12-word recovery phrase separated by spaces..."
+            value={recoveryInput}
+            onChange={(e) => setRecoveryInput(e.target.value)}
+            disabled={loading}
+            rows={3}
+            required
+          />
+
+          {error && <div className="auth-error">{error}</div>}
+
+          <div className="auth-actions">
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => setShowRecoveryFallback(false)}
+              disabled={loading}
+            >
+              Back
+            </button>
+            <button type="submit" className="btn primary" disabled={loading}>
+              {loading ? 'Decrypting...' : 'Decrypt Logbook'}
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  // Render 3: Standard Login / Registration options form
+  return (
+    <div className="auth-card glass">
+      <div className="auth-brand">
+        <img src="/logo.png" alt="Kapteins Daagbox" className="auth-logo-img" />
+        <h1>{t('app.name')}</h1>
+        <p className="tagline">{t('auth.tagline')}</p>
+      </div>
+
+      <form className="auth-form">
+        <div className="input-group">
+          <input
+            type="text"
+            className="input-text"
+            placeholder="Username / Skipper Name"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <div className="auth-submit-actions">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={handleLogin}
+            disabled={loading || !username.trim()}
+          >
+            {loading ? 'Processing...' : t('auth.login')}
+          </button>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={handleRegister}
+            disabled={loading || !username.trim()}
+          >
+            {t('auth.register')}
+          </button>
+        </div>
+      </form>
+
+      <div className="auth-footer">
+        <button className="btn-icon-text" onClick={toggleLanguage}>
+          <Languages size={18} />
+          {i18n.language.startsWith('de') ? 'English' : 'Deutsch'}
+        </button>
+        <a href="#help" className="btn-icon-text link-sec">
+          <HelpCircle size={18} />
+          Help
+        </a>
+      </div>
+    </div>
+  )
+}
