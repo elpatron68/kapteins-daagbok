@@ -67,7 +67,25 @@
       "saved": "Logbuchseite erfolgreich gespeichert!",
       "loading": "Journal wird geladen...",
       "delete_entry": "Tag löschen",
-      "delete_confirm": "Sind Sie sicher, dass Sie diesen Reisetag unwiderruflich löschen möchten?"
+      "delete_confirm": "Sind Sie sicher, dass Sie diesen Reisetag unwiderruflich löschen möchten?",
+      "event_title": "Chronologisches Ereignisprotokoll",
+      "no_events": "Noch keine Ereignisse für diesen Reisetag eingetragen.",
+      "event_time": "Uhrzeit",
+      "event_mgk": "MgK Kurs",
+      "event_rwk": "RwK Kurs",
+      "event_wind_direction": "Wind-Richtung",
+      "event_wind_strength": "Windstärke",
+      "event_sea_state": "Seegang",
+      "event_weather": "Wetter",
+      "event_log": "Logge (sm)",
+      "event_gps": "GPS-Position",
+      "event_remarks": "Bemerkungen / Vorkommnisse",
+      "gps_btn": "GPS-Koordinaten abrufen",
+      "weather_btn": "OpenWeatherMap Wetter abrufen",
+      "event_wind_pressure": "Luftdruck (hPa)",
+      "event_heel": "Krängung (°)",
+      "event_sails": "Segelführung / Motor",
+      "event_distance": "Distanz (sm)"
     },
     "dashboard": {
       "title": "Ihre Logbücher",
@@ -113,6 +131,20 @@
       "saving": "Wird gespeichert...",
       "saved": "Kalibrierungsgitter erfolgreich gespeichert!",
       "loading": "Kalibrierungstabelle wird geladen..."
+    },
+    "settings": {
+      "title": "Systemeinstellungen",
+      "subtitle": "Konfigurieren Sie externe Integrationen und Anmeldedaten.",
+      "owm_title": "Wetter-Integration",
+      "owm_key": "OpenWeatherMap API-Schlüssel",
+      "save": "Konfiguration speichern",
+      "saving": "Wird gespeichert...",
+      "saved": "Einstellungen erfolgreich gespeichert!",
+      "key_help": "Ein API-Schlüssel wird benötigt, um Wetterparameter und Seebedingungen automatisch anhand von GPS-Koordinaten abzurufen.",
+      "no_key": "Bitte hinterlegen Sie Ihren OpenWeatherMap API-Schlüssel in den Einstellungen, um Wetterdaten abzurufen.",
+      "weather_success": "Wetterdaten erfolgreich abgerufen!",
+      "weather_error": "Wetterdatenabruf fehlgeschlagen. Überprüfen Sie den API-Schlüssel und die Verbindung.",
+      "gps_error": "Bitte ermitteln Sie zuerst die GPS-Koordinaten."
     }
   }
 }

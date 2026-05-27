@@ -6,6 +6,7 @@ import VesselForm from './components/VesselForm.tsx'
 import CrewForm from './components/CrewForm.tsx'
 import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
+import SettingsForm from './components/SettingsForm.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks } from './services/sync.js'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -195,11 +196,7 @@ function App() {
           )}
 
           {activeTab === 'settings' && (
-            <div className="tab-placeholder">
-              <Settings size={48} className="header-logo" />
-              <h3>{t('nav.settings')}</h3>
-              <p>Logbook sync properties, local cache maintenance, and CSV data tools are configured here.</p>
-            </div>
+            <SettingsForm />
           )}
         </main>
       </div>

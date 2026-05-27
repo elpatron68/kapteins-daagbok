@@ -4,12 +4,31 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
-import { FileText, Save, ChevronLeft, Check, Compass } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock } from 'lucide-react'
 
 interface LogEntryEditorProps {
   entryId: string
   logbookId: string
   onBack: () => void
+}
+
+interface LogEvent {
+  time: string
+  mgk: string
+  rwk: string
+  windPressure: string
+  windDirection: string
+  windStrength: string
+  seaState: string
+  weatherIcon: string
+  current: string
+  heel: string
+  sailsOrMotor: string
+  logReading: string
+  distance: string
+  gpsLat: string
+  gpsLng: string
+  remarks: string
 }
 
 export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryEditorProps) {
@@ -37,13 +56,32 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   const [signSkipper, setSignSkipper] = useState('')
   const [signCrew, setSignCrew] = useState('')
 
-  // Events (to preserve Plan 03-03 journal events when editing headers/consumption)
-  const [events, setEvents] = useState<any[]>([])
+  // Events list state
+  const [events, setEvents] = useState<LogEvent[]>([])
+
+  // Add Event Form State
+  const [evTime, setEvTime] = useState('')
+  const [evMgk, setEvMgk] = useState('')
+  const [evRwk, setEvRwk] = useState('')
+  const [evWindPressure, setEvWindPressure] = useState('')
+  const [evWindDirection, setEvWindDirection] = useState('')
+  const [evWindStrength, setEvWindStrength] = useState('')
+  const [evSeaState, setEvSeaState] = useState('')
+  const [evWeatherIcon, setEvWeatherIcon] = useState('')
+  const [evCurrent, setEvCurrent] = useState('')
+  const [evHeel, setEvHeel] = useState('')
+  const [evSailsOrMotor, setEvSailsOrMotor] = useState('')
+  const [evLogReading, setEvLogReading] = useState('')
+  const [evDistance, setEvDistance] = useState('')
+  const [evGpsLat, setEvGpsLat] = useState('')
+  const [evGpsLng, setEvGpsLng] = useState('')
+  const [evRemarks, setEvRemarks] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   // Auto-calculate Freshwater Consumption
   useEffect(() => {
@@ -63,7 +101,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
 
-  // Load entry
+  // Load entry details
   useEffect(() => {
     async function loadEntry() {
       setLoading(true)
@@ -107,6 +145,135 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
     loadEntry()
   }, [entryId])
+
+  const handleGetGps = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setEvGpsLat(pos.coords.latitude.toFixed(6))
+        setEvGpsLng(pos.coords.longitude.toFixed(6))
+      },
+      (err) => {
+        console.error('GPS capturing failed:', err)
+        alert(`Failed to retrieve coordinates: ${err.message}`)
+      }
+    )
+  }
+
+  const handleFetchWeather = async () => {
+    if (!evGpsLat || !evGpsLng) {
+      alert(t('settings.gps_error'))
+      return
+    }
+
+    const apiKey = localStorage.getItem('owm_api_key')
+    if (!apiKey) {
+      alert(t('settings.no_key'))
+      return
+    }
+
+    setWeatherLoading(true)
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${evGpsLat}&lon=${evGpsLng}&appid=${apiKey}&units=metric`
+      )
+
+      if (!res.ok) throw new Error('Weather API rejected the request')
+
+      const data = await res.json()
+
+      // Convert wind speed m/s to Beaufort scale
+      const mps = data.wind.speed || 0
+      let bft = 0
+      if (mps < 0.3) bft = 0
+      else if (mps < 1.6) bft = 1
+      else if (mps < 3.4) bft = 2
+      else if (mps < 5.5) bft = 3
+      else if (mps < 8.0) bft = 4
+      else if (mps < 10.8) bft = 5
+      else if (mps < 13.9) bft = 6
+      else if (mps < 17.2) bft = 7
+      else if (mps < 20.8) bft = 8
+      else if (mps < 24.5) bft = 9
+      else if (mps < 28.5) bft = 10
+      else if (mps < 32.7) bft = 11
+      else bft = 12
+
+      setEvWindStrength(`${bft} Bft (${mps.toFixed(1)} m/s)`)
+      setEvWindPressure(String(data.main.pressure || ''))
+      
+      // Calculate wind compass direction sector
+      if (data.wind.deg !== undefined) {
+        const deg = data.wind.deg
+        const sectors = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+        const index = Math.round(deg / 22.5) % 16
+        setEvWindDirection(sectors[index])
+      }
+
+      if (data.weather && data.weather[0]) {
+        setEvWeatherIcon(data.weather[0].icon)
+      }
+
+      alert(t('settings.weather_success'))
+    } catch (err) {
+      console.error('Weather prefilling failed:', err)
+      alert(t('settings.weather_error'))
+    } finally {
+      setWeatherLoading(false)
+    }
+  }
+
+  const handleAddEvent = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!evTime) return
+
+    const newEvent: LogEvent = {
+      time: evTime,
+      mgk: evMgk.trim(),
+      rwk: evRwk.trim(),
+      windPressure: evWindPressure.trim(),
+      windDirection: evWindDirection.trim(),
+      windStrength: evWindStrength.trim(),
+      seaState: evSeaState.trim(),
+      weatherIcon: evWeatherIcon.trim(),
+      current: evCurrent.trim(),
+      heel: evHeel.trim(),
+      sailsOrMotor: evSailsOrMotor.trim(),
+      logReading: evLogReading.trim(),
+      distance: evDistance.trim(),
+      gpsLat: evGpsLat.trim(),
+      gpsLng: evGpsLng.trim(),
+      remarks: evRemarks.trim()
+    }
+
+    setEvents((prev) => [...prev, newEvent])
+
+    // Clear event form fields
+    setEvTime('')
+    setEvMgk('')
+    setEvRwk('')
+    setEvWindPressure('')
+    setEvWindDirection('')
+    setEvWindStrength('')
+    setEvSeaState('')
+    setEvWeatherIcon('')
+    setEvCurrent('')
+    setEvHeel('')
+    setEvSailsOrMotor('')
+    setEvLogReading('')
+    setEvDistance('')
+    setEvGpsLat('')
+    setEvGpsLng('')
+    setEvRemarks('')
+  }
+
+  const handleDeleteEvent = (index: number) => {
+    setEvents((prev) => prev.filter((_, idx) => idx !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -189,76 +356,93 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   return (
-    <div className="form-card">
-      <div className="section-title-bar mb-4">
-        <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
-          <ChevronLeft size={16} />
-          {t('logs.back_to_list')}
-        </button>
-        <div className="form-header" style={{ margin: 0 }}>
-          <FileText size={24} className="form-icon" />
-          <h2>{t('logs.new_entry')} / {dayOfTravel}</h2>
+    <div className="crew-dashboard-layout">
+      {/* Top Header Controls */}
+      <div className="form-card" style={{ paddingBottom: '20px' }}>
+        <div className="section-title-bar">
+          <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
+            <ChevronLeft size={16} />
+            {t('logs.back_to_list')}
+          </button>
+          <div className="form-header" style={{ margin: 0 }}>
+            <FileText size={24} className="form-icon" />
+            <h2>
+              {t('logs.route')}: {departure || '...'} → {destination || '...'} (Tag {dayOfTravel})
+            </h2>
+          </div>
         </div>
       </div>
 
-      {error && <div className="auth-error mb-4">{error}</div>}
+      {error && <div className="auth-error">{error}</div>}
 
+      {/* Main Journal Data Forms */}
       <form onSubmit={handleSubmit} className="vessel-form">
         {/* Section 1: Travel Day Headers */}
-        <div className="form-grid">
-          <div className="input-group">
-            <label>{t('logs.date')}</label>
-            <input
-              type="date"
-              className="input-text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              disabled={saving}
-              required
-            />
+        <div className="form-card">
+          <div className="form-header">
+            <FileText size={20} className="form-icon" />
+            <h3>Travel Details</h3>
           </div>
+          <div className="form-grid">
+            <div className="input-group">
+              <label>{t('logs.date')}</label>
+              <input
+                type="date"
+                className="input-text"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                disabled={saving}
+                required
+              />
+            </div>
 
-          <div className="input-group">
-            <label>{t('logs.day_of_travel')} *</label>
-            <input
-              type="text"
-              className="input-text"
-              placeholder="e.g. 1"
-              value={dayOfTravel}
-              onChange={(e) => setDayOfTravel(e.target.value)}
-              disabled={saving}
-              required
-            />
-          </div>
+            <div className="input-group">
+              <label>{t('logs.day_of_travel')} *</label>
+              <input
+                type="text"
+                className="input-text"
+                placeholder="e.g. 1"
+                value={dayOfTravel}
+                onChange={(e) => setDayOfTravel(e.target.value)}
+                disabled={saving}
+                required
+              />
+            </div>
 
-          <div className="input-group">
-            <label>{t('logs.departure')}</label>
-            <input
-              type="text"
-              className="input-text"
-              value={departure}
-              onChange={(e) => setDeparture(e.target.value)}
-              disabled={saving}
-            />
-          </div>
+            <div className="input-group">
+              <label>{t('logs.departure')}</label>
+              <input
+                type="text"
+                className="input-text"
+                placeholder="Starting port name"
+                value={departure}
+                onChange={(e) => setDeparture(e.target.value)}
+                disabled={saving}
+              />
+            </div>
 
-          <div className="input-group">
-            <label>{t('logs.destination')}</label>
-            <input
-              type="text"
-              className="input-text"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              disabled={saving}
-            />
+            <div className="input-group">
+              <label>{t('logs.destination')}</label>
+              <input
+                type="text"
+                className="input-text"
+                placeholder="Destination port name"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                disabled={saving}
+              />
+            </div>
           </div>
         </div>
 
         {/* Section 2: Freshwater and Fuel Consumption */}
-        <div className="form-grid mt-4">
+        <div className="form-grid">
           {/* Freshwater card */}
-          <div className="member-editor-card glass">
-            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#fbbf24' }}>{t('logs.freshwater')}</h3>
+          <div className="form-card">
+            <div className="form-header">
+              <Compass size={20} className="form-icon" />
+              <h3>{t('logs.freshwater')}</h3>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="input-group">
                 <label>{t('logs.morning')} (L)</label>
@@ -300,7 +484,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 <label>{t('logs.consumption')} (L)</label>
                 <input
                   type="text"
-                  className="input-text cell-input"
+                  className="input-text cell-input text-green"
                   style={{ color: '#4ade80', fontWeight: 'bold' }}
                   value={fwConsumption}
                   disabled
@@ -310,8 +494,11 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           </div>
 
           {/* Fuel card */}
-          <div className="member-editor-card glass">
-            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#fbbf24' }}>{t('logs.fuel')}</h3>
+          <div className="form-card">
+            <div className="form-header">
+              <Compass size={20} className="form-icon" />
+              <h3>{t('logs.fuel')}</h3>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="input-group">
                 <label>{t('logs.morning')} (L)</label>
@@ -353,7 +540,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 <label>{t('logs.consumption')} (L)</label>
                 <input
                   type="text"
-                  className="input-text cell-input"
+                  className="input-text cell-input text-green"
                   style={{ color: '#4ade80', fontWeight: 'bold' }}
                   value={fuelConsumption}
                   disabled
@@ -363,9 +550,291 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           </div>
         </div>
 
-        {/* Section 3: Sign-Off Signatures */}
-        <div className="member-editor-card glass mt-4">
-          <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#fbbf24' }}>{t('logs.signatures')}</h3>
+        {/* Section 3: Event Journal Entries */}
+        <div className="form-card">
+          <div className="form-header mb-4">
+            <Compass size={20} className="form-icon" />
+            <h3>{t('logs.event_title')}</h3>
+          </div>
+
+          {/* List existing events */}
+          {events.length === 0 ? (
+            <div className="dashboard-status-msg mb-6">{t('logs.no_events')}</div>
+          ) : (
+            <div className="events-scroll-container mb-6">
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th>{t('logs.event_time')}</th>
+                    <th>{t('logs.event_mgk')}</th>
+                    <th>{t('logs.event_rwk')}</th>
+                    <th>{t('logs.event_wind_direction')}</th>
+                    <th>{t('logs.event_wind_strength')}</th>
+                    <th>{t('logs.event_sea_state')}</th>
+                    <th>{t('logs.event_weather')}</th>
+                    <th>{t('logs.event_log')}</th>
+                    <th>{t('logs.event_gps')}</th>
+                    <th>{t('logs.event_remarks')}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((ev, idx) => (
+                    <tr key={idx}>
+                      <td className="font-mono">{ev.time}</td>
+                      <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
+                      <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
+                      <td>{ev.windDirection || '—'}</td>
+                      <td>{ev.windStrength || '—'}</td>
+                      <td>{ev.seaState || '—'}</td>
+                      <td>
+                        {ev.weatherIcon ? (
+                          <img
+                            src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                            alt="Weather"
+                            title="Weather Icon"
+                            className="table-weather-img"
+                          />
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
+                      <td className="font-mono text-sm">
+                        {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
+                      </td>
+                      <td className="remarks-td">{ev.remarks}</td>
+                      <td>
+                        <button type="button" className="btn-icon logout" onClick={() => handleDeleteEvent(idx)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Add New Event Form Sub-Card */}
+          <div className="member-editor-card glass">
+            <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>Add Event Log Record</h4>
+            
+            <div className="form-grid mb-4">
+              <div className="input-group">
+                <label>
+                  <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
+                  {t('logs.event_time')} *
+                </label>
+                <input
+                  type="time"
+                  className="input-text"
+                  value={evTime}
+                  onChange={(e) => setEvTime(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_mgk')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 180"
+                  className="input-text"
+                  value={evMgk}
+                  onChange={(e) => setEvMgk(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_rwk')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 185"
+                  className="input-text"
+                  value={evRwk}
+                  onChange={(e) => setEvRwk(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_log')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 124.5"
+                  className="input-text"
+                  value={evLogReading}
+                  onChange={(e) => setEvLogReading(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid mb-4">
+              <div className="input-group">
+                <label>{t('logs.event_gps')} (Lat, Lng)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Lat"
+                    className="input-text"
+                    value={evGpsLat}
+                    onChange={(e) => setEvGpsLat(e.target.value)}
+                    disabled={saving}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Lng"
+                    className="input-text"
+                    value={evGpsLng}
+                    onChange={(e) => setEvGpsLng(e.target.value)}
+                    disabled={saving}
+                  />
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={handleGetGps}
+                    title={t('logs.gps_btn')}
+                    style={{ width: 'auto', padding: '12px' }}
+                    disabled={saving}
+                  >
+                    <MapPin size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={handleFetchWeather}
+                    title={t('logs.weather_btn')}
+                    style={{ width: 'auto', padding: '12px' }}
+                    disabled={saving || weatherLoading || !evGpsLat || !evGpsLng}
+                  >
+                    <CloudSun size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_wind_direction')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. NNE"
+                  className="input-text"
+                  value={evWindDirection}
+                  onChange={(e) => setEvWindDirection(e.target.value)}
+                  disabled={saving || weatherLoading}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid mb-4">
+              <div className="input-group">
+                <label>{t('logs.event_wind_strength')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 4 Bft"
+                  className="input-text"
+                  value={evWindStrength}
+                  onChange={(e) => setEvWindStrength(e.target.value)}
+                  disabled={saving || weatherLoading}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_wind_pressure')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 1013 hPa"
+                  className="input-text"
+                  value={evWindPressure}
+                  onChange={(e) => setEvWindPressure(e.target.value)}
+                  disabled={saving || weatherLoading}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_sea_state')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 3"
+                  className="input-text"
+                  value={evSeaState}
+                  onChange={(e) => setEvSeaState(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_heel')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 5"
+                  className="input-text"
+                  value={evHeel}
+                  onChange={(e) => setEvHeel(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid mb-4">
+              <div className="input-group">
+                <label>{t('logs.event_sails')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Mainsail + Jib"
+                  className="input-text"
+                  value={evSailsOrMotor}
+                  onChange={(e) => setEvSailsOrMotor(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.event_distance')}</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 12 nm"
+                  className="input-text"
+                  value={evDistance}
+                  onChange={(e) => setEvDistance(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                <label>{t('logs.event_remarks')}</label>
+                <input
+                  type="text"
+                  placeholder="Remarks"
+                  className="input-text"
+                  value={evRemarks}
+                  onChange={(e) => setEvRemarks(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={handleAddEvent}
+              disabled={saving || !evTime}
+              style={{ width: 'auto', padding: '10px 20px', marginLeft: 'auto', display: 'flex' }}
+            >
+              <Plus size={16} />
+              Add Event Entry
+            </button>
+          </div>
+        </div>
+
+        {/* Section 4: Sign-Off Signatures */}
+        <div className="form-card">
+          <div className="form-header">
+            <Check size={20} className="form-icon" />
+            <h3>{t('logs.signatures')}</h3>
+          </div>
           <div className="form-grid">
             <div className="input-group">
               <label>{t('logs.sign_skipper')} *</label>
@@ -395,16 +864,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           </div>
         </div>
 
-        {/* Section 4: Logbook journal events placeholder */}
-        <div className="member-editor-card glass mt-4" style={{ borderStyle: 'dashed' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8' }}>
-            <Compass size={18} />
-            <span style={{ fontSize: '13.5px', fontWeight: 500 }}>
-              Journal Events and GPS tracking coordinates will be configured here in Plan 03-03.
-            </span>
-          </div>
-        </div>
-
+        {/* Save Controls */}
         <div className="form-actions mt-4">
           {success && (
             <div className="success-toast">

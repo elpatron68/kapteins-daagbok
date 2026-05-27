@@ -67,7 +67,25 @@
       "saved": "Logbook page saved successfully!",
       "loading": "Loading journal...",
       "delete_entry": "Delete Day",
-      "delete_confirm": "Are you sure you want to permanently delete this travel day?"
+      "delete_confirm": "Are you sure you want to permanently delete this travel day?",
+      "event_title": "Chronological Event Logbook",
+      "no_events": "No events logged for this travel day yet.",
+      "event_time": "Time",
+      "event_mgk": "MgK Course",
+      "event_rwk": "RwK Course",
+      "event_wind_direction": "Wind Dir",
+      "event_wind_strength": "Wind Str",
+      "event_sea_state": "Sea State",
+      "event_weather": "Weather",
+      "event_log": "Log (nm)",
+      "event_gps": "GPS Position",
+      "event_remarks": "Remarks / Events",
+      "gps_btn": "Get GPS Location",
+      "weather_btn": "Fetch OpenWeatherMap Weather",
+      "event_wind_pressure": "Barometer (hPa)",
+      "event_heel": "Heel Angle (°)",
+      "event_sails": "Sails / Motor Status",
+      "event_distance": "Distance (nm)"
     },
     "dashboard": {
       "title": "Your Logbooks",
@@ -113,6 +131,20 @@
       "saving": "Saving...",
       "saved": "Calibration grid saved successfully!",
       "loading": "Loading calibration table..."
+    },
+    "settings": {
+      "title": "System Settings",
+      "subtitle": "Configure external integrations and client credentials.",
+      "owm_title": "Weather Integration",
+      "owm_key": "OpenWeatherMap API Key",
+      "save": "Save Configuration",
+      "saving": "Saving...",
+      "saved": "Settings saved successfully!",
+      "key_help": "An API key is required to automatically fetch real-time weather and sea state parameters based on your vessel's GPS coordinates.",
+      "no_key": "Please set your OpenWeatherMap API Key in settings to enable weather auto-fill.",
+      "weather_success": "Weather details fetched successfully!",
+      "weather_error": "Failed to fetch weather. Check your API key and connection.",
+      "gps_error": "Please fetch GPS coordinates first."
     }
   }
 }
