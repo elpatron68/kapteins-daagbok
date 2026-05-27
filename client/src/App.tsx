@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
+import VesselForm from './components/VesselForm.tsx'
+import CrewForm from './components/CrewForm.tsx'
+import DeviationForm from './components/DeviationForm.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks } from './services/sync.js'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -183,27 +186,15 @@ function App() {
           )}
 
           {activeTab === 'vessel' && (
-            <div className="tab-placeholder">
-              <Ship size={48} className="header-logo" />
-              <h3>{t('nav.vessel')}</h3>
-              <p>Master vessel profile details such as name, home port, call sign, and MMSI registration are managed here.</p>
-            </div>
+            <VesselForm logbookId={activeLogbookId} />
           )}
 
           {activeTab === 'crew' && (
-            <div className="tab-placeholder">
-              <Users size={48} className="header-logo" />
-              <h3>{t('nav.crew')}</h3>
-              <p>Skipper, mate, and crew records conforming to marine credentials list are maintained here.</p>
-            </div>
+            <CrewForm logbookId={activeLogbookId} />
           )}
 
           {activeTab === 'deviation' && (
-            <div className="tab-placeholder">
-              <Compass size={48} className="header-logo" />
-              <h3>{t('nav.deviation')}</h3>
-              <p>Magnetic compass deviation table calibration grids and calculations are rendered here.</p>
-            </div>
+            <DeviationForm logbookId={activeLogbookId} />
           )}
 
           {activeTab === 'settings' && (

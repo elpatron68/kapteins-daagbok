@@ -33,8 +33,15 @@
       "name": "Yacht Name",
       "port": "Home Port",
       "owner": "Owner",
+      "charter": "Charter Company",
+      "registration": "Registration Number",
       "callsign": "Call Sign",
-      "mmsi": "MMSI Number"
+      "atis": "ATIS Number",
+      "mmsi": "MMSI Number",
+      "save": "Save Vessel Data",
+      "saving": "Saving...",
+      "saved": "Vessel details saved successfully!",
+      "loading": "Loading vessel details..."
     },
     "logs": {
       "title": "Logbook Journal",
@@ -56,6 +63,39 @@
       "loading": "Loading logbooks...",
       "status_synced": "Synced",
       "status_local": "Local Cache Only"
+    },
+    "crew": {
+      "title": "Skipper & Crew Profiles",
+      "skipper_section": "Skipper Profile",
+      "crew_section": "Crew List",
+      "add_crew": "Add Crew Member",
+      "edit_crew": "Edit Crew Member",
+      "no_crew": "No crew members added yet.",
+      "max_crew": "Maximum of 5 crew members reached.",
+      "name": "Full Name",
+      "address": "Address",
+      "birthdate": "Date of Birth",
+      "phone": "Phone Number",
+      "nationality": "Nationality",
+      "passport": "Passport / ID Number",
+      "bloodtype": "Blood Type",
+      "allergies": "Allergies",
+      "diseases": "Medical Conditions / Diseases",
+      "save": "Save Skipper Data",
+      "save_member": "Save Member",
+      "saved": "Skipper profile saved successfully!",
+      "loading": "Loading crew files...",
+      "delete_confirm": "Are you sure you want to remove this crew member?"
+    },
+    "deviation": {
+      "title": "Compass Deviation Table",
+      "subtitle": "Calibrate magnetic compass headings (MgK) from 000° to 360° in 10° steps.",
+      "heading": "MgK",
+      "deviation": "Deviation",
+      "save": "Save Calibration Grid",
+      "saving": "Saving...",
+      "saved": "Calibration grid saved successfully!",
+      "loading": "Loading calibration table..."
     }
   }
 }

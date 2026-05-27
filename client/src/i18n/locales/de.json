@@ -33,8 +33,15 @@
       "name": "Yachtname",
       "port": "Heimathafen",
       "owner": "Eigner",
+      "charter": "Charterfirma",
+      "registration": "Kennzeichen/Zulassungsnummer",
       "callsign": "Funk-Rufzeichen",
-      "mmsi": "MMSI-Nr"
+      "atis": "ATIS-Nr",
+      "mmsi": "MMSI-Nr",
+      "save": "Schiffsdaten speichern",
+      "saving": "Wird gespeichert...",
+      "saved": "Schiffsdaten erfolgreich gespeichert!",
+      "loading": "Schiffsdaten werden geladen..."
     },
     "logs": {
       "title": "Logbuch-Journal",
@@ -56,6 +63,39 @@
       "loading": "Logbücher werden geladen...",
       "status_synced": "Synchronisiert",
       "status_local": "Nur lokaler Cache"
+    },
+    "crew": {
+      "title": "Skipper- & Crew-Profile",
+      "skipper_section": "Skipper-Profil",
+      "crew_section": "Crew-Liste",
+      "add_crew": "Crew-Mitglied hinzufügen",
+      "edit_crew": "Crew-Mitglied bearbeiten",
+      "no_crew": "Noch keine Crew-Mitglieder hinzugefügt.",
+      "max_crew": "Maximale Anzahl von 5 Crew-Mitgliedern erreicht.",
+      "name": "Name",
+      "address": "Anschrift",
+      "birthdate": "Geburtstag",
+      "phone": "Telefonnummer",
+      "nationality": "Nationalität",
+      "passport": "Pass- / Ausweisnummer",
+      "bloodtype": "Blutgruppe",
+      "allergies": "Allergien",
+      "diseases": "Vorerkrankungen / Krankheiten",
+      "save": "Skipper-Daten speichern",
+      "save_member": "Mitglied speichern",
+      "saved": "Skipper-Profil erfolgreich gespeichert!",
+      "loading": "Crew-Dateien werden geladen...",
+      "delete_confirm": "Sind Sie sicher, dass Sie dieses Crew-Mitglied entfernen möchten?"
+    },
+    "deviation": {
+      "title": "Ablenkungstabelle (Compass Deviation)",
+      "subtitle": "Tragen Sie die Magnetkompass-Ablenkung (Abl.) für Kurse (MgK) von 000° bis 360° in 10°-Schritten ein.",
+      "heading": "MgK",
+      "deviation": "Ablenkung",
+      "save": "Kalibrierungsgitter speichern",
+      "saving": "Wird gespeichert...",
+      "saved": "Kalibrierungsgitter erfolgreich gespeichert!",
+      "loading": "Kalibrierungstabelle wird geladen..."
     }
   }
 }
