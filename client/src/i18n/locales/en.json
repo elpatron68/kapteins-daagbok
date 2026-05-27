@@ -1,0 +1,49 @@
+{
+  "translation": {
+    "app": {
+      "name": "Kapteins Daagbox",
+      "tagline": "Private Yacht Logbook"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "vessel": "Vessel Profile",
+      "crew": "Crew List",
+      "deviation": "Deviation Table",
+      "logs": "Logbook Entries",
+      "settings": "Settings"
+    },
+    "auth": {
+      "welcome": "Welcome to Kapteins Daagbox",
+      "tagline": "Secure, E2E encrypted maritime logbook.",
+      "register": "Register with Passkey",
+      "login": "Login with Passkey",
+      "recovery_title": "Your Recovery Phrase",
+      "recovery_warning": "IMPORTANT: Write down these 12 words. If you lose your Passkey and these words, your data cannot be recovered.",
+      "confirm_recovery": "I have written down the recovery phrase",
+      "status_logged_in": "Logged in",
+      "status_logged_out": "Logged out"
+    },
+    "sync": {
+      "status_synced": "Synced",
+      "status_offline": "Offline Cache",
+      "status_unsynced": "Unsynced changes"
+    },
+    "vessel": {
+      "title": "Vessel Master Data",
+      "name": "Yacht Name",
+      "port": "Home Port",
+      "owner": "Owner",
+      "callsign": "Call Sign",
+      "mmsi": "MMSI Number"
+    },
+    "logs": {
+      "title": "Logbook Journal",
+      "new_entry": "New Log Entry",
+      "date": "Date",
+      "route": "Route",
+      "coordinates": "Coordinates",
+      "weather": "Weather Conditions",
+      "save": "Save Entry"
+    }
+  }
+}

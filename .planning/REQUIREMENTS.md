@@ -1,7 +1,7 @@
 # Requirements: Kapteins Daagbox
 
 **Defined:** 2026-05-26
-**Core Value:** A private, offline-first mobile ship's logbook that stores all data locally, offering GPS/weather assistance and easy CSV sharing.
+**Core Value:** A private, offline-first mobile ship's logbook that stores E2E encrypted data on a server with local caching, supporting passwordless Passkeys and multiple logbooks.
 
 ## v1 Requirements
 
@@ -33,9 +33,19 @@ These requirements represent the core scope for the initial release.
 - [ ] **INT-02**: Settings panel to store and save custom OpenWeatherMap API keys locally in the browser (LocalStorage).
 - [ ] **INT-03**: Weather pre-fill function invoking OpenWeatherMap API using coordinates to auto-populate wind, pressure, and weather state (when online).
 
+### Authentication & Multi-Logbook (AUTH)
+- [ ] **AUTH-01**: Passwordless user registration and login via Passkeys (WebAuthn).
+- [ ] **AUTH-02**: Creating, renaming, and deleting multiple logbooks per user.
+- [ ] **AUTH-03**: Switching active logbooks in the UI, re-loading stored cache.
+
+### Cryptography (CRYPTO)
+- [ ] **CRYPTO-01**: Client-side encryption of vessel profiles, crew files, deviation tables, and log entries using AES-GCM-256 before syncing.
+- [ ] **CRYPTO-02**: Derivation of the primary E2E symmetric key using WebAuthn PRF (Pseudo-Random Function) extension, with a 12-word recovery phrase fallback.
+- [ ] **CRYPTO-03**: Secure local persistence of derived E2E key in the browser (e.g. encrypted in memory or standard session context, not plain LocalStorage).
+
 ### System & Offline (SYS)
 - [ ] **SYS-01**: Service worker installation caching all assets (HTML, CSS, JS, Fonts) to allow complete offline launch.
-- [ ] **SYS-02**: 100% Client-side data storage in IndexedDB (Dexie) with no cloud backup or central server sync.
+- [ ] **SYS-02**: Local-first caching in IndexedDB (Dexie) syncing securely with E2E encrypted server storage.
 - [ ] **SYS-03**: Client-side CSV generation converting log entries into download-ready CSV files.
 - [ ] **SYS-04**: File sharing triggering browser Web Share API or custom email protocols with the CSV data.
 
@@ -54,9 +64,8 @@ These requirements are deferred to future milestones.
 
 | Feature | Reason |
 |---------|--------|
-| Cloud synchronization / DB backup | Violates local-only privacy constraint. |
-| Skipper/Crew social sharing profiles | Excluded to keep app purely local and private. |
-| Global registration/auth system | Focus is on zero-registration instant access. |
+| Plaintext server storage / backend processing | Excluded by design to enforce absolute privacy. |
+| Skipper/Crew social sharing profiles | Excluded to keep app purely private. |
 
 ## Traceability
 
@@ -65,11 +74,11 @@ These requirements are deferred to future milestones.
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 1 | Pending |
 | UI-03 | Phase 1 | Pending |
-| VESSEL-01 | Phase 2 | Pending |
-| VESSEL-02 | Phase 2 | Pending |
-| VESSEL-03 | Phase 2 | Pending |
-| DEV-01 | Phase 2 | Pending |
-| DEV-02 | Phase 2 | Pending |
+| VESSEL-01 | Phase 3 | Pending |
+| VESSEL-02 | Phase 3 | Pending |
+| VESSEL-03 | Phase 3 | Pending |
+| DEV-01 | Phase 3 | Pending |
+| DEV-02 | Phase 3 | Pending |
 | LOG-01 | Phase 3 | Pending |
 | LOG-02 | Phase 3 | Pending |
 | LOG-03 | Phase 3 | Pending |
@@ -78,14 +87,20 @@ These requirements are deferred to future milestones.
 | INT-01 | Phase 3 | Pending |
 | INT-02 | Phase 3 | Pending |
 | INT-03 | Phase 3 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| CRYPTO-01 | Phase 1 | Pending |
+| CRYPTO-02 | Phase 1 | Pending |
+| CRYPTO-03 | Phase 1 | Pending |
 | SYS-01 | Phase 1 | Pending |
-| SYS-02 | Phase 1 | Pending |
+| SYS-02 | Phase 2 | Pending |
 | SYS-03 | Phase 4 | Pending |
 | SYS-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
+- v1 requirements: 26 total
+- Mapped to phases: 26
 - Unmapped: 0 ✓
 
 ---

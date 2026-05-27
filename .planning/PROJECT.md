@@ -6,7 +6,7 @@ Kapteins Daagbox is a modern, mobile-first Progressive Web Application (PWA) des
 
 ## Core Value
 
-Providing a private-by-design, fully offline-capable mobile maritime logbook that respects absolute user privacy by storing data 100% locally on the device while assisting the skipper with GPS position capture and automated weather integration.
+Providing a private-by-design, fully offline-capable mobile maritime logbook that respects absolute user privacy by storing data in an end-to-end (E2E) encrypted server-side database (with local-first browser cache), while assisting the skipper with GPS position capture and automated weather integration.
 
 ## Requirements
 
@@ -22,13 +22,16 @@ Providing a private-by-design, fully offline-capable mobile maritime logbook tha
 - [ ] **LOG-01**: Logbook entry form capturing nautical/journey events
 - [ ] **LOG-02**: Automated weather and sea state pre-filling using OpenWeatherMap API
 - [ ] **LOG-03**: GPS device integration to capture current coordinates
-- [ ] **DATA-01**: Local-only storage (no cloud storage, no registration/central servers)
-- [ ] **DATA-02**: Complete offline capability to ensure usability at sea
+- [ ] **AUTH-01**: Passwordless user registration and authentication via Passkeys (WebAuthn)
+- [ ] **CRYPTO-01**: Client-side End-to-End Encryption (E2E) of all sensitive user data using Web Crypto API
+- [ ] **LOGBOOK-01**: Multi-logbook support allowing a user to manage any number of logbooks
+- [ ] **DATA-01**: Local-first database sync to zero-knowledge server storage
+- [ ] **DATA-02**: Complete offline capability to ensure usability at sea with background sync
 - [ ] **DATA-03**: CSV export of logged data for easy sharing (download, email, etc.)
 
 ### Out of Scope
 
-- **Centralized cloud storage / Server sync** — Excluded by design to ensure data privacy.
+- **Cleartext server-side storage** — Excluded by design to ensure absolute data privacy.
 - **Social sharing or community features** — Focus is purely on private logbook management.
 
 ## Context
@@ -39,16 +42,18 @@ Providing a private-by-design, fully offline-capable mobile maritime logbook tha
 
 ## Constraints
 
-- **Storage**: Must be stored exclusively client-side (IndexedDB / LocalStorage / Origin Private File System).
-- **Privacy**: No external telemetry or cloud database connections.
-- **Offline**: The app must load and operate fully without internet access (using Service Workers).
+- **Storage**: Client-side IndexedDB for offline-first caching, synced with an end-to-end (E2E) encrypted server database.
+- **Privacy**: Zero-knowledge architecture. No unencrypted user data on the server; no external telemetry.
+- **Offline**: The app must load and operate fully without internet access (using Service Workers), caching operations to sync later.
 - **Languages**: German and English.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Local-Only Storage | Absolute privacy requirement | — Pending |
+| E2E Server Sync | Allows multi-device access and backup while retaining zero-knowledge privacy | — Pending |
+| Passkey Auth | Passwordless, highly secure login using standard WebAuthn | — Pending |
+| Multi-Logbook Setup | Supports skippers managing multiple boats/journeys | — Pending |
 | PWA Architecture | Ensures cross-platform installation on iOS/Android without App Store overhead | — Pending |
 
 ## Evolution

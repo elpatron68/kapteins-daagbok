@@ -21,9 +21,12 @@
 - **OpenWeatherMap Integration**: Automatically query and pre-fill wind direction/strength, pressure, and weather state based on geographical coordinates.
 - **GPS Coordinates Capture**: Fetch current latitude/longitude via device GPS and pre-fill coordinates into log entries.
 
-### 4. Data Management & Privacy
-- **Local Database (IndexedDB)**: Direct database queries and local storage in browser sandbox.
-- **CSV Data Export**: Generate and download formatted CSV logbooks directly, or trigger local email/message sharing.
+### 4. Data Management, Auth & Cryptography
+- **Passkey Accounts (WebAuthn)**: Passwordless user registration and login using device authenticators (biometrics, secure keys).
+- **Client-Side E2E Cryptography**: Transparent client-side AES-GCM-256 encryption. WebAuthn PRF and BIP39 recovery word helpers for zero-knowledge key derivation.
+- **Multi-Logbook Manager**: Dashboard interface allowing skippers to create and switch between multiple ship logbooks under one account.
+- **Offline-First Synchronization**: Sync local changes (IndexedDB cache) to remote PostgreSQL via transaction logs and delta packet exchanges, offering conflict resolution markers.
+- **CSV Data Export**: Generate and download unencrypted CSV logbooks compiled on-the-fly client-side (after decrypting entries), or trigger local email/message sharing.
 - **Offline Assets & Service Worker**: Cache all HTML, JS, CSS, and assets so the application runs completely disconnected.
 
 ## Feature Scoping: Table Stakes vs Differentiators
@@ -34,8 +37,11 @@
 | Crew Registry | Stammdaten | Table Stake | Low | Up to 6 profiles, standard fields. |
 | Logbook Form | Logbuch | Table Stake | Medium | Complex form containing wind, course, and sails. |
 | Deviation Table | Stammdaten | Table Stake | Low | Grid mapping MgK to Abl. |
-| CSV Export | Data | Table Stake | Medium | Client-side CSV generation and download trigger. |
-| Local Storage | Data | Table Stake | Medium | IndexedDB schema setup and migration. |
+| CSV Export | Data | Table Stake | Medium | Client-side decryption and CSV download trigger. |
+| Passkey Auth | Auth | Table Stake | Medium | WebAuthn biometrics setup (SimpleWebAuthn). |
+| E2E Cryptography | Crypto | Table Stake | High | Web Crypto API, PRF derivation & recovery fallback. |
+| Sync Manager | Data | Table Stake | High | Local queue processing, background pushes, conflict management. |
+| Multi-Logbook UI | UI | Table Stake | Medium | Dashboard to create, delete, and switch logbooks. |
 | Offline PWA | System | Table Stake | Medium | Service Worker configuration. |
 | GPS Fetching | Assistance | Differentiator | Low | HTML5 Geolocation API integration. |
 | OpenWeather API | Assistance | Differentiator | Medium | Needs API key, coordinates, and fallback for offline. |
@@ -43,9 +49,9 @@
 
 ## Anti-Features (Do Not Build)
 
-- **Cloud DB Sync**: Violates local-only privacy constraint.
-- **Central User Login / Registration**: No remote accounts; the app is immediately active upon loading.
-- **Remote Sharing Server**: Logbook files must be exported directly from the device (CSV download or local email handler).
+- **Cleartext Server-Side Storage / Sync**: The server must never store unencrypted vessel, crew, deviation, or journal entry data.
+- **Classic Username / Password Login**: Passwords introduce security risks and weak encryption bases. Enforce biometric/hardware Passkeys (WebAuthn) instead.
+- **Server-Side Data Analytics**: The backend has zero visibility into user logs, avoiding tracking.
 
 ## Dependencies & Risk Analysis
 

@@ -1,0 +1,90 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          String       @id @default(uuid())
+  username    String       @unique
+  createdAt   DateTime     @default(now())
+  credentials Credential[]
+  logbooks    Logbook[]
+}
+
+model Credential {
+  id           String   @id @default(uuid())
+  userId       String
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt
+  transports   String[] // WebAuthn transports list
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Logbook {
+  id             String             @id @default(uuid())
+  userId         String
+  encryptedTitle String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yachts         YachtPayload[]
+  crews          CrewPayload[]
+  deviations     DeviationPayload[]
+  entries        EntryPayload[]
+
+  @@index([userId])
+}
+
+model YachtPayload {
+  id            String   @id @default(uuid())
+  logbookId     String   @unique
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+}
+
+model CrewPayload {
+  id            String   @id @default(uuid())
+  logbookId     String
+  payloadId     String
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+
+  @@unique([logbookId, payloadId])
+}
+
+model DeviationPayload {
+  id            String   @id @default(uuid())
+  logbookId     String   @unique
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+}
+
+model EntryPayload {
+  id            String   @id @default(uuid())
+  logbookId     String
+  payloadId     String
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+
+  @@unique([logbookId, payloadId])
+  @@index([logbookId])
+}

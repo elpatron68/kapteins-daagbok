@@ -4,36 +4,36 @@
 
 See: .planning/PROJECT.md (updated 2026-05-26)
 
-**Core value:** A private, offline-first mobile ship's logbook that stores all data locally, offering GPS/weather assistance and easy CSV sharing.
-**Current focus:** Phase 1: Foundation & Data Infrastructure
+**Core value:** A private, offline-first mobile ship's logbook that stores E2E encrypted data on a server with local caching, supporting passwordless Passkeys and multiple logbooks.
+**Current focus:** Phase 1: Foundation, Auth & E2E Crypto
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation & Data Infrastructure)
-Plan: 1 of 2 in current phase
+Phase: 1 of 4 (Foundation, Auth & E2E Crypto)
+Plan: 2 of 3 in current phase
 Status: Ready to plan
-Last activity: 2026-05-26 — Project initialized
+Last activity: 2026-05-27 — Plan 01-01 executed (Monorepo codebase, Vite React client, Express server, Prisma schema setup)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: 0 min
-- Total execution time: 0.0 hours
+- Total plans completed: 1
+- Average duration: 15 min
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation & Data Infrastructure | 0/2 | - | - |
-| 2. Master Data Management | 0/2 | - | - |
-| 3. Logbook Entries & Integration | 0/2 | - | - |
+| 1. Foundation, Auth & E2E Crypto | 1/3 | - | - |
+| 2. Sync Protocol & Multi-Logbooks | 0/2 | - | - |
+| 3. Master Data & Log entries | 0/3 | - | - |
 | 4. CSV Export & UI Polish | 0/2 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: []
+- Last 5 plans: [01-01]
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -45,7 +45,9 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Init]: Local-Only Storage — IndexedDB selected to satisfy absolute privacy constraints.
+- [Init]: E2E Server Sync — Allows multi-device access and backup while retaining zero-knowledge privacy.
+- [Init]: Passkey Auth — Passwordless, highly secure login using standard WebAuthn.
+- [Init]: Multi-Logbook Setup — Supports skippers managing multiple boats/journeys.
 - [Init]: PWA Architecture — React PWA selected for fast, lightweight loading and cross-platform installation.
 
 ### Pending Todos

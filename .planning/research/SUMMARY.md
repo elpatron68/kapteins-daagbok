@@ -7,90 +7,86 @@
 
 ## Executive Summary
 
-Kapteins Daagbox is an offline-first PWA that serves as a digital ship's logbook for private yachts. It places a primary emphasis on complete data privacy by storing all yacht, crew, and journal entries entirely local to the user's browser database (IndexedDB). 
+Kapteins Daagbox is an offline-first PWA synced with a zero-knowledge backend server, serving as a secure digital ship's logbook for private yachts. It guarantees data privacy via client-side End-to-End Encryption (E2E), ensuring the server only stores encrypted payloads.
 
-The recommended approach uses **Vite + React + TypeScript + Dexie.js + TailwindCSS**, which guarantees a lightweight bundle that loads quickly on low-bandwidth mobile connections at sea. The app incorporates browser Geolocation APIs for automatic GPS coordinate capture and integrates with OpenWeatherMap for sea/weather pre-filling.
+The recommended stack features a **React + TS + Vite** frontend, a **Node.js Express + Prisma + PostgreSQL** backend, **Dexie.js** for local caching, and **WebAuthn** for passwordless Passkey login. E2E key derivation uses biometric/hardware PRF input or a 12-word recovery phrase.
 
-Key risks include data loss due to OS storage reclamation policies (particularly on iOS Safari) and API timeouts when connections fail. These are mitigated by instructing the user to install the app as a PWA on their Home Screen, enabling persistent storage APIs, and using local draft autosaving along with regular CSV backups.
+Key risks include loss of client-side encryption keys (causing unrecoverable server data), browser compatibility with WebAuthn, and concurrent offline synchronization conflicts. These are mitigated by a mandatory recovery phrase verification on registration, using standard security key fallbacks, and applying Last-Write-Wins timestamps to sync packets.
 
 ## Key Findings
 
 ### Recommended Stack
 
-We recommend React with Vite and TypeScript for fast rendering and development. [STACK.md](STACK.md) details the tools and configurations.
+We recommend a React with Vite client paired with a Node.js + Express backend using Prisma and PostgreSQL. [STACK.md](STACK.md) details the configurations.
 
 **Core technologies:**
-- **React + TS + Vite**: Builds a fast, responsive mobile app compiled to lightweight static assets.
-- **Dexie.js (IndexedDB)**: An asynchronous, robust client-side database with reactive binding for UI state management.
-- **vite-plugin-pwa (Workbox)**: Configures offline asset caching, service worker hooks, and updates.
-- **react-i18next**: Handles German/English localizations and browser language auto-detection.
+- **React + TS + Vite / Node.js Express**: Full-stack TypeScript environment.
+- **PostgreSQL & Prisma**: Backend storage for user credentials and encrypted payloads.
+- **Dexie.js (IndexedDB)**: Client-side local transaction cache.
+- **WebAuthn (@simplewebauthn)**: Passkey integration for passwordless logins.
+- **Web Crypto API**: High-performance, browser-native client encryption.
 
 ### Expected Features
 
 Detailed scoping is tracked in [FEATURES.md](FEATURES.md).
 
 **Must have (table stakes):**
-- **Vessel Profile & Crew Registry**: Stammdaten forms capturing yacht specifications and up to 6 crew records.
-- **Steuertafel (Deviation table)**: Grid aligning compass headings with magnetic deviation.
-- **Logbook Forms**: Rich fields capturing journey details, course, wind, sails, sea state, and daily fuel/water checks.
-- **Local Database & Offline Capability**: Persistent client-side storage and offline asset availability.
-- **CSV Data Export**: Generating and downloading logs in standard CSV format.
+- **Passkey Auth & E2E Encryption**: Biometric user onboarding and client-side AES-GCM data encryption.
+- **Multi-Logbook Manager**: Dashboard UI to manage and switch between multiple ship logbooks.
+- **Stammdaten Forms**: Yacht profile, skipper/crew profiles, and Deviation grids.
+- **Sync Protocol**: Local-first caching synced securely to PostgreSQL payloads.
+- **CSV Data Export**: Decrypted on-the-fly client-side CSV downloads.
 
 **Should have (differentiators):**
-- **GPS Pre-filling**: Instant fetch of coordinates via browser Geolocation.
-- **Weather API Integration**: Prefill coordinates' weather and wind parameters via OpenWeatherMap.
-- **Adaptive OS UI**: CSS themes styled to blend with Android Material or iOS Cupertino designs.
+- **GPS & Weather Integration**: Browser Geolocation API and OpenWeatherMap lookup with offline fallbacks.
+- **Adaptive OS UI**: Platforms adaptive Cupertino (iOS) and Material (Android) themes.
 
 ### Architecture Approach
 
 Detailed in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Major components:**
-1. **IndexedDB (Dexie)**: Structured database tables for yacht metadata, crew, compass deviations, and logbook entries.
-2. **App Shell UI**: A single-page layout with responsive page navigation, form views, and a storage status check.
-3. **Application Services**: Isolated logic handlers for GPS acquisition, OpenWeather API requests, translation bundles, and CSV builders.
-4. **Service Worker Cache**: Local static asset container ensuring immediate PWA load times.
+- **Zero-Knowledge Backend**: Handles Passkey verification and stores E2E encrypted string blocks without access to user keys.
+- **IndexedDB Caching Layer**: Local cache database holding encrypted versions of active logbooks and syncQueue.
+- **E2E Cryptographic Service**: Web Crypto utilities implementing PRF-derived keys and BIP39 fallback phrases.
+- **Offline PWA Shell**: Service worker caching front-end assets for offline launch.
 
 ### Critical Pitfalls
 
 Mitigation steps are outlined in [PITFALLS.md](PITFALLS.md).
 
-1. **iOS Safari Storage Purge**: Safely bypassed by adding instructions for PWA installation (preventing Safari's 7-day inactivity purge) and requesting persistent storage.
-2. **Offline Weather API Timeouts**: Resolved by checking connection status and setting a strict 5-second timeout on requests.
-3. **GPS Fetch Delays**: Mitigated by setting high-accuracy timeouts, validating precision, and offering full manual entry.
-4. **SW Caching Stale Updates**: Handled by adding update prompts instead of automatic service worker overrides.
+1. **E2E Key Recovery Loss**: Force recovery phrase validation during sign-up to prevent permanent data loss.
+2. **WebAuthn Compatibility**: Check authenticator status and fallback to hardware security keys.
+3. **Offline Sync Conflicts**: Utilize transaction logs, last-write-wins rules, and append-only entries with merge warnings.
+4. **Offline Weather/GPS Timeouts**: Set 5-second weather fetch timeouts and 10-second GPS lock limits.
 
 ## Implications for Roadmap
 
-Based on research and dependencies, we suggest a 4-phase rollout:
+Based on research and dependencies, we suggest a revised 4-phase rollout:
 
-### Phase 1: Foundation & Data Infrastructure
-- **Rationale**: Setting up the development bundle, service worker, and local database first ensures all subsequent screens can read/write data in real-time.
-- **Delivers**: PWA shell, Dexie DB database models, and English/German language configuration.
-- **Addresses**: DATA-01 (Local storage), DATA-02 (Offline), GEN-02 (Multilingual).
-- **Avoids**: Service worker stale caching updates (set up correctly at the beginning).
+### Phase 1: Foundation, Auth & E2E Crypto
+- **Rationale**: Creating the client PWA and Express backend repositories first allows building the core security boundary (Passkeys and Web Crypto key derivation) before handling user data.
+- **Delivers**: Node backend, Prisma schema, WebAuthn options endpoints, and Web Crypto PRF/recovery helpers.
+- **Addresses**: AUTH-01 (Passkeys), CRYPTO-01/02/03 (E2E encryption), UI-02/03 (Languages).
 
-### Phase 2: Vessel & Crew Management (Stammdaten)
-- **Rationale**: Master data must be created before a skipper can log a journey.
-- **Delivers**: Vessel specifications form, Crew lists management, and the Compass Deviation Grid.
-- **Addresses**: MASTER-01 (Vessel/Crew data), Steuertafel.
-- **Uses**: Dexie tables for yacht, crew, and deviation.
+### Phase 2: Sync Protocol & Multi-Logbooks
+- **Rationale**: Developing the caching database, sync protocol, and multi-logbook views next ensures all subsequent UI features sync automatically in the background.
+- **Delivers**: Multi-logbook dashboards, Local IndexedDB cache tables, and synchronization transaction queue API.
+- **Addresses**: AUTH-02/03 (Multi-logbooks), SYS-02 (Local-first sync).
 
-### Phase 3: Logbook Entries & Integration
-- **Rationale**: Core logbook entries require the vessel profile and deviation calculations defined in Phase 2.
-- **Delivers**: Log list, log entry form with weather/sea/sail selectors, GPS position pre-fill, and OpenWeather API hook.
-- **Addresses**: LOG-01 (Forms), LOG-02 (Weather), LOG-03 (GPS).
-- **Avoids**: GPS fetch delays and offline API hangs (using timeouts and fallbacks).
+### Phase 3: Master Data & Log entries
+- **Rationale**: The UI forms can now read/write securely from the E2E-encrypted sync layer built in Phase 2.
+- **Delivers**: Yacht forms, Crew lists, deviation grids, and journal entry records synced to the database.
+- **Addresses**: VESSEL-01/02/03 (Boat/crew profiles), DEV-01/02 (Deviation grid), LOG-01/02/03/04/05 (Journal logs), INT-01/02/03 (GPS & Weather).
 
-### Phase 4: Data Export & UI Polish
-- **Rationale**: Finalizing data portability and polishing visual alignment.
-- **Delivers**: CSV export, local mail/share handlers, storage persistence checks, and iOS/Android adaptive themes.
-- **Addresses**: DATA-03 (CSV Export), GEN-01 (Mobile-first adaptive UI).
-- **Avoids**: iOS storage purges (by implementing persistent storage requests and PWA install warnings).
+### Phase 4: CSV Export & UI Polish
+- **Rationale**: Compiling exports and polishing OS-native layouts completes the user cycle.
+- **Delivers**: Client-side decryption CSV builder, sync progress indicators, and Material/Cupertino styles.
+- **Addresses**: SYS-03/04 (CSV Share/Export), UI-01 (Adaptive UI layout).
 
 ### Phase Ordering Rationale
 
-The suggested order establishes database schemas first, followed by static profiles, dynamic transaction forms, and finally export utilities. This minimizes developer friction by ensuring database queries can be fully tested in mock views before building the complex logbook interface.
+The suggested order establishes the backend server and cryptographic vault first. Next, it handles multi-logbook syncing so that when the master forms and log entries are coded in Phase 3, they plug immediately into a working, encrypted offline sync pipeline.
 
 ### Research Flags
 
@@ -101,22 +97,24 @@ The suggested order establishes database schemas first, followed by static profi
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Vite React TS is standard for offline PWAs. Dexie is well-maintained and reliable. |
-| Features | HIGH | Extracted directly from official PDF example logbook layout. |
-| Architecture | HIGH | Standard client-side-only architecture without server dependencies. |
-| Pitfalls | HIGH | Service worker caching and iOS storage limits are thoroughly documented in developer circles. |
+| Stack | HIGH | Express, Prisma, Postgres, and Dexie are highly reliable. SimpleWebAuthn makes Passkey integration straightforward. |
+| Features | HIGH | Expanded requirements map directly to nautical guidelines while preserving user ownership. |
+| Architecture | HIGH | Hybrid client-side E2E zero-knowledge design has been proven by services like Proton. |
+| Pitfalls | HIGH | Identified key recovery and offline sync conflict risks early with mitigation strategies. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **OpenWeatherMap API Key**: The app requires an API key. We will implement a setting allowing users to provide their own OpenWeatherMap API key (saved in LocalStorage) so that the app remains open-source, client-side, and avoids developer key exposure.
+- **OpenWeatherMap API Key**: Stored client-side in LocalStorage to avoid server exposure or leakage of developer keys.
+- **Database Hosting**: Will require configuring a PostgreSQL instance (e.g. Docker container locally or cloud host for production).
 
 ## Sources
 
 - [Vite PWA Docs](https://vite-pwa-org.netlify.app/)
 - [Dexie.js Documentation](https://dexie.org/)
-- [Apple WebKit Storage Guidelines](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/)
+- [WebAuthn Specification & SimpleWebAuthn Docs](https://webauthn.guide/)
+- [Web Crypto API Reference (W3C)](https://www.w3.org/TR/WebCryptoAPI/)
 
 ---
 *Research completed: 2026-05-26*

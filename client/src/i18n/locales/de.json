@@ -1,0 +1,49 @@
+{
+  "translation": {
+    "app": {
+      "name": "Kapteins Daagbox",
+      "tagline": "Privates Yacht-Logbuch"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "vessel": "Schiffsdaten",
+      "crew": "Crew-Liste",
+      "deviation": "Ablenkungstabelle",
+      "logs": "Logbucheinträge",
+      "settings": "Einstellungen"
+    },
+    "auth": {
+      "welcome": "Willkommen bei Kapteins Daagbox",
+      "tagline": "Sicheres, E2E-verschlüsseltes maritimes Logbuch.",
+      "register": "Mit Passkey registrieren",
+      "login": "Mit Passkey anmelden",
+      "recovery_title": "Ihr Wiederherstellungsschlüssel",
+      "recovery_warning": "WICHTIG: Schreiben Sie diese 12 Wörter auf. Wenn Sie Ihren Passkey und diese Wörter verlieren, können Ihre Daten nicht wiederhergestellt werden.",
+      "confirm_recovery": "Ich habe die Wörter aufgeschrieben",
+      "status_logged_in": "Angemeldet",
+      "status_logged_out": "Abgemeldet"
+    },
+    "sync": {
+      "status_synced": "Synchronisiert",
+      "status_offline": "Offline-Cache",
+      "status_unsynced": "Unsynchronisierte Änderungen"
+    },
+    "vessel": {
+      "title": "Schiffs-Stammdaten",
+      "name": "Yachtname",
+      "port": "Heimathafen",
+      "owner": "Eigner",
+      "callsign": "Funk-Rufzeichen",
+      "mmsi": "MMSI-Nr"
+    },
+    "logs": {
+      "title": "Logbuch-Journal",
+      "new_entry": "Neuer Eintrag",
+      "date": "Datum",
+      "route": "Reise von/nach",
+      "coordinates": "Koordinaten",
+      "weather": "Wetterbedingungen",
+      "save": "Eintrag speichern"
+    }
+  }
+}

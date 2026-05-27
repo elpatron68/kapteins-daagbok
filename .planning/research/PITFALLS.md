@@ -47,6 +47,29 @@
   - Implement an auto-save mechanism that writes the active form draft to IndexedDB (or LocalStorage) every 10 seconds.
   - On launching the logbook entry form, check if a draft exists and offer to restore it.
 
+### 6. Passkey Authenticator Compatibility & WebAuthn Limitations
+- **Problem**: Biometric hardware/WebAuthn APIs might be restricted on legacy operating systems, specific Android skins, or in private/incognito browsing windows.
+- **Warning Signs**: Browser throws authentication errors or `navigator.credentials` returns undefined.
+- **Prevention Strategy**:
+  - Check `PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()` on onboarding.
+  - Inform the user of browser/device capability limitations and recommend updating their system.
+  - Fall back cleanly to hardware USB security keys if biometrics fail.
+
+### 7. Permanent Data Loss due to E2E Encryption Key Loss
+- **Problem**: In a zero-knowledge architecture, the server does not store plaintext passwords or master keys. If the user registers a Passkey, loses their device, and loses their 12-word recovery phrase, the server cannot recover their logbooks.
+- **Warning Signs**: Skipper logs out or switches devices and cannot decrypt downloaded database chunks.
+- **Prevention Strategy**:
+  - Enforce a mandatory recovery phrase validation step (e.g. asking the user to re-enter words 3, 7, and 11) during sign-up.
+  - Display clear warnings in the settings dashboard about the zero-knowledge nature of the server.
+
+### 8. Concurrent Sync Conflicts from Offline Edits
+- **Problem**: Skipper modifies a logbook entry or crew member on device A (phone) and device B (tablet) while both are offline at sea. Upon re-establishing internet, conflicting updates are pushed to the server.
+- **Warning Signs**: Data edits are silently overwritten or entries become duplicated/corrupted.
+- **Prevention Strategy**:
+  - Use atomic delta packages containing object timestamps.
+  - Apply Last-Write-Wins (LWW) strategy on standard field updates based on local timestamps.
+  - For journal entry splits, append logs chronologically instead of overwriting, and flag conflict states to the user for manual merge.
+
 ---
 *Pitfalls research for: Kapteins Daagbox PWA*
-*Researched: 2026-05-26*
+*Researched: 2026-05-26 (Updated 2026-05-27)*
