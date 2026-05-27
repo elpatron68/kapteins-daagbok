@@ -30,7 +30,7 @@ Kapteins Daagbox will be built in four logical phases following a clean data-to-
 Plans:
 - [x] 01-01: Initialize Vite React TS client, Node.js Express TS server, Prisma PostgreSQL schema, and react-i18next locales.
 - [x] 01-02: Implement WebAuthn backend/frontend flows using SimpleWebAuthn library to register and log in users.
-- [ ] 01-03: Setup client-side Web Crypto helper deriving E2E keys from biometric PRF credentials or a 12-word recovery phrase.
+- [x] 01-03: Setup client-side Web Crypto helper deriving E2E keys from biometric PRF credentials or a 12-word recovery phrase.
 
 ### Phase 2: Sync Protocol & Multi-Logbooks
 **Goal**: Setup the offline-first IndexedDB database caching, multiple logbooks CRUD API, and background synchronization/conflict protocol.
@@ -82,7 +82,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Auth & E2E Crypto | 2/3 | In progress | - |
+| 1. Foundation, Auth & E2E Crypto | 3/3 | Completed | 2026-05-27 |
 | 2. Sync Protocol & Multi-Logbooks | 0/2 | Not started | - |
 | 3. Master Data & Log entries | 0/3 | Not started | - |
 | 4. CSV Export & UI Polish | 0/2 | Not started | - |
