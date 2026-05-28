@@ -152,6 +152,41 @@ router.post('/push', async (req: any, res) => {
               update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
             })
           }
+        } else if (type === 'photo') {
+          if (action === 'delete') {
+            await prisma.photoPayload.deleteMany({ where: { logbookId, payloadId } })
+          } else {
+            const existing = await prisma.photoPayload.findUnique({
+              where: { logbookId_payloadId: { logbookId, payloadId } }
+            })
+            if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+              results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+              continue
+            }
+            const entryId = parsed.entryId || ''
+            await prisma.photoPayload.upsert({
+              where: { logbookId_payloadId: { logbookId, payloadId } },
+              create: { logbookId, payloadId, entryId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
+              update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+            })
+          }
+        } else if (type === 'gpsTrack') {
+          if (action === 'delete') {
+            await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
+          } else {
+            const existing = await prisma.gpsTrackPayload.findUnique({
+              where: { entryId: payloadId }
+            })
+            if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+              results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+              continue
+            }
+            await prisma.gpsTrackPayload.upsert({
+              where: { entryId: payloadId },
+              create: { logbookId, entryId: payloadId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
+              update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+            })
+          }
         }
 
         results.push({ payloadId, status: 'success' })
@@ -193,12 +228,16 @@ router.get('/pull', async (req: any, res) => {
     const deviation = await prisma.deviationPayload.findUnique({ where: { logbookId } })
     const crews = await prisma.crewPayload.findMany({ where: { logbookId } })
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
+    const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
+    const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
 
     return res.json({
       yacht,
       deviation,
       crews,
-      entries
+      entries,
+      photos,
+      gpsTracks
     })
   } catch (error: any) {
     console.error('Error during sync pull:', error)

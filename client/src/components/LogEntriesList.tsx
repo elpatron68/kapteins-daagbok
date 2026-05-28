@@ -5,6 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { decryptJson, encryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
+import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
 
@@ -105,6 +106,20 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
         console.error('Failed to share CSV:', err)
         setError(err.message || 'Failed to share CSV export.')
       }
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDownloadPdf = async (entryId: string, date: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setExporting(true)
+    setError(null)
+    try {
+      await downloadLogbookPagePdf(logbookId, entryId, date)
+    } catch (err: any) {
+      console.error('Failed to download PDF:', err)
+      setError(err.message || 'Failed to generate PDF export.')
     } finally {
       setExporting(false)
     }
@@ -268,6 +283,10 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
                   </span>
                 </div>
               </div>
+
+              <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
+                <Download size={18} />
+              </button>
 
               <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
                 <Trash2 size={18} />

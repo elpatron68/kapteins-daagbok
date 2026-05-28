@@ -44,6 +44,8 @@ model Logbook {
   crews          CrewPayload[]
   deviations     DeviationPayload[]
   entries        EntryPayload[]
+  photos         PhotoPayload[]
+  gpsTracks      GpsTrackPayload[]
 
   @@index([userId])
 }
@@ -92,5 +94,34 @@ model EntryPayload {
   logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
 
   @@unique([logbookId, payloadId])
+  @@index([logbookId])
+}
+
+model PhotoPayload {
+  id            String   @id @default(uuid())
+  logbookId     String
+  payloadId     String
+  entryId       String
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+
+  @@unique([logbookId, payloadId])
+  @@index([logbookId])
+  @@index([entryId])
+}
+
+model GpsTrackPayload {
+  id            String   @id @default(uuid())
+  logbookId     String
+  entryId       String   @unique
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+
   @@index([logbookId])
 }

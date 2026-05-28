@@ -4,7 +4,18 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock } from 'lucide-react'
+import { downloadLogbookPagePdf } from '../services/pdfExport.js'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Play, Square, Navigation } from 'lucide-react'
+import PhotoCapture from './PhotoCapture.tsx'
+import {
+  startGpsTracking,
+  stopGpsTracking,
+  isGpsTrackingActive,
+  getDecryptedGpsTrack,
+  downloadGpxFile,
+  getDistanceMeters,
+  type GpsWaypoint
+} from '../services/gpsTracker.js'
 
 interface LogEntryEditorProps {
   entryId: string
@@ -79,9 +90,15 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+
+  // GPS Tracking States
+  const [waypoints, setWaypoints] = useState<GpsWaypoint[]>([])
+  const [trackingActive, setTrackingActive] = useState(false)
+  const [tick, setTick] = useState(0)
 
   // Auto-calculate Freshwater Consumption
   useEffect(() => {
@@ -145,6 +162,84 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
     loadEntry()
   }, [entryId])
+
+  // GPS Tracking logic
+  const loadGpsTrack = async () => {
+    try {
+      const track = await getDecryptedGpsTrack(entryId)
+      setWaypoints(track)
+    } catch (e) {
+      console.warn('Failed to load GPS track:', e)
+    }
+  }
+
+  useEffect(() => {
+    loadGpsTrack()
+    setTrackingActive(isGpsTrackingActive(entryId))
+
+    const interval = setInterval(() => {
+      setTrackingActive(isGpsTrackingActive(entryId))
+      if (isGpsTrackingActive(entryId)) {
+        loadGpsTrack()
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [entryId])
+
+  useEffect(() => {
+    if (!trackingActive) return
+    const timer = setInterval(() => {
+      setTick((t) => t + 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [trackingActive])
+
+  const handleStartTracking = async () => {
+    try {
+      await startGpsTracking(logbookId, entryId, (newWp) => {
+        setWaypoints((prev) => [...prev, newWp])
+      })
+      setTrackingActive(true)
+    } catch (err: any) {
+      alert(err.message || 'Failed to start GPS tracking')
+    }
+  }
+
+  const handleStopTracking = () => {
+    stopGpsTracking()
+    setTrackingActive(false)
+    loadGpsTrack()
+  }
+
+  const calculateTotalDistanceSailed = () => {
+    if (waypoints.length < 2) return 0
+    let totalMeters = 0
+    for (let i = 1; i < waypoints.length; i++) {
+      totalMeters += getDistanceMeters(
+        waypoints[i - 1].lat,
+        waypoints[i - 1].lng,
+        waypoints[i].lat,
+        waypoints[i].lng
+      )
+    }
+    return Number((totalMeters / 1852).toFixed(2))
+  }
+
+  const calculateDurationStr = () => {
+    if (tick < 0 || waypoints.length < 2) return '00:00:00'
+    const first = waypoints[0].timestamp
+    const last = trackingActive ? Date.now() : waypoints[waypoints.length - 1].timestamp
+    const diffMs = last - first
+    if (diffMs <= 0) return '00:00:00'
+    
+    const secs = Math.floor(diffMs / 1000) % 60
+    const mins = Math.floor(diffMs / (1000 * 60)) % 60
+    const hours = Math.floor(diffMs / (1000 * 60 * 60))
+    
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(hours)}:${pad(mins)}:${pad(secs)}`
+  }
 
   const handleGetGps = () => {
     if (!navigator.geolocation) {
@@ -275,6 +370,19 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     setEvents((prev) => prev.filter((_, idx) => idx !== index))
   }
 
+  const handleDownloadPdf = async () => {
+    setExporting(true)
+    setError(null)
+    try {
+      await downloadLogbookPagePdf(logbookId, entryId, date)
+    } catch (err: any) {
+      console.error('Failed to download PDF:', err)
+      setError(err.message || 'Failed to generate PDF export.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -360,16 +468,29 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       {/* Top Header Controls */}
       <div className="form-card" style={{ paddingBottom: '20px' }}>
         <div className="section-title-bar">
-          <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
-            <ChevronLeft size={16} />
-            {t('logs.back_to_list')}
-          </button>
-          <div className="form-header" style={{ margin: 0 }}>
-            <FileText size={24} className="form-icon" />
-            <h2>
-              {t('logs.route')}: {departure || '...'} → {destination || '...'} (Tag {dayOfTravel})
-            </h2>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
+              <ChevronLeft size={16} />
+              {t('logs.back_to_list')}
+            </button>
+            <div className="form-header" style={{ margin: 0 }}>
+              <FileText size={24} className="form-icon" />
+              <h2>
+                {t('logs.route')}: {departure || '...'} → {destination || '...'} (Tag {dayOfTravel})
+              </h2>
+            </div>
           </div>
+          
+          <button 
+            type="button" 
+            className="btn secondary" 
+            onClick={handleDownloadPdf} 
+            disabled={saving || exporting} 
+            style={{ width: 'auto', padding: '8px 16px' }}
+          >
+            <Download size={16} />
+            <span>{exporting ? t('logs.exporting_pdf') : t('logs.export_pdf')}</span>
+          </button>
         </div>
       </div>
 
@@ -828,6 +949,77 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
             </button>
           </div>
         </div>
+
+        {/* GPS Tracking Dashboard */}
+        <div className="form-card">
+          <div className="form-header">
+            <Navigation size={20} className={`form-icon ${trackingActive ? 'spin' : ''}`} style={{ color: trackingActive ? '#10b981' : '#f59e0b', animationDuration: '3s' }} />
+            <h3>{t('logs.gps_tracking_title')}</h3>
+            <span className={`sync-badge ${trackingActive ? 'synced' : 'local'}`} style={{ marginLeft: 'auto', background: trackingActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', color: trackingActive ? '#10b981' : '#94a3b8' }}>
+              {trackingActive ? t('logs.gps_tracking_status_active') : t('logs.gps_tracking_status_inactive')}
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', margin: '16px 0' }}>
+            <div className="glass" style={{ padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>{t('logs.gps_tracking_stat_duration')}</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'monospace', color: '#f8fafc' }}>
+                {calculateDurationStr()}
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>{t('logs.gps_tracking_stat_distance')}</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
+                {calculateTotalDistanceSailed()} sm
+              </div>
+            </div>
+
+            <div className="glass" style={{ padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>{t('logs.gps_tracking_stat_waypoints')}</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f8fafc' }}>
+                {waypoints.length}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {!trackingActive ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={handleStartTracking}
+                style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                <Play size={16} />
+                {t('logs.gps_tracking_btn_start')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={handleStopTracking}
+                style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center', background: '#ef4444' }}
+              >
+                <Square size={16} />
+                {t('logs.gps_tracking_btn_stop')}
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => downloadGpxFile(waypoints, date)}
+              disabled={waypoints.length === 0}
+              style={{ width: 'auto', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+            >
+              <Download size={16} />
+              {t('logs.gps_tracking_btn_gpx')}
+            </button>
+          </div>
+        </div>
+
+        <PhotoCapture entryId={entryId} logbookId={logbookId} />
 
         {/* Section 4: Sign-Off Signatures */}
         <div className="form-card">

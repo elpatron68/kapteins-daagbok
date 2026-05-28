@@ -41,10 +41,30 @@ export interface LocalEntry {
   updatedAt: string
 }
 
+export interface LocalPhoto {
+  payloadId: string
+  entryId: string
+  logbookId: string
+  encryptedData: string // encrypted base64 image data
+  iv: string
+  tag: string
+  caption: string // encrypted caption
+  updatedAt: string
+}
+
+export interface LocalGpsTrack {
+  entryId: string // one track per daily journal entry
+  logbookId: string
+  encryptedData: string // encrypted waypoints JSON string
+  iv: string
+  tag: string
+  updatedAt: string
+}
+
 export interface SyncQueueItem {
   id?: number
   action: 'create' | 'update' | 'delete'
-  type: 'yacht' | 'crew' | 'deviation' | 'entry' | 'logbook'
+  type: 'yacht' | 'crew' | 'deviation' | 'entry' | 'logbook' | 'photo' | 'gpsTrack'
   payloadId: string // payloadId or logbookId depending on the type
   logbookId: string
   data: string // JSON representation of the local record
@@ -57,6 +77,8 @@ class DaagboxDatabase extends Dexie {
   crews!: Table<LocalCrew>
   deviations!: Table<LocalDeviation>
   entries!: Table<LocalEntry>
+  photos!: Table<LocalPhoto>
+  gpsTracks!: Table<LocalGpsTrack>
   syncQueue!: Table<SyncQueueItem>
 
   constructor() {
@@ -68,6 +90,16 @@ class DaagboxDatabase extends Dexie {
       deviations: 'logbookId, updatedAt',
       entries: 'payloadId, logbookId, updatedAt',
       syncQueue: '++id, action, type, payloadId, logbookId'
+    })
+    this.version(2).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt'
     })
   }
 }

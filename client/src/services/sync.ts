@@ -91,7 +91,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       return false
     }
 
-    const { yacht, deviation, crews, entries } = await response.json()
+    const { yacht, deviation, crews, entries, photos, gpsTracks } = await response.json()
 
     // 1. Sync Yacht Payload
     if (yacht) {
@@ -182,6 +182,72 @@ async function pullChanges(logbookId: string): Promise<boolean> {
           .first()
         if (!pendingCreate) {
           await db.entries.delete(le.payloadId)
+        }
+      }
+    }
+
+    // 5. Sync Photos
+    const serverPhotoMap = new Map<string, any>()
+    if (photos && Array.isArray(photos)) {
+      for (const p of photos) {
+        serverPhotoMap.set(p.payloadId, p)
+        const local = await db.photos.get(p.payloadId)
+        if (!local || isNewer(p.updatedAt, local.updatedAt)) {
+          await db.photos.put({
+            payloadId: p.payloadId,
+            entryId: p.entryId,
+            logbookId,
+            encryptedData: p.encryptedData,
+            iv: p.iv,
+            tag: p.tag,
+            caption: '', // caption is stored inside encryptedData JSON
+            updatedAt: p.updatedAt
+          })
+        }
+      }
+    }
+
+    // Deletions for Photos
+    const localPhotos = await db.photos.where({ logbookId }).toArray()
+    for (const lp of localPhotos) {
+      if (!serverPhotoMap.has(lp.payloadId)) {
+        const pendingCreate = await db.syncQueue
+          .where({ payloadId: lp.payloadId, action: 'create' })
+          .first()
+        if (!pendingCreate) {
+          await db.photos.delete(lp.payloadId)
+        }
+      }
+    }
+
+    // 6. Sync GPS Tracks
+    const serverGpsTrackMap = new Map<string, any>()
+    if (gpsTracks && Array.isArray(gpsTracks)) {
+      for (const gt of gpsTracks) {
+        serverGpsTrackMap.set(gt.entryId, gt)
+        const local = await db.gpsTracks.get(gt.entryId)
+        if (!local || isNewer(gt.updatedAt, local.updatedAt)) {
+          await db.gpsTracks.put({
+            entryId: gt.entryId,
+            logbookId,
+            encryptedData: gt.encryptedData,
+            iv: gt.iv,
+            tag: gt.tag,
+            updatedAt: gt.updatedAt
+          })
+        }
+      }
+    }
+
+    // Deletions for GPS Tracks
+    const localGpsTracks = await db.gpsTracks.where({ logbookId }).toArray()
+    for (const lgt of localGpsTracks) {
+      if (!serverGpsTrackMap.has(lgt.entryId)) {
+        const pendingCreate = await db.syncQueue
+          .where({ payloadId: lgt.entryId, action: 'create' })
+          .first()
+        if (!pendingCreate) {
+          await db.gpsTracks.delete(lgt.entryId)
         }
       }
     }
