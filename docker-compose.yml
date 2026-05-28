@@ -24,8 +24,8 @@ services:
     environment:
       PORT: 5000
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/daagbox?schema=public"
-      RP_ID: localhost
-      ORIGIN: http://localhost
+      RP_ID: ${RP_ID:-localhost}
+      ORIGIN: ${ORIGIN:-http://localhost}
     command: sh -c "npx prisma db push && node dist/index.js"
     depends_on:
       db:
