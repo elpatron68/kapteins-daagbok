@@ -39,6 +39,42 @@ cleanup_all() {
 # Trap termination signals
 trap cleanup_all SIGINT SIGTERM EXIT
 
+# Manage PostgreSQL Docker container
+if command -v docker >/dev/null 2>&1; then
+  echo "Checking PostgreSQL Docker container (postgres-daagbox)..."
+  if docker ps -a --format '{{.Names}}' | grep -Eq "^postgres-daagbox$"; then
+    echo "Found existing postgres-daagbox container. Restarting..."
+    docker restart postgres-daagbox >/dev/null
+  else
+    echo "postgres-daagbox container not found. Creating and starting a new one..."
+    docker run -d \
+      --name postgres-daagbox \
+      -p 5432:5432 \
+      -e POSTGRES_USER=postgres \
+      -e POSTGRES_PASSWORD=postgres \
+      -e POSTGRES_DB=daagbox \
+      postgres:16 >/dev/null
+  fi
+
+  # Wait for PostgreSQL to be ready
+  echo "Waiting for PostgreSQL database to be ready..."
+  TIMEOUT=15
+  COUNTER=0
+  until docker exec postgres-daagbox pg_isready -U postgres >/dev/null 2>&1; do
+    sleep 0.5
+    COUNTER=$((COUNTER + 1))
+    if [ $COUNTER -ge 30 ]; then
+      echo "Warning: PostgreSQL did not start within $TIMEOUT seconds. Proceeding anyway..."
+      break
+    fi
+  done
+  if [ $COUNTER -lt 30 ]; then
+    echo "PostgreSQL is ready!"
+  fi
+else
+  echo "Warning: Docker command not found. Skipping PostgreSQL container management."
+fi
+
 # Start backend server
 echo "Starting backend API server..."
 cd server
