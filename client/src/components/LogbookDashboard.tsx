@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../services/db.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, type DecryptedLogbook } from '../services/logbook.js'
 import { logoutUser } from '../services/auth.js'
+import { useDialog } from './ModalDialog.tsx'
 import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
 
 interface LogbookDashboardProps {
@@ -13,6 +14,7 @@ interface LogbookDashboardProps {
 
 export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookDashboardProps) {
   const { t, i18n } = useTranslation()
+  const { showConfirm } = useDialog()
   const [logbooks, setLogbooks] = useState<DecryptedLogbook[]>([])
   const [newTitle, setNewTitle] = useState('')
   const [loading, setLoading] = useState(false)
@@ -76,7 +78,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent selecting the logbook when clicking delete
     
-    if (window.confirm(t('dashboard.delete_confirm'))) {
+    if (await showConfirm(t('dashboard.delete_confirm'), t('dashboard.title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setLoading(true)
       setError(null)
       try {

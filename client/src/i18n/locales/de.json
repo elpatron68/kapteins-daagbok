@@ -97,6 +97,8 @@
       "photo_processing": "Wird verarbeitet...",
       "no_photos": "Noch keine Fotos an diesen Reisetag angehängt.",
       "photo_delete_confirm": "Sind Sie sicher, dass Sie dieses Foto unwiderruflich löschen möchten?",
+      "confirm_yes": "Ja",
+      "confirm_no": "Nein",
       "gps_tracking_title": "GPS-Routenaufzeichnung (E2E-verschlüsselt)",
       "gps_tracking_status_active": "Aufzeichnung läuft",
       "gps_tracking_status_inactive": "Aufzeichnung inaktiv",

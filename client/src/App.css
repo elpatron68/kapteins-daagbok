@@ -1463,3 +1463,56 @@ body:has(.theme-cupertino) {
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* Custom Dialog Modals Styling */
+.custom-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 12, 16, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.custom-dialog-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 28px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.custom-dialog-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #fbbf24;
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-dialog-message {
+  font-size: 15px;
+  color: #e2e8f0;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.custom-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}

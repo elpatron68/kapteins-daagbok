@@ -254,7 +254,6 @@ ${trkpts}
 // Download GPX file client-side
 export function downloadGpxFile(waypoints: GpsWaypoint[], dateStr: string): void {
   if (waypoints.length === 0) {
-    alert('No waypoints recorded to export.')
     return
   }
   const gpxContent = generateGpxString(waypoints, dateStr)

@@ -4,6 +4,7 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { useDialog } from './ModalDialog.tsx'
 import { Users, User, Plus, Trash2, Edit2, Save, X, Check } from 'lucide-react'
 
 interface CrewFormProps {
@@ -30,6 +31,7 @@ interface DecryptedCrew {
 
 export default function CrewForm({ logbookId }: CrewFormProps) {
   const { t } = useTranslation()
+  const { showConfirm } = useDialog()
 
   // Skipper profile state
   const [skipName, setSkipName] = useState('')
@@ -260,7 +262,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
   }
 
   const handleDeleteMember = async (memberId: string) => {
-    if (window.confirm(t('crew.delete_confirm'))) {
+    if (await showConfirm(t('crew.delete_confirm'), t('crew.title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setError(null)
       try {
         const now = new Date().toISOString()

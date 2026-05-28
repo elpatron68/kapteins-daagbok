@@ -5,6 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useDialog } from './ModalDialog.tsx'
 import { Camera, Trash2 } from 'lucide-react'
 
 interface PhotoCaptureProps {
@@ -21,6 +22,7 @@ interface DecryptedPhoto {
 
 export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) {
   const { t } = useTranslation()
+  const { showConfirm } = useDialog()
   const [caption, setCaption] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -156,7 +158,7 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
   }
 
   const handleDelete = async (photoId: string) => {
-    if (window.confirm(t('logs.photo_delete_confirm'))) {
+    if (await showConfirm(t('logs.photo_delete_confirm'), t('logs.photos_title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       try {
         const now = new Date().toISOString()
         

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
 import VesselForm from './components/VesselForm.tsx'
@@ -259,4 +260,10 @@ function App() {
   )
 }
 
-export default App
+export default function AppWrapper() {
+  return (
+    <DialogProvider>
+      <App />
+    </DialogProvider>
+  )
+}

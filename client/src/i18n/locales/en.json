@@ -97,6 +97,8 @@
       "photo_processing": "Processing...",
       "no_photos": "No photos attached to this journal entry yet.",
       "photo_delete_confirm": "Are you sure you want to permanently delete this photo?",
+      "confirm_yes": "Yes",
+      "confirm_no": "No",
       "gps_tracking_title": "GPS Route Tracking (E2E Encrypted)",
       "gps_tracking_status_active": "Tracking Active",
       "gps_tracking_status_inactive": "Tracking Inactive",

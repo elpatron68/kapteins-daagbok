@@ -7,6 +7,7 @@ import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
+import { useDialog } from './ModalDialog.tsx'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
 
 interface LogEntriesListProps {
@@ -24,6 +25,7 @@ interface DecryptedEntryItem {
 
 export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
   const { t } = useTranslation()
+  const { showConfirm } = useDialog()
   const [entries, setEntries] = useState<DecryptedEntryItem[]>([])
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -187,7 +189,7 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
   const handleDelete = async (entryId: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent selecting the card
     
-    if (window.confirm(t('logs.delete_confirm'))) {
+    if (await showConfirm(t('logs.delete_confirm'), t('logs.delete_entry'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setError(null)
       try {
         const now = new Date().toISOString()

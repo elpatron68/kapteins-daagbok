@@ -7,6 +7,7 @@ import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Play, Square, Navigation } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
+import { useDialog } from './ModalDialog.tsx'
 import {
   startGpsTracking,
   stopGpsTracking,
@@ -44,6 +45,7 @@ interface LogEvent {
 
 export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryEditorProps) {
   const { t } = useTranslation()
+  const { showAlert } = useDialog()
 
   // General details state
   const [date, setDate] = useState('')
@@ -202,7 +204,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       })
       setTrackingActive(true)
     } catch (err: any) {
-      alert(err.message || 'Failed to start GPS tracking')
+      showAlert(err.message || 'Failed to start GPS tracking')
     }
   }
 
@@ -243,7 +245,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   const handleGetGps = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser')
+      showAlert('Geolocation is not supported by your browser')
       return
     }
 
@@ -254,20 +256,20 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       },
       (err) => {
         console.error('GPS capturing failed:', err)
-        alert(`Failed to retrieve coordinates: ${err.message}`)
+        showAlert(`Failed to retrieve coordinates: ${err.message}`)
       }
     )
   }
 
   const handleFetchWeather = async () => {
     if (!evGpsLat || !evGpsLng) {
-      alert(t('settings.gps_error'))
+      showAlert(t('settings.gps_error'))
       return
     }
 
     const apiKey = localStorage.getItem('owm_api_key')
     if (!apiKey) {
-      alert(t('settings.no_key'))
+      showAlert(t('settings.no_key'))
       return
     }
 
@@ -313,10 +315,10 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
         setEvWeatherIcon(data.weather[0].icon)
       }
 
-      alert(t('settings.weather_success'))
+      showAlert(t('settings.weather_success'))
     } catch (err) {
       console.error('Weather prefilling failed:', err)
-      alert(t('settings.weather_error'))
+      showAlert(t('settings.weather_error'))
     } finally {
       setWeatherLoading(false)
     }
