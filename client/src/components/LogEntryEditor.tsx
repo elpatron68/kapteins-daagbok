@@ -92,6 +92,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   const [evGpsLat, setEvGpsLat] = useState('')
   const [evGpsLng, setEvGpsLng] = useState('')
   const [evRemarks, setEvRemarks] = useState('')
+  const [evLocationName, setEvLocationName] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -382,7 +383,10 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleFetchWeather = async () => {
-    if (!evGpsLat || !evGpsLng) {
+    const hasGps = evGpsLat && evGpsLng
+    const hasLocation = evLocationName.trim()
+
+    if (!hasGps && !hasLocation) {
       showAlert(t('settings.gps_error'))
       return
     }
@@ -395,13 +399,24 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
     setWeatherLoading(true)
     try {
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${evGpsLat}&lon=${evGpsLng}&appid=${apiKey}&units=metric`
-      )
+      let url = ''
+      if (hasLocation) {
+        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(evLocationName.trim())}&appid=${apiKey}&units=metric`
+      } else {
+        url = `https://api.openweathermap.org/data/2.5/weather?lat=${evGpsLat}&lon=${evGpsLng}&appid=${apiKey}&units=metric`
+      }
+
+      const res = await fetch(url)
 
       if (!res.ok) throw new Error('Weather API rejected the request')
 
       const data = await res.json()
+
+      // If fetched by location, automatically pre-fill GPS coordinates
+      if (hasLocation && data.coord) {
+        setEvGpsLat(Number(data.coord.lat).toFixed(6))
+        setEvGpsLng(Number(data.coord.lon).toFixed(6))
+      }
 
       // Convert wind speed m/s to Beaufort scale
       const mps = data.wind.speed || 0
@@ -513,6 +528,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     setEvGpsLat('')
     setEvGpsLng('')
     setEvRemarks('')
+    setEvLocationName('')
   }
 
   const handleDeleteEvent = (index: number) => {
@@ -944,6 +960,18 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
             <div className="form-grid mb-4">
               <div className="input-group">
+                <label>{t('logs.event_location')}</label>
+                <input
+                  type="text"
+                  placeholder={t('logs.event_location_placeholder')}
+                  className="input-text"
+                  value={evLocationName}
+                  onChange={(e) => setEvLocationName(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="input-group">
                 <label>{t('logs.event_gps')} (Lat, Lng)</label>
                 <div className="gps-input-row">
                   <input
@@ -978,13 +1006,15 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                     onClick={handleFetchWeather}
                     title={t('logs.weather_btn')}
                     style={{ width: 'auto', padding: '12px' }}
-                    disabled={saving || weatherLoading || !evGpsLat || !evGpsLng}
+                    disabled={saving || weatherLoading || (!evLocationName.trim() && (!evGpsLat || !evGpsLng))}
                   >
                     <CloudSun size={16} />
                   </button>
                 </div>
               </div>
+            </div>
 
+            <div className="form-grid mb-4">
               <div className="input-group">
                 <label>{t('logs.event_wind_direction')}</label>
                 <input
@@ -996,9 +1026,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                   disabled={saving || weatherLoading}
                 />
               </div>
-            </div>
 
-            <div className="form-grid mb-4">
               <div className="input-group">
                 <label>{t('logs.event_wind_strength')}</label>
                 <input
