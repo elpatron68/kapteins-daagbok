@@ -85,7 +85,8 @@ router.post('/push', async (req: any, res) => {
 
         // Parse Payload parameters
         const parsed = JSON.parse(data)
-        const { encryptedData, iv, tag } = parsed
+        const encryptedData = parsed.encryptedData || parsed.ciphertext
+        const { iv, tag } = parsed
 
         if (type === 'yacht') {
           if (action === 'delete') {
