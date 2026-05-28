@@ -15,11 +15,25 @@ const requireUser = (req: any, res: any, next: any) => {
 
 router.use(requireUser)
 
-// 1. Get all logbooks for the authenticated user
+// 1. Get all logbooks for the authenticated user (owned and shared)
 router.get('/', async (req: any, res) => {
   try {
     const logbooks = await prisma.logbook.findMany({
-      where: { userId: req.userId },
+      where: {
+        OR: [
+          { userId: req.userId },
+          {
+            collaborators: {
+              some: { userId: req.userId }
+            }
+          }
+        ]
+      },
+      include: {
+        collaborators: {
+          where: { userId: req.userId }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     })
     return res.json(logbooks)

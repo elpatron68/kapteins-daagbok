@@ -4,6 +4,7 @@ import { Ship, LogIn, UserPlus, AlertTriangle, ShieldCheck, Languages, ArrowRigh
 import { getActiveMasterKey, registerUser, loginUser } from '../services/auth.js'
 import { decryptJson, encryptBuffer } from '../services/crypto.js'
 import { saveLogbookKey } from '../services/logbookKeys.js'
+import { db } from '../services/db.js'
 import { useDialog } from './ModalDialog.tsx'
 
 interface InvitationAcceptanceProps {
@@ -36,6 +37,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
   const [ownerUsername, setOwnerUsername] = useState('')
   const [decryptedTitle, setDecryptedTitle] = useState('')
   const [logbookId, setLogbookId] = useState('')
+  const [rawEncryptedTitle, setRawEncryptedTitle] = useState('')
 
   // Authentication states
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -104,6 +106,8 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       setOwnerUsername(details.ownerUsername)
       setLogbookId(details.logbookId)
 
+      setRawEncryptedTitle(details.encryptedTitle)
+      
       // Decrypt title client-side using URL key
       const parsed = JSON.parse(details.encryptedTitle)
       const title = await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, logbookKey!)
@@ -157,6 +161,16 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
 
       // 3. Save key locally in Dexie
       await saveLogbookKey(logbookId, logbookKey)
+
+      // 3b. Save logbook index locally in Dexie so sync is triggered immediately
+      if (rawEncryptedTitle) {
+        await db.logbooks.put({
+          id: logbookId,
+          encryptedTitle: rawEncryptedTitle,
+          updatedAt: new Date().toISOString(),
+          isSynced: 1
+        })
+      }
 
       // 4. Redirect to workspace
       onAccepted(logbookId, decryptedTitle)
