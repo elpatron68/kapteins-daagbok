@@ -79,10 +79,10 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
       if (success) {
         onAuthenticated()
       } else {
-        setError('Incorrect recovery phrase. Decryption failed.')
+        setError(t('auth.error_incorrect_recovery'))
       }
     } catch (err: any) {
-      setError('Decryption failed. Please check your recovery phrase.')
+      setError(t('auth.error_decryption_failed'))
     } finally {
       setLoading(false)
     }
@@ -121,7 +121,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
 
         <div className="auth-actions">
           <button className="btn secondary" onClick={copyToClipboard}>
-            {copied ? 'Copied!' : 'Copy Phrase'}
+            {copied ? t('auth.copied') : t('auth.copy_phrase')}
           </button>
           <button className="btn primary" onClick={onAuthenticated}>
             {t('auth.confirm_recovery')}
@@ -137,16 +137,16 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
       <div className="auth-card glass">
         <div className="auth-header">
           <KeyRound className="auth-icon accent" size={48} />
-          <h2>Enter Recovery Phrase</h2>
+          <h2>{t('auth.enter_recovery')}</h2>
         </div>
         <p className="recovery-warning">
-          Your Passkey authenticated successfully, but your device does not support hardware key derivation. Enter your 12-word recovery phrase to decrypt your logbook.
+          {t('auth.recovery_fallback_warning')}
         </p>
 
         <form onSubmit={handleRecoverySubmit} className="auth-form">
           <textarea
             className="input-textarea"
-            placeholder="Enter your 12-word recovery phrase separated by spaces..."
+            placeholder={t('auth.recovery_placeholder')}
             value={recoveryInput}
             onChange={(e) => setRecoveryInput(e.target.value)}
             disabled={loading}
@@ -163,10 +163,10 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
               onClick={() => setShowRecoveryFallback(false)}
               disabled={loading}
             >
-              Back
+              {t('auth.back')}
             </button>
             <button type="submit" className="btn primary" disabled={loading}>
-              {loading ? 'Decrypting...' : 'Decrypt Logbook'}
+              {loading ? t('auth.decrypting') : t('auth.decrypt_logbook')}
             </button>
           </div>
         </form>
@@ -192,13 +192,13 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
           disabled={loading}
           style={{ width: '100%', padding: '16px' }}
         >
-          {loading ? 'Processing...' : t('auth.login')}
+          {loading ? t('auth.processing') : t('auth.login')}
         </button>
 
         {/* Separator */}
         <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0', width: '100%' }}>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
-          <span style={{ padding: '0 10px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>or register</span>
+          <span style={{ padding: '0 10px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>{t('auth.or_register')}</span>
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
         </div>
 
@@ -208,7 +208,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
             <input
               type="text"
               className="input-text"
-              placeholder="Username / Skipper Name"
+              placeholder={t('auth.username_placeholder')}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
@@ -236,7 +236,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
         </button>
         <a href="#help" className="btn-icon-text link-sec">
           <HelpCircle size={18} />
-          Help
+          {t('auth.help')}
         </a>
       </div>
     </div>

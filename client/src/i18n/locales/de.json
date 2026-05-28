@@ -21,7 +21,21 @@
       "recovery_warning": "WICHTIG: Schreiben Sie diese 12 Wörter auf. Wenn Sie Ihren Passkey und diese Wörter verlieren, können Ihre Daten nicht wiederhergestellt werden.",
       "confirm_recovery": "Ich habe die Wörter aufgeschrieben",
       "status_logged_in": "Angemeldet",
-      "status_logged_out": "Abgemeldet"
+      "status_logged_out": "Abgemeldet",
+      "copied": "Kopiert!",
+      "copy_phrase": "Schlüssel kopieren",
+      "enter_recovery": "Wiederherstellungsschlüssel eingeben",
+      "recovery_fallback_warning": "Ihr Passkey wurde erfolgreich authentifiziert, aber Ihr Gerät unterstützt keine hardwarebasierte Schlüsselableitung. Geben Sie Ihren 12-Wörter-Wiederherstellungsschlüssel ein, um Ihr Logbuch zu entschlüsseln.",
+      "recovery_placeholder": "Geben Sie Ihren aus 12 Wörtern bestehenden Wiederherstellungsschlüssel getrennt durch Leerzeichen ein...",
+      "back": "Zurück",
+      "decrypting": "Entschlüsselung...",
+      "decrypt_logbook": "Logbuch entschlüsseln",
+      "error_incorrect_recovery": "Falscher Wiederherstellungsschlüssel. Entschlüsselung fehlgeschlagen.",
+      "error_decryption_failed": "Entschlüsselung fehlgeschlagen. Bitte überprüfen Sie Ihren Wiederherstellungsschlüssel.",
+      "or_register": "oder Registrieren",
+      "username_placeholder": "Benutzername / Skippername",
+      "processing": "Verarbeitung...",
+      "help": "Hilfe"
     },
     "sync": {
       "status_synced": "Synchronisiert",
@@ -54,6 +68,8 @@
     "logs": {
       "title": "Logbuch-Journal",
       "new_entry": "Neuer Reisetag",
+      "travel_details": "Reisedetails",
+      "add_event": "Neuen Logbucheintrag hinzufügen",
       "date": "Datum",
       "day_of_travel": "Tag der Reise / Reisetag",
       "departure": "Start-Hafen (Reise von)",

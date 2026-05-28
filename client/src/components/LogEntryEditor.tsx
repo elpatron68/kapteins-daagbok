@@ -704,7 +704,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
         <div className="form-card">
           <div className="form-header">
             <FileText size={20} className="form-icon" />
-            <h3>Travel Details</h3>
+            <h3>{t('logs.travel_details')}</h3>
           </div>
           <div className="form-grid">
             <div className="input-group">
@@ -941,7 +941,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
           {/* Add New Event Form Sub-Card */}
           <div className="member-editor-card glass">
-            <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>Add Event Log Record</h4>
+            <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>{t('logs.add_event')}</h4>
             
             <div className="form-grid mb-4">
               <div className="input-group">

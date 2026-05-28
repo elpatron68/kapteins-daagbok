@@ -21,7 +21,21 @@
       "recovery_warning": "IMPORTANT: Write down these 12 words. If you lose your Passkey and these words, your data cannot be recovered.",
       "confirm_recovery": "I have written down the recovery phrase",
       "status_logged_in": "Logged in",
-      "status_logged_out": "Logged out"
+      "status_logged_out": "Logged out",
+      "copied": "Copied!",
+      "copy_phrase": "Copy Phrase",
+      "enter_recovery": "Enter Recovery Phrase",
+      "recovery_fallback_warning": "Your Passkey authenticated successfully, but your device does not support hardware key derivation. Enter your 12-word recovery phrase to decrypt your logbook.",
+      "recovery_placeholder": "Enter your 12-word recovery phrase separated by spaces...",
+      "back": "Back",
+      "decrypting": "Decrypting...",
+      "decrypt_logbook": "Decrypt Logbook",
+      "error_incorrect_recovery": "Incorrect recovery phrase. Decryption failed.",
+      "error_decryption_failed": "Decryption failed. Please check your recovery phrase.",
+      "or_register": "or register",
+      "username_placeholder": "Username / Skipper Name",
+      "processing": "Processing...",
+      "help": "Help"
     },
     "sync": {
       "status_synced": "Synced",
@@ -54,6 +68,8 @@
     "logs": {
       "title": "Logbook Journal",
       "new_entry": "New Travel Day",
+      "travel_details": "Travel Details",
+      "add_event": "Add Event Log Record",
       "date": "Date",
       "day_of_travel": "Day of Travel",
       "departure": "Departure Port (von)",
