@@ -214,7 +214,15 @@
       "share_desc": "Aktivieren Sie diese Option, um einen öffentlichen, schreibgeschützten Link zu erstellen. Jeder mit dem Link kann Ihre Reisen, Yacht-Profile und Besatzung ansehen. Die Verschlüsselungsschlüssel werden niemals an den Server übertragen (sie bleiben im Hash-Teil der URL).",
       "share_enable": "Öffentlichen Link aktivieren",
       "share_copied": "Link kopiert!",
-      "share_copy_btn": "Link kopieren"
+      "share_copy_btn": "Link kopieren",
+      "danger_zone_title": "Gefahrenzone",
+      "danger_zone_desc": "Durch das Löschen Ihres Kontos werden alle Ihre Passkeys, Logbücher, Schiffsdaten, Crew-Profile, Reiseeinträge und E2E-Schlüssel unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "delete_account_btn": "Konto unwiderruflich löschen",
+      "delete_account_confirm_title": "Konto löschen?",
+      "delete_account_confirm_desc": "Sind Sie absolut sicher, dass Sie Ihr Konto und alle zugehörigen Logbücher und E2E-verschlüsselten Daten unwiderruflich löschen möchten?",
+      "delete_account_confirm_yes": "Ja, Konto und alle Daten löschen",
+      "delete_account_confirm_no": "Abbrechen",
+      "delete_account_failed": "Konto konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
     }
   }
 }

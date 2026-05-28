@@ -226,4 +226,31 @@ router.post('/login-verify', async (req, res) => {
   }
 })
 
+// 5. Delete own account
+router.delete('/delete-account', async (req: any, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    await prisma.user.delete({
+      where: { id: userId }
+    })
+
+    return res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error deleting account:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
 export default router

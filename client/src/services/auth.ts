@@ -10,6 +10,7 @@ import {
   bufferToBase64
 } from './crypto.js'
 import { clearLogbookKeysCache } from './logbookKeys.js'
+import { db } from './db.js'
 
 const API_BASE = '/api/auth'
 
@@ -269,4 +270,40 @@ export function logoutUser() {
   clearLogbookKeysCache()
   localStorage.removeItem('active_username')
   localStorage.removeItem('active_userid')
+}
+
+export async function deleteAccount(): Promise<boolean> {
+  const userId = localStorage.getItem('active_userid')
+  if (!userId) return false
+
+  try {
+    const res = await fetch(`${API_BASE}/delete-account`, {
+      method: 'DELETE',
+      headers: {
+        'X-User-Id': userId
+      }
+    })
+
+    if (res.ok) {
+      // Clear IndexedDB completely to prevent leaking residual encrypted E2E data on client
+      await Promise.all([
+        db.logbooks.clear(),
+        db.yachts.clear(),
+        db.crews.clear(),
+        db.deviations.clear(),
+        db.entries.clear(),
+        db.photos.clear(),
+        db.gpsTracks.clear(),
+        db.syncQueue.clear(),
+        db.logbookKeys.clear()
+      ])
+
+      // Wipe localStorage and session variables
+      logoutUser()
+      return true
+    }
+  } catch (err) {
+    console.error('Failed to delete account:', err)
+  }
+  return false
 }

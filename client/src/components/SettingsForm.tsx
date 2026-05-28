@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon } from 'lucide-react'
+import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, AlertTriangle } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import { useDialog } from './ModalDialog.tsx'
+import { deleteAccount } from '../services/auth.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -45,6 +46,31 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
   const [shareLink, setShareLink] = useState('')
   const [shareCopied, setShareCopied] = useState(false)
   const [loadingShareLink, setLoadingShareLink] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    const confirmed = await showConfirm(
+      t('settings.delete_account_confirm_desc'),
+      t('settings.delete_account_confirm_title'),
+      t('settings.delete_account_confirm_yes'),
+      t('settings.delete_account_confirm_no')
+    )
+
+    if (confirmed) {
+      setSaving(true)
+      try {
+        const success = await deleteAccount()
+        if (success) {
+          window.location.reload()
+        } else {
+          showAlert(t('settings.delete_account_failed'))
+        }
+      } catch (err: any) {
+        showAlert(err.message || t('settings.delete_account_failed'))
+      } finally {
+        setSaving(false)
+      }
+    }
+  }
 
   useEffect(() => {
     if (logbookId) {
@@ -484,6 +510,31 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
           )}
         </div>
       )}
+      {/* Danger Zone / Account Deletion */}
+      <div className="member-editor-card glass mt-6" style={{ borderTop: '1px solid rgba(239,68,68,0.2)', paddingTop: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <AlertTriangle size={20} style={{ color: '#ef4444' }} />
+          <h3 style={{ margin: 0, color: '#ef4444', fontSize: '16px' }}>
+            {t('settings.danger_zone_title')}
+          </h3>
+        </div>
+
+        <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '145%', margin: '0 0 16px 0' }}>
+          {t('settings.danger_zone_desc')}
+        </p>
+
+        <div className="form-actions" style={{ justifyContent: 'flex-start' }}>
+          <button
+            type="button"
+            className="btn danger"
+            onClick={handleDeleteAccount}
+            style={{ width: 'auto' }}
+          >
+            <Trash2 size={16} />
+            {t('settings.delete_account_btn')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

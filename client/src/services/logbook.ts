@@ -77,6 +77,14 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
             }
           }
         }
+        // Clear local cache for any logbooks that are no longer on the server
+        const serverIds = new Set(serverLogbooks.map((lb: any) => lb.id))
+        const localLogbooksArray = await db.logbooks.toArray()
+        for (const lb of localLogbooksArray) {
+          if (lb.isSynced === 1 && !serverIds.has(lb.id)) {
+            await deleteLocalLogbookCache(lb.id)
+          }
+        }
 
         // Update Dexie database cache
         const localLogbooks: LocalLogbook[] = serverLogbooks.map((lb: any) => ({
@@ -219,6 +227,19 @@ function localIdForCreate(): string {
   return tempUUID
 }
 
+// Perform cascading deletion on all local Dexie tables for a specific logbook ID
+export async function deleteLocalLogbookCache(id: string): Promise<void> {
+  await db.logbooks.delete(id)
+  await db.yachts.where({ logbookId: id }).delete()
+  await db.crews.where({ logbookId: id }).delete()
+  await db.deviations.where({ logbookId: id }).delete()
+  await db.entries.where({ logbookId: id }).delete()
+  await db.photos.where({ logbookId: id }).delete()
+  await db.gpsTracks.where({ logbookId: id }).delete()
+  await db.syncQueue.where({ logbookId: id }).delete()
+  await db.logbookKeys.where({ logbookId: id }).delete()
+}
+
 // Delete a logbook and all associated payloads locally and on server
 export async function deleteLogbook(id: string): Promise<void> {
   const userId = localStorage.getItem('active_userid')
@@ -260,9 +281,5 @@ export async function deleteLogbook(id: string): Promise<void> {
   }
 
   // Perform local cascading cleanup
-  await db.logbooks.delete(id)
-  await db.yachts.where({ logbookId: id }).delete()
-  await db.crews.where({ logbookId: id }).delete()
-  await db.deviations.where({ logbookId: id }).delete()
-  await db.entries.where({ logbookId: id }).delete()
+  await deleteLocalLogbookCache(id)
 }
