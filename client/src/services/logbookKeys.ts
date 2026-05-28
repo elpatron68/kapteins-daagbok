@@ -1,6 +1,6 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
-import { encryptBuffer, decryptBuffer, generateMasterKey } from './crypto.js'
+import { encryptBuffer, decryptBuffer, generateMasterKey, decryptJson } from './crypto.js'
 
 // In-memory cache of decrypted logbook keys (ArrayBuffer)
 const keyCache = new Map<string, ArrayBuffer>()
@@ -83,51 +83,107 @@ export function clearLogbookKeysCache() {
   keyCache.clear()
 }
 
-/**
- * Ensures a logbook-specific key exists for a given logbookId.
- * If not, it generates a key, encrypts it with the user's master key, saves it locally and in the sync queue.
- */
 export async function ensureLogbookKey(logbookId: string): Promise<ArrayBuffer> {
-  let key = await getLogbookKey(logbookId)
-  if (key) return key
-
-  // Generate new key
-  key = generateLogbookKey()
-  await saveLogbookKey(logbookId, key)
-
-  // Encrypt it with user master key
-  const masterKey = getActiveMasterKey()
-  if (!masterKey) throw new Error('Master key not found')
-
-  const aesMasterKey = await window.crypto.subtle.importKey(
-    'raw',
-    masterKey,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt']
-  )
-  const encrypted = await encryptBuffer(key, aesMasterKey)
-
-  // Retrieve local logbook details to preserve encryptedTitle
   const localLb = await db.logbooks.get(logbookId)
   const encryptedTitle = localLb ? localLb.encryptedTitle : ''
+  const masterKey = getActiveMasterKey()
 
-  const payloadData = {
-    encryptedTitle,
-    encryptedKey: encrypted.ciphertext,
-    iv: encrypted.iv,
-    tag: encrypted.tag
+  let key = await getLogbookKey(logbookId)
+
+  // Self-healing migration for legacy logbooks that got a wrong key generated
+  if (key && encryptedTitle && masterKey) {
+    try {
+      const parsed = JSON.parse(encryptedTitle)
+      await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, key)
+      // Key works, return it
+      return key
+    } catch (err) {
+      console.warn('Stored logbook key failed to decrypt title. Testing if master key works (legacy migration)...')
+      try {
+        const parsed = JSON.parse(encryptedTitle)
+        await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, masterKey)
+        
+        // Decryption succeeded with master key! Update logbook key to master key.
+        console.info('Legacy logbook detected. Repairing logbook key to match master key...')
+        key = masterKey
+        await saveLogbookKey(logbookId, key)
+
+        // Sync the repaired key to the server
+        const aesMasterKey = await window.crypto.subtle.importKey(
+          'raw',
+          masterKey,
+          { name: 'AES-GCM' },
+          false,
+          ['encrypt']
+        )
+        const encrypted = await encryptBuffer(key, aesMasterKey)
+        const payloadData = {
+          encryptedTitle,
+          encryptedKey: encrypted.ciphertext,
+          iv: encrypted.iv,
+          tag: encrypted.tag
+        }
+        await db.syncQueue.put({
+          action: 'create',
+          type: 'logbook',
+          payloadId: logbookId,
+          logbookId,
+          data: JSON.stringify(payloadData),
+          updatedAt: new Date().toISOString()
+        })
+        return key
+      } catch (masterErr) {
+        console.error('Neither logbook key nor master key can decrypt title.', masterErr)
+      }
+    }
   }
 
-  // Put in sync queue to update the server logbook record with the key
-  await db.syncQueue.put({
-    action: 'create', // Server sync treats create as upsert
-    type: 'logbook',
-    payloadId: logbookId,
-    logbookId,
-    data: JSON.stringify(payloadData),
-    updatedAt: new Date().toISOString()
-  })
+  // If no logbook key exists yet
+  if (!key) {
+    if (encryptedTitle && masterKey) {
+      try {
+        // Check if title is already decryptable using masterKey (meaning it is a legacy logbook)
+        const parsed = JSON.parse(encryptedTitle)
+        await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, masterKey)
+        
+        // Yes, legacy logbook! Re-use masterKey as the logbook key so existing data is decryptable.
+        console.info('Using master key for legacy logbook key...')
+        key = masterKey
+      } catch (err) {
+        // Not decryptable with masterKey, generate new random key
+        key = generateLogbookKey()
+      }
+    } else {
+      key = generateLogbookKey()
+    }
+
+    await saveLogbookKey(logbookId, key)
+
+    if (masterKey) {
+      const aesMasterKey = await window.crypto.subtle.importKey(
+        'raw',
+        masterKey,
+        { name: 'AES-GCM' },
+        false,
+        ['encrypt']
+      )
+      const encrypted = await encryptBuffer(key, aesMasterKey)
+      const payloadData = {
+        encryptedTitle,
+        encryptedKey: encrypted.ciphertext,
+        iv: encrypted.iv,
+        tag: encrypted.tag
+      }
+      await db.syncQueue.put({
+        action: 'create',
+        type: 'logbook',
+        payloadId: logbookId,
+        logbookId,
+        data: JSON.stringify(payloadData),
+        updatedAt: new Date().toISOString()
+      })
+    }
+  }
 
   return key
 }
