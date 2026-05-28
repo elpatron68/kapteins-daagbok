@@ -46,7 +46,10 @@
       "sails_help": "List the sails available on your vessel (e.g. Mainsail, Genoa, Jib).",
       "add_sail": "Add Sail",
       "sail_name_placeholder": "e.g. Mainsail",
-      "no_sails": "No sails defined."
+      "no_sails": "No sails defined.",
+      "photo_add": "Add Photo",
+      "photo_change": "Change Photo",
+      "photo_delete": "Delete Photo"
     },
     "logs": {
       "title": "Logbook Journal",

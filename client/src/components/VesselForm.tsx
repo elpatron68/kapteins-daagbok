@@ -4,7 +4,7 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
-import { Ship, Save, Check, Plus, X } from 'lucide-react'
+import { Ship, Save, Check, Plus, X, Camera, Trash2 } from 'lucide-react'
 
 interface VesselFormProps {
   logbookId: string
@@ -22,6 +22,10 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
   const [mmsi, setMmsi] = useState('')
   const [sails, setSails] = useState<string[]>([])
   const [newSailName, setNewSailName] = useState('')
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -51,6 +55,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
             setAtis(decrypted.atis || '')
             setMmsi(decrypted.mmsi || '')
             setSails(decrypted.sails || [])
+            setPhoto(decrypted.photo || null)
           }
         }
       } catch (err: any) {
@@ -76,6 +81,65 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
     setSails(sails.filter((_, idx) => idx !== indexToRemove))
   }
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleRemovePhoto = () => {
+    setPhoto(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setPhotoError(null)
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          if (!ctx) throw new Error('Could not get canvas context')
+
+          let width = img.width
+          let height = img.height
+          const MAX_WIDTH = 800
+          const MAX_HEIGHT = 600
+
+          // Calculate resizing conserving aspect ratio
+          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+            const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height)
+            width = Math.round(width * ratio)
+            height = Math.round(height * ratio)
+          }
+
+          canvas.width = width
+          canvas.height = height
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // Compress to JPEG, 70% quality
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+          setPhoto(compressedBase64)
+        } catch (err: any) {
+          console.error('Failed to resize yacht photo:', err)
+          setPhotoError(err.message || 'Failed to process image')
+        }
+      }
+      img.onerror = () => {
+        setPhotoError('Invalid image file')
+      }
+      img.src = event.target?.result as string
+    }
+    reader.onerror = () => {
+      setPhotoError('Failed to read file')
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -95,7 +159,8 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
         callSign: callSign.trim(),
         atis: atis.trim(),
         mmsi: mmsi.trim(),
-        sails: sails
+        sails: sails,
+        photo: photo
       }
 
       // E2E encrypt
@@ -154,6 +219,55 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
 
       <form onSubmit={handleSubmit} className="vessel-form">
         <div className="form-grid">
+          <div className="vessel-photo-wrapper">
+            <div className="vessel-photo-preview" onClick={triggerFileInput}>
+              {photo ? (
+                <img src={photo} alt={name || 'Yacht'} className="vessel-photo" />
+              ) : (
+                <div className="vessel-photo-placeholder">
+                  <Ship size={48} className="placeholder-icon" />
+                </div>
+              )}
+              <div className="vessel-photo-overlay">
+                <Camera size={24} />
+                <span>{photo ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
+              </div>
+            </div>
+            
+            <div className="vessel-photo-actions">
+              <button
+                type="button"
+                className="btn secondary btn-sm"
+                onClick={triggerFileInput}
+                disabled={saving}
+              >
+                <Camera size={16} />
+                {photo ? t('vessel.photo_change') : t('vessel.photo_add')}
+              </button>
+              
+              {photo && (
+                <button
+                  type="button"
+                  className="btn danger btn-sm"
+                  onClick={handleRemovePhoto}
+                  disabled={saving}
+                >
+                  <Trash2 size={16} />
+                  {t('vessel.photo_delete')}
+                </button>
+              )}
+            </div>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handlePhotoChange}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
+            {photoError && <div className="auth-error mt-2">{photoError}</div>}
+          </div>
+
           <div className="input-group">
             <label>{t('vessel.name')}</label>
             <input

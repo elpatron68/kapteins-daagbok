@@ -46,7 +46,10 @@
       "sails_help": "Tragen Sie hier die Segel ein, die an Eurem Schiff zur Verfügung stehen (z. B. Großsegel, Genua, Fock).",
       "add_sail": "Segel hinzufügen",
       "sail_name_placeholder": "z. B. Großsegel",
-      "no_sails": "Keine Segel hinterlegt."
+      "no_sails": "Keine Segel hinterlegt.",
+      "photo_add": "Foto hinzufügen",
+      "photo_change": "Foto ändern",
+      "photo_delete": "Foto löschen"
     },
     "logs": {
       "title": "Logbuch-Journal",
