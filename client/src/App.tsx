@@ -8,7 +8,9 @@ import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
-import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks } from './services/sync.js'
+import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
+import { db } from './services/db.js'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -19,6 +21,43 @@ function App() {
   const [activeLogbookTitle, setActiveLogbookTitle] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'vessel' | 'crew' | 'deviation' | 'logs' | 'settings'>('logs')
   const [online, setOnline] = useState(navigator.onLine)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [appliedTheme, setAppliedTheme] = useState<'ocean' | 'material' | 'cupertino'>('ocean')
+
+  const syncQueueCount = useLiveQuery(
+    () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
+    [activeLogbookId]
+  )
+
+  const updateAppliedTheme = () => {
+    const configTheme = localStorage.getItem('active_theme') || 'auto'
+    if (configTheme === 'auto') {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+      if (/iPad|iPhone|iPod|Macintosh/.test(userAgent)) {
+        setAppliedTheme('cupertino')
+      } else if (/Android|Linux/.test(userAgent)) {
+        setAppliedTheme('material')
+      } else {
+        setAppliedTheme('ocean')
+      }
+    } else {
+      setAppliedTheme(configTheme as 'ocean' | 'material' | 'cupertino')
+    }
+  }
+
+  useEffect(() => {
+    updateAppliedTheme()
+    window.addEventListener('theme-changed', updateAppliedTheme)
+    return () => {
+      window.removeEventListener('theme-changed', updateAppliedTheme)
+    }
+  }, [])
+
+  useEffect(() => {
+    return subscribeToSyncState((syncing) => {
+      setIsSyncing(syncing)
+    })
+  }, [])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -93,44 +132,59 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    return <AuthOnboarding onAuthenticated={handleAuthenticated} />
+    return (
+      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+        <AuthOnboarding onAuthenticated={handleAuthenticated} />
+      </div>
+    )
   }
 
   if (!activeLogbookId) {
     return (
-      <LogbookDashboard
-        onSelectLogbook={handleSelectLogbook}
-        onLogout={handleLogout}
-      />
+      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+        <LogbookDashboard
+          onSelectLogbook={handleSelectLogbook}
+          onLogout={handleLogout}
+        />
+      </div>
     )
   }
 
   return (
-    <div className="app-layout">
-      {/* Active Logbook Header */}
-      <header className="app-header">
-        <div className="app-header-left">
-          <button className="btn-back" onClick={handleBackToDashboard}>
-            <ChevronLeft size={16} />
-            {t('nav.dashboard')}
-          </button>
-          <div className="app-title-area">
-            <h2>{activeLogbookTitle}</h2>
-            <p className="app-subtitle">{t('app.name')} / {activeLogbookId.substring(0, 8)}...</p>
-          </div>
-        </div>
-
-        <div className="header-actions">
-          <div className={`conn-status ${online ? 'online' : 'offline'}`} title={online ? 'Online' : 'Offline'}>
-            {online ? <Wifi size={18} /> : <WifiOff size={18} />}
-            <span>{online ? 'Online' : t('sync.status_offline')}</span>
+    <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      {isSyncing && <div className="sync-progress-bar" />}
+      <div className="app-layout">
+        {/* Active Logbook Header */}
+        <header className="app-header">
+          <div className="app-header-left">
+            <button className="btn-back" onClick={handleBackToDashboard}>
+              <ChevronLeft size={16} />
+              {t('nav.dashboard')}
+            </button>
+            <div className="app-title-area">
+              <h2>{activeLogbookTitle}</h2>
+              <p className="app-subtitle">{t('app.name')} / {activeLogbookId.substring(0, 8)}...</p>
+            </div>
           </div>
 
-          <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
+          <div className="header-actions">
+            {syncQueueCount !== undefined && syncQueueCount > 0 && (
+              <div className="conn-status warning" title={`${syncQueueCount} unsynced changes`}>
+                <span className="pulse-dot"></span>
+                <span>{t('sync.status_unsynced')} ({syncQueueCount})</span>
+              </div>
+            )}
+
+            <div className={`conn-status ${online ? 'online' : 'offline'}`} title={online ? 'Online' : 'Offline'}>
+              {online ? <Wifi size={18} /> : <WifiOff size={18} />}
+              <span>{online ? 'Online' : t('sync.status_offline')}</span>
+            </div>
+
+            <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>
+              <LogOut size={18} />
+            </button>
+          </div>
+        </header>
 
       {/* Active Workspace */}
       <div className="app-body">
@@ -201,6 +255,7 @@ function App() {
         </main>
       </div>
     </div>
+  </div>
   )
 }
 

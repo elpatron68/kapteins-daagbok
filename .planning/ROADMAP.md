@@ -72,8 +72,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Create client-side decryption CSV builder and hook it up to standard browser download and Web Share API.
-- [ ] 04-02: Implement online/offline connection state detectors, sync progress bars, and OS-adaptive UI themes.
+- [x] 04-01: Create client-side decryption CSV builder and hook it up to standard browser download and Web Share API.
+- [x] 04-02: Implement online/offline connection state detectors, sync progress bars, and OS-adaptive UI themes.
 
 ## Progress
 
@@ -83,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Auth & E2E Crypto | 3/3 | Completed | 2026-05-27 |
-| 2. Sync Protocol & Multi-Logbooks | 0/2 | Not started | - |
-| 3. Master Data & Log entries | 0/3 | Not started | - |
-| 4. CSV Export & UI Polish | 0/2 | Not started | - |
+| 2. Sync Protocol & Multi-Logbooks | 2/2 | Completed | 2026-05-27 |
+| 3. Master Data & Log entries | 3/3 | Completed | 2026-05-27 |
+| 4. CSV Export & UI Polish | 2/2 | Completed | 2026-05-28 |

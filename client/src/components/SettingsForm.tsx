@@ -5,6 +5,7 @@ import { Settings, Save, Check } from 'lucide-react'
 export default function SettingsForm() {
   const { t } = useTranslation()
   const [apiKey, setApiKey] = useState(localStorage.getItem('owm_api_key') || '')
+  const [theme, setTheme] = useState(localStorage.getItem('active_theme') || 'auto')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -15,6 +16,10 @@ export default function SettingsForm() {
     
     // Save to localStorage
     localStorage.setItem('owm_api_key', apiKey.trim())
+    localStorage.setItem('active_theme', theme)
+    
+    // Notify App of theme change
+    window.dispatchEvent(new Event('theme-changed'))
     
     setSaving(false)
     setSuccess(true)
@@ -34,6 +39,7 @@ export default function SettingsForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="vessel-form mt-6">
+        {/* Weather Integration card */}
         <div className="member-editor-card glass">
           <h3 style={{ marginTop: 0, marginBottom: '12px', color: '#fbbf24', fontSize: '16px' }}>
             {t('settings.owm_title')}
@@ -55,6 +61,32 @@ export default function SettingsForm() {
               onChange={(e) => setApiKey(e.target.value)}
               disabled={saving}
             />
+          </div>
+        </div>
+
+        {/* Theme customization card */}
+        <div className="member-editor-card glass mt-4">
+          <h3 style={{ marginTop: 0, marginBottom: '12px', color: '#fbbf24', fontSize: '16px' }}>
+            {t('settings.theme_title')}
+          </h3>
+          <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '145%', margin: '0 0 16px 0' }}>
+            {t('settings.theme_label')}
+          </p>
+
+          <div className="input-group">
+            <select
+              id="app-theme"
+              className="input-text"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              disabled={saving}
+              style={{ background: 'rgba(11, 12, 16, 0.85)', color: '#f1f5f9' }}
+            >
+              <option value="auto">{t('settings.theme_auto')}</option>
+              <option value="ocean">{t('settings.theme_ocean')}</option>
+              <option value="material">{t('settings.theme_material')}</option>
+              <option value="cupertino">{t('settings.theme_cupertino')}</option>
+            </select>
           </div>
         </div>
 

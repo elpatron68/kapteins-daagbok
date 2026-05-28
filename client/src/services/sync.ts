@@ -4,6 +4,24 @@ import { getActiveMasterKey } from './auth.js'
 const API_BASE = 'http://localhost:5000/api/sync'
 const syncingLogbooks = new Set<string>()
 
+let isSyncing = false
+const listeners = new Set<(syncing: boolean) => void>()
+
+export function subscribeToSyncState(listener: (syncing: boolean) => void) {
+  listeners.add(listener)
+  listener(isSyncing)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+function setSyncing(syncing: boolean) {
+  if (isSyncing !== syncing) {
+    isSyncing = syncing
+    listeners.forEach((l) => l(isSyncing))
+  }
+}
+
 // Helper to check if a timestamp is newer
 function isNewer(timeA: string | Date, timeB: string | Date): boolean {
   return new Date(timeA).getTime() > new Date(timeB).getTime()
@@ -184,6 +202,7 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
 
   if (syncingLogbooks.has(logbookId)) return false
   syncingLogbooks.add(logbookId)
+  setSyncing(true)
 
   try {
     const pushed = await pushChanges(logbookId)
@@ -191,6 +210,7 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
     return pushed && pulled;
   } finally {
     syncingLogbooks.delete(logbookId)
+    setSyncing(syncingLogbooks.size > 0)
   }
 }
 
@@ -202,6 +222,7 @@ export async function syncAllLogbooks(): Promise<void> {
   if (!masterKey) return
 
   try {
+    setSyncing(true)
     // 1. Fetch latest logbook lists first (synchronizes db.logbooks index)
     const logbooks = await db.logbooks.toArray()
 
@@ -211,6 +232,8 @@ export async function syncAllLogbooks(): Promise<void> {
     }
   } catch (error) {
     console.error('Error synchronizing all logbooks:', error)
+  } finally {
+    setSyncing(syncingLogbooks.size > 0)
   }
 }
 

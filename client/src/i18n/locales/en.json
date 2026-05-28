@@ -85,7 +85,11 @@
       "event_wind_pressure": "Barometer (hPa)",
       "event_heel": "Heel Angle (°)",
       "event_sails": "Sails / Motor Status",
-      "event_distance": "Distance (nm)"
+      "event_distance": "Distance (nm)",
+      "export_csv": "Download CSV",
+      "share_csv": "Share CSV",
+      "exporting": "Exporting...",
+      "share_unsupported": "Web sharing is not supported on this device. File downloaded instead."
     },
     "dashboard": {
       "title": "Your Logbooks",
@@ -144,7 +148,13 @@
       "no_key": "Please set your OpenWeatherMap API Key in settings to enable weather auto-fill.",
       "weather_success": "Weather details fetched successfully!",
       "weather_error": "Failed to fetch weather. Check your API key and connection.",
-      "gps_error": "Please fetch GPS coordinates first."
+      "gps_error": "Please fetch GPS coordinates first.",
+      "theme_title": "UI Customization",
+      "theme_label": "Application Style / Theme",
+      "theme_auto": "Auto (OS Detect)",
+      "theme_ocean": "Ocean (Glassmorphism)",
+      "theme_material": "Material (Android)",
+      "theme_cupertino": "Cupertino (iOS)"
     }
   }
 }

@@ -85,7 +85,11 @@
       "event_wind_pressure": "Luftdruck (hPa)",
       "event_heel": "Krängung (°)",
       "event_sails": "Segelführung / Motor",
-      "event_distance": "Distanz (sm)"
+      "event_distance": "Distanz (sm)",
+      "export_csv": "CSV herunterladen",
+      "share_csv": "CSV teilen",
+      "exporting": "Exportiere...",
+      "share_unsupported": "Teilen wird auf diesem Gerät nicht unterstützt. Datei wurde stattdessen heruntergeladen."
     },
     "dashboard": {
       "title": "Ihre Logbücher",
@@ -144,7 +148,13 @@
       "no_key": "Bitte hinterlegen Sie Ihren OpenWeatherMap API-Schlüssel in den Einstellungen, um Wetterdaten abzurufen.",
       "weather_success": "Wetterdaten erfolgreich abgerufen!",
       "weather_error": "Wetterdatenabruf fehlgeschlagen. Überprüfen Sie den API-Schlüssel und die Verbindung.",
-      "gps_error": "Bitte ermitteln Sie zuerst die GPS-Koordinaten."
+      "gps_error": "Bitte ermitteln Sie zuerst die GPS-Koordinaten.",
+      "theme_title": "Design-Anpassung",
+      "theme_label": "Design-Stil der App",
+      "theme_auto": "Automatisch (OS-Erkennung)",
+      "theme_ocean": "Ocean (Glassmorphismus)",
+      "theme_material": "Material (Android)",
+      "theme_cupertino": "Cupertino (iOS)"
     }
   }
 }

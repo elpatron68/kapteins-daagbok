@@ -1059,3 +1059,283 @@ body {
 .text-sm {
   font-size: 12px;
 }
+
+/* ========================================== */
+/* PHASE 4: CONNECTION & SYNC INDICATORS      */
+/* ========================================== */
+
+.sync-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #fbbf24, #d97706, #fbbf24);
+  background-size: 200% 100%;
+  animation: sync-slide 1.5s infinite linear;
+  z-index: 9999;
+}
+
+@keyframes sync-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: 0 0; }
+}
+
+.conn-status.warning {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #fbbf24;
+  display: inline-block;
+  margin-right: 6px;
+  animation: pulse-animation 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+@media (max-width: 640px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* ========================================== */
+/* PHASE 4: OS-ADAPTIVE UI THEMES             */
+/* ========================================== */
+
+/* Body Overrides via :has() */
+body:has(.theme-material) {
+  background: #121212 !important;
+}
+body:has(.theme-cupertino) {
+  background: #000000 !important;
+}
+
+/* --- MATERIAL THEME (ANDROID/LINUX) --- */
+.theme-material {
+  font-family: 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Color & Text overrides */
+.theme-material h1,
+.theme-material h2,
+.theme-material h3,
+.theme-material h4,
+.theme-material .form-header h2,
+.theme-material .form-icon,
+.theme-material .header-logo,
+.theme-material .card-icon,
+.theme-material .btn-back,
+.theme-material .cell-label {
+  color: #00adb5 !important;
+}
+
+/* Card Overrides */
+.theme-material .auth-card,
+.theme-material .form-card,
+.theme-material .create-section,
+.theme-material .app-sidebar,
+.theme-material .app-content,
+.theme-material .logbook-card,
+.theme-material .crew-member-card,
+.theme-material .member-editor-card {
+  background: #1e1e1e !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #2d2d2d !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Input Overrides */
+.theme-material .input-text,
+.theme-material .input-textarea,
+.theme-material select.input-text {
+  background: #2a2a2a !important;
+  border: 1px solid #3d3d3d !important;
+  border-radius: 4px !important;
+  color: #f1f5f9 !important;
+}
+.theme-material .input-text:focus,
+.theme-material .input-textarea:focus {
+  border-color: #00adb5 !important;
+  box-shadow: 0 0 0 2px rgba(0, 173, 181, 0.2) !important;
+}
+
+/* Button Overrides */
+.theme-material .btn.primary {
+  background: #00adb5 !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.theme-material .btn.primary:hover {
+  background: #008f95 !important;
+  transform: none !important;
+}
+.theme-material .btn.secondary,
+.theme-material .btn-back {
+  background: #2a2a2a !important;
+  border: 1px solid #3d3d3d !important;
+  color: #f1f5f9 !important;
+  border-radius: 4px !important;
+}
+.theme-material .btn.secondary:hover,
+.theme-material .btn-back:hover {
+  background: #333333 !important;
+}
+
+/* Sidebar Overrides */
+.theme-material .sidebar-btn {
+  border-radius: 0 !important;
+  border-left: 4px solid transparent !important;
+}
+.theme-material .sidebar-btn.active {
+  background: rgba(0, 173, 181, 0.08) !important;
+  border-left: 4px solid #00adb5 !important;
+  color: #00adb5 !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+}
+
+/* Header Overrides */
+.theme-material .app-header {
+  border-bottom: 1px solid #2d2d2d !important;
+}
+
+/* Tables and Grids */
+.theme-material .events-table th {
+  color: #00adb5 !important;
+  border-bottom: 2px solid #2d2d2d !important;
+}
+.theme-material .events-table td {
+  border-bottom: 1px solid #2d2d2d !important;
+}
+.theme-material .events-scroll-container {
+  border: 1px solid #2d2d2d !important;
+}
+
+/* Progress bar override for Material */
+.theme-material ~ .sync-progress-bar {
+  background: linear-gradient(90deg, #00adb5, #008f95, #00adb5) !important;
+}
+
+
+/* --- CUPERTINO THEME (iOS/macOS) --- */
+.theme-cupertino {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+
+/* Color & Text overrides */
+.theme-cupertino h1,
+.theme-cupertino h2,
+.theme-cupertino h3,
+.theme-cupertino h4,
+.theme-cupertino .form-header h2,
+.theme-cupertino .form-icon,
+.theme-cupertino .header-logo,
+.theme-cupertino .card-icon,
+.theme-cupertino .btn-back,
+.theme-cupertino .cell-label {
+  color: #0a84ff !important;
+}
+
+/* Card Overrides */
+.theme-cupertino .auth-card,
+.theme-cupertino .form-card,
+.theme-cupertino .create-section,
+.theme-cupertino .app-sidebar,
+.theme-cupertino .app-content,
+.theme-cupertino .logbook-card,
+.theme-cupertino .crew-member-card,
+.theme-cupertino .member-editor-card {
+  background: rgba(28, 28, 30, 0.7) !important;
+  backdrop-filter: blur(25px) !important;
+  -webkit-backdrop-filter: blur(25px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+/* Input Overrides */
+.theme-cupertino .input-text,
+.theme-cupertino .input-textarea,
+.theme-cupertino select.input-text {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+}
+.theme-cupertino .input-text:focus,
+.theme-cupertino .input-textarea:focus {
+  border-color: #0a84ff !important;
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.25) !important;
+}
+
+/* Button Overrides */
+.theme-cupertino .btn.primary {
+  background: #0a84ff !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+  box-shadow: none !important;
+}
+.theme-cupertino .btn.primary:hover {
+  background: #007aff !important;
+  transform: none !important;
+}
+.theme-cupertino .btn.secondary,
+.theme-cupertino .btn-back {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+}
+.theme-cupertino .btn.secondary:hover,
+.theme-cupertino .btn-back:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Sidebar Overrides */
+.theme-cupertino .sidebar-btn {
+  border-radius: 8px !important;
+}
+.theme-cupertino .sidebar-btn.active {
+  background: rgba(10, 132, 255, 0.12) !important;
+  color: #0a84ff !important;
+  border: 1px solid rgba(10, 132, 255, 0.2) !important;
+}
+
+/* Header Overrides */
+.theme-cupertino .app-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tables and Grids */
+.theme-cupertino .events-table th {
+  color: #0a84ff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+.theme-cupertino .events-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.theme-cupertino .events-scroll-container {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(28, 28, 30, 0.5) !important;
+}
+
+/* Progress bar override for Cupertino */
+.theme-cupertino ~ .sync-progress-bar {
+  background: linear-gradient(90deg, #0a84ff, #007aff, #0a84ff) !important;
+}
+

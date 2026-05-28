@@ -4,8 +4,9 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { decryptJson, encryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
-import { FileText, Plus, Trash2, ChevronRight, Calendar } from 'lucide-react'
+import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
 
 interface LogEntriesListProps {
   logbookId: string
@@ -25,6 +26,7 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
   const [entries, setEntries] = useState<DecryptedEntryItem[]>([])
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -71,6 +73,40 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
       setError(err.message || 'Decryption failed. Could not load journal list.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDownloadCsv = async () => {
+    setExporting(true)
+    setError(null)
+    try {
+      const title = localStorage.getItem('active_logbook_title') || 'Logbook'
+      await downloadCsv(logbookId, title)
+    } catch (err: any) {
+      console.error('Failed to download CSV:', err)
+      setError(err.message || 'Failed to generate CSV export.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleShareCsv = async () => {
+    setExporting(true)
+    setError(null)
+    try {
+      const title = localStorage.getItem('active_logbook_title') || 'Logbook'
+      await shareCsv(logbookId, title)
+    } catch (err: any) {
+      if (err.message === 'share_unsupported') {
+        const title = localStorage.getItem('active_logbook_title') || 'Logbook'
+        await downloadCsv(logbookId, title)
+        setError(t('logs.share_unsupported'))
+      } else {
+        console.error('Failed to share CSV:', err)
+        setError(err.message || 'Failed to share CSV export.')
+      }
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -187,10 +223,22 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
           <Calendar size={24} className="form-icon" />
           <h2>{t('logs.title')}</h2>
         </div>
-        <button className="btn primary" onClick={handleCreate} style={{ width: 'auto', padding: '8px 16px' }}>
-          <Plus size={16} />
-          {t('logs.new_entry')}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className="btn secondary" onClick={handleDownloadCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.export_csv')}>
+            <Download size={16} />
+            <span className="hide-mobile">{exporting ? t('logs.exporting') : t('logs.export_csv')}</span>
+          </button>
+          
+          <button className="btn secondary" onClick={handleShareCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.share_csv')}>
+            <Share2 size={16} />
+            <span className="hide-mobile">{t('logs.share_csv')}</span>
+          </button>
+
+          <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }}>
+            <Plus size={16} />
+            {t('logs.new_entry')}
+          </button>
+        </div>
       </div>
 
       {error && <div className="auth-error mb-4">{error}</div>}
