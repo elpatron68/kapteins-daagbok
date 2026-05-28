@@ -517,7 +517,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
               />
             </div>
 
-            <div className="input-group" style={{ gridColumn: 'span 2' }}>
+            <div className="input-group grid-span-2">
               <label>{t('crew.diseases')}</label>
               <input
                 type="text"
@@ -722,7 +722,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 />
               </div>
 
-              <div className="input-group" style={{ gridColumn: 'span 2' }}>
+              <div className="input-group grid-span-2">
                 <label>{t('crew.diseases')}</label>
                 <input
                   type="text"

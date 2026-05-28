@@ -880,6 +880,11 @@ body {
   .form-grid {
     grid-template-columns: 1fr;
   }
+  .vessel-photo-wrapper,
+  .sails-section,
+  .grid-span-2 {
+    grid-column: span 1 !important;
+  }
 }
 
 .vessel-form label {
@@ -1641,6 +1646,8 @@ body:has(.theme-cupertino) {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #38bdf8;
+}.grid-span-2 {
+  grid-column: span 2;
 }
 
 /* Yacht Photo Styling */
