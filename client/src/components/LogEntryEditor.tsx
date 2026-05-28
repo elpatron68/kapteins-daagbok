@@ -847,7 +847,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
             <div className="form-grid mb-4">
               <div className="input-group">
                 <label>{t('logs.event_gps')} (Lat, Lng)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="gps-input-row">
                   <input
                     type="text"
                     placeholder="Lat"
