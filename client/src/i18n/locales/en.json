@@ -178,6 +178,7 @@
       "no_key": "Please set your OpenWeatherMap API Key in settings to enable weather auto-fill.",
       "weather_success": "Weather details fetched successfully!",
       "weather_error": "Failed to fetch weather. Check your API key and connection.",
+      "weather_date_mismatch": "Weather data can only be fetched for today ({{today}}). This logbook entry is dated {{date}}.",
       "gps_error": "Please enter a location or fetch GPS coordinates first.",
       "theme_title": "UI Customization",
       "theme_label": "Application Style / Theme",

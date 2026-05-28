@@ -412,6 +412,14 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleFetchWeather = async () => {
+    const localToday = new Date()
+    const todayStr = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, '0')}-${String(localToday.getDate()).padStart(2, '0')}`
+
+    if (date && date !== todayStr) {
+      showAlert(t('settings.weather_date_mismatch', { date, today: todayStr }))
+      return
+    }
+
     const hasGps = evGpsLat && evGpsLng
     const fallbackLocation = evLocationName.trim() || departure.trim() || destination.trim()
 

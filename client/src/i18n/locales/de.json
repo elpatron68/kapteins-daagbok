@@ -178,6 +178,7 @@
       "no_key": "Bitte hinterlegen Sie Ihren OpenWeatherMap API-Schlüssel in den Einstellungen, um Wetterdaten abzurufen.",
       "weather_success": "Wetterdaten erfolgreich abgerufen!",
       "weather_error": "Wetterdatenabruf fehlgeschlagen. Überprüfen Sie den API-Schlüssel und die Verbindung.",
+      "weather_date_mismatch": "Wetterdaten können nur für den heutigen Tag ({{today}}) abgerufen werden. Dieser Logbucheintrag ist auf den {{date}} datiert.",
       "gps_error": "Bitte geben Sie einen Ort an oder ermitteln Sie die GPS-Koordinaten.",
       "theme_title": "Design-Anpassung",
       "theme_label": "Design-Stil der App",
