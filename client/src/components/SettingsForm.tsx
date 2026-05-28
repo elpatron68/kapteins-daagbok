@@ -40,11 +40,100 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
   const [collabError, setCollabError] = useState<string | null>(null)
   const [loadingCollabs, setLoadingCollabs] = useState(false)
 
+  // Public Share Link States
+  const [shareEnabled, setShareEnabled] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const [shareCopied, setShareCopied] = useState(false)
+  const [loadingShareLink, setLoadingShareLink] = useState(false)
+
   useEffect(() => {
     if (logbookId) {
       loadCollaborators()
+      loadShareLink()
     }
   }, [logbookId])
+
+  const loadShareLink = async () => {
+    if (!logbookId) return
+    setLoadingShareLink(true)
+    const userId = localStorage.getItem('active_userid')
+    if (!userId) return
+
+    try {
+      const res = await fetch(`/api/collaboration/share-link?logbookId=${logbookId}`, {
+        headers: {
+          'X-User-Id': userId
+        }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.token) {
+          setShareEnabled(true)
+          const logbookKey = await ensureLogbookKey(logbookId)
+          const hexKey = bufferToHex(logbookKey)
+          setShareLink(`${window.location.origin}/share?token=${data.token}#key=${hexKey}`)
+        } else {
+          setShareEnabled(false)
+          setShareLink('')
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load share link:', err)
+    } finally {
+      setLoadingShareLink(false)
+    }
+  }
+
+  const handleToggleShare = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!logbookId) return
+    const checked = e.target.checked
+    const userId = localStorage.getItem('active_userid')
+    if (!userId) return
+
+    setLoadingShareLink(true)
+    try {
+      const res = await fetch('/api/collaboration/share-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId
+        },
+        body: JSON.stringify({ logbookId, enabled: checked })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (checked && data.token) {
+          setShareEnabled(true)
+          const logbookKey = await ensureLogbookKey(logbookId)
+          const hexKey = bufferToHex(logbookKey)
+          setShareLink(`${window.location.origin}/share?token=${data.token}#key=${hexKey}`)
+          showAlert('Public share link enabled!')
+        } else {
+          setShareEnabled(false)
+          setShareLink('')
+          showAlert('Public share link disabled.')
+        }
+      } else {
+        throw new Error('Failed to toggle public share link.')
+      }
+    } catch (err: any) {
+      console.error('Toggle share link failed:', err)
+      showAlert(err.message || 'Failed to update public share link.')
+    } finally {
+      setLoadingShareLink(false)
+    }
+  }
+
+  const handleCopyShareLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    }
+  }
+
 
   const loadCollaborators = async () => {
     setLoadingCollabs(true)
@@ -246,6 +335,57 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
           </button>
         </div>
       </form>
+
+      {/* Public Share Link Card (Only visible to Logbook Owner) */}
+      {logbookId && isOwner && (
+        <div className="member-editor-card glass mt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <LinkIcon size={20} style={{ color: '#fbbf24' }} />
+            <h3 style={{ margin: 0, color: '#fbbf24', fontSize: '16px' }}>
+              {t('settings.share_title')}
+            </h3>
+          </div>
+
+          <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '145%', margin: '0 0 16px 0' }}>
+            {t('settings.share_desc')}
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <label className="switch-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: '#f1f5f9' }}>
+              <input
+                type="checkbox"
+                checked={shareEnabled}
+                onChange={handleToggleShare}
+                disabled={loadingShareLink}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span>{t('settings.share_enable')}</span>
+            </label>
+            {loadingShareLink && <span style={{ fontSize: '12px', color: '#64748b' }}>Updating...</span>}
+          </div>
+
+          {shareEnabled && shareLink && (
+            <div className="input-group mb-4" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                type="text"
+                readOnly
+                value={shareLink}
+                className="input-text font-mono text-xs"
+                style={{ flex: 1, padding: '10px' }}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={handleCopyShareLink}
+                style={{ width: 'auto', padding: '10px' }}
+              >
+                {shareCopied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Crew Collaboration Card (Only visible to Logbook Owner) */}
       {logbookId && isOwner && (

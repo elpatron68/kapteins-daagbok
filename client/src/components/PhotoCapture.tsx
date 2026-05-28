@@ -12,6 +12,8 @@ import { Camera, Trash2 } from 'lucide-react'
 interface PhotoCaptureProps {
   entryId: string
   logbookId: string
+  readOnly?: boolean
+  preloadedPhotos?: any[]
 }
 
 interface DecryptedPhoto {
@@ -21,7 +23,7 @@ interface DecryptedPhoto {
   updatedAt: string
 }
 
-export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) {
+export default function PhotoCapture({ entryId, logbookId, readOnly = false, preloadedPhotos }: PhotoCaptureProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
   const [caption, setCaption] = useState('')
@@ -40,6 +42,19 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
   // Decrypt photos on query updates
   useEffect(() => {
     async function decryptPhotosList() {
+      if (readOnly && preloadedPhotos) {
+        const filtered = preloadedPhotos
+          .filter((p: any) => p.entryId === entryId)
+          .map((p: any) => ({
+            payloadId: p.payloadId || p.id,
+            image: p.image,
+            caption: p.caption || '',
+            updatedAt: p.updatedAt || new Date().toISOString()
+          }))
+        setDecryptedPhotos(filtered)
+        return
+      }
+
       if (!localPhotos) return
       
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
@@ -65,7 +80,7 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
     }
 
     decryptPhotosList()
-  }, [localPhotos])
+  }, [localPhotos, readOnly, preloadedPhotos, entryId])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -197,45 +212,48 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
       {error && <div className="auth-error mb-4">{error}</div>}
 
       {/* Upload area */}
-      <div className="member-editor-card glass mb-6" style={{ padding: '16px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="input-group" style={{ flex: '1', minWidth: '200px', margin: 0 }}>
-            <label>{t('logs.photo_caption_label')}</label>
+      {/* Upload Form */}
+      {!readOnly && (
+        <div className="member-editor-card glass mb-6" style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="input-group" style={{ flex: '1', minWidth: '200px', margin: 0 }}>
+              <label>{t('logs.photo_caption_label')}</label>
+              <input
+                type="text"
+                placeholder={t('logs.photo_caption_placeholder')}
+                className="input-text"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                disabled={uploading}
+              />
+            </div>
+
             <input
-              type="text"
-              placeholder={t('logs.photo_caption_placeholder')}
-              className="input-text"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              disabled={uploading}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
             />
+
+            <button
+              type="button"
+              className="btn primary"
+              onClick={triggerSelect}
+              disabled={uploading}
+              style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
+            >
+              {uploading ? (
+                <span className="spin">⏳</span>
+              ) : (
+                <Camera size={16} />
+              )}
+              {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
+            </button>
           </div>
-
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
-
-          <button
-            type="button"
-            className="btn primary"
-            onClick={triggerSelect}
-            disabled={uploading}
-            style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
-          >
-            {uploading ? (
-              <span className="spin">⏳</span>
-            ) : (
-              <Camera size={16} />
-            )}
-            {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Photo Grid */}
       {decryptedPhotos.length === 0 ? (
@@ -246,14 +264,16 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
             <div key={photo.payloadId} className="photo-card glass">
               <div className="photo-container">
                 <img src={photo.image} alt={photo.caption || 'Attachment'} loading="lazy" />
-                <button
-                  type="button"
-                  className="photo-btn-delete"
-                  onClick={() => handleDelete(photo.payloadId)}
-                  title="Remove photo"
-                >
-                  <Trash2 size={16} />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="photo-btn-delete"
+                    onClick={() => handleDelete(photo.payloadId)}
+                    title="Remove photo"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
               {photo.caption && (
                 <div className="photo-caption-bar">

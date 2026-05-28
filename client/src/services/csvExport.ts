@@ -12,42 +12,56 @@ function escapeCsvValue(val: string | number | undefined | null): string {
   return str;
 }
 
-export async function exportLogbookToCsv(logbookId: string): Promise<string> {
-  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-  if (!masterKey) {
-    throw new Error('Encryption key not found. User must log in.')
-  }
-
-  // 1. Fetch Yacht details
+export async function exportLogbookToCsv(logbookId: string, preloadedData?: { yacht: any; entries: any[] }): Promise<string> {
   let yachtName = '', homePort = '', owner = '', charter = '', registration = '', callsign = '', atis = '', mmsi = '';
-  const yachtRecord = await db.yachts.get(logbookId);
-  if (yachtRecord) {
-    try {
-      const yacht = await decryptJson(yachtRecord.encryptedData, yachtRecord.iv, yachtRecord.tag, masterKey);
-      yachtName = yacht.name || '';
-      homePort = yacht.port || '';
-      owner = yacht.owner || '';
-      charter = yacht.charter || '';
-      registration = yacht.registration || '';
-      callsign = yacht.callsign || '';
-      atis = yacht.atis || '';
-      mmsi = yacht.mmsi || '';
-    } catch (e) {
-      console.error('Failed to decrypt yacht details for CSV:', e);
-    }
-  }
+  let decryptedEntries: any[] = [];
 
-  // 2. Fetch logbook entries
-  const localEntries = await db.entries.where({ logbookId }).toArray();
-  const decryptedEntries = [];
-  for (const entry of localEntries) {
-    try {
-      const dec = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey);
-      if (dec) {
-        decryptedEntries.push(dec);
+  if (preloadedData) {
+    const yacht = preloadedData.yacht || {};
+    yachtName = yacht.name || '';
+    homePort = yacht.port || '';
+    owner = yacht.owner || '';
+    charter = yacht.charter || '';
+    registration = yacht.registration || '';
+    callsign = yacht.callsign || '';
+    atis = yacht.atis || '';
+    mmsi = yacht.mmsi || '';
+    decryptedEntries = [...preloadedData.entries];
+  } else {
+    const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+    if (!masterKey) {
+      throw new Error('Encryption key not found. User must log in.')
+    }
+
+    // 1. Fetch Yacht details
+    const yachtRecord = await db.yachts.get(logbookId);
+    if (yachtRecord) {
+      try {
+        const yacht = await decryptJson(yachtRecord.encryptedData, yachtRecord.iv, yachtRecord.tag, masterKey);
+        yachtName = yacht.name || '';
+        homePort = yacht.port || '';
+        owner = yacht.owner || '';
+        charter = yacht.charter || '';
+        registration = yacht.registration || '';
+        callsign = yacht.callsign || '';
+        atis = yacht.atis || '';
+        mmsi = yacht.mmsi || '';
+      } catch (e) {
+        console.error('Failed to decrypt yacht details for CSV:', e);
       }
-    } catch (e) {
-      console.error('Failed to decrypt entry for CSV:', e);
+    }
+
+    // 2. Fetch logbook entries
+    const localEntries = await db.entries.where({ logbookId }).toArray();
+    for (const entry of localEntries) {
+      try {
+        const dec = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey);
+        if (dec) {
+          decryptedEntries.push(dec);
+        }
+      } catch (e) {
+        console.error('Failed to decrypt entry for CSV:', e);
+      }
     }
   }
 
@@ -127,8 +141,8 @@ export async function exportLogbookToCsv(logbookId: string): Promise<string> {
   return rows.map(r => r.join(',')).join('\n');
 }
 
-export async function downloadCsv(logbookId: string, title: string): Promise<void> {
-  const csvContent = await exportLogbookToCsv(logbookId);
+export async function downloadCsv(logbookId: string, title: string, preloadedData?: { yacht: any; entries: any[] }): Promise<void> {
+  const csvContent = await exportLogbookToCsv(logbookId, preloadedData);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -142,8 +156,8 @@ export async function downloadCsv(logbookId: string, title: string): Promise<voi
   document.body.removeChild(link);
 }
 
-export async function shareCsv(logbookId: string, title: string): Promise<void> {
-  const csvContent = await exportLogbookToCsv(logbookId);
+export async function shareCsv(logbookId: string, title: string, preloadedData?: { yacht: any; entries: any[] }): Promise<void> {
+  const csvContent = await exportLogbookToCsv(logbookId, preloadedData);
   const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_logbook.csv`;
   
   const file = new File([csvContent], filename, { type: 'text/csv' });
@@ -158,7 +172,7 @@ export async function shareCsv(logbookId: string, title: string): Promise<void> 
     } catch (e: any) {
       if (e.name !== 'AbortError') {
         console.error('Sharing failed, falling back to download:', e);
-        await downloadCsv(logbookId, title);
+        await downloadCsv(logbookId, title, preloadedData);
       }
     }
   } else {

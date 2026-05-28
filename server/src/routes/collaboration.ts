@@ -54,6 +54,58 @@ router.get('/invite-details', async (req: any, res) => {
   }
 })
 
+// 1b. Public read-only share pull endpoint (does not require authentication)
+router.get('/share-pull', async (req: any, res) => {
+  try {
+    const { token } = req.query
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' })
+    }
+
+    const invitation = await prisma.invitation.findUnique({
+      where: { token },
+      include: {
+        logbook: true
+      }
+    })
+
+    if (!invitation) {
+      return res.status(404).json({ error: 'Share link not found' })
+    }
+
+    if (new Date() > invitation.expiresAt) {
+      return res.status(410).json({ error: 'Share link has expired' })
+    }
+
+    if (invitation.role !== 'READ') {
+      return res.status(403).json({ error: 'Forbidden: Invalid role for public pull' })
+    }
+
+    const logbookId = invitation.logbookId
+
+    const yacht = await prisma.yachtPayload.findUnique({ where: { logbookId } })
+    const deviation = await prisma.deviationPayload.findUnique({ where: { logbookId } })
+    const crews = await prisma.crewPayload.findMany({ where: { logbookId } })
+    const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
+    const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
+    const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
+
+    return res.json({
+      title: invitation.logbook.encryptedTitle,
+      yacht,
+      deviation,
+      crews,
+      entries,
+      photos,
+      gpsTracks
+    })
+  } catch (error: any) {
+    console.error('Error in share-pull:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+
 // 2. Accept invitation (requires authenticated invitee)
 router.post('/accept', requireUser, async (req: any, res) => {
   try {
@@ -236,6 +288,113 @@ router.delete('/collaborators/:id', async (req: any, res) => {
     return res.json({ success: true })
   } catch (error: any) {
     console.error('Error revoking collaboration:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 6. Get public share link for a logbook (Owner only)
+router.get('/share-link', async (req: any, res) => {
+  try {
+    const { logbookId } = req.query
+    if (!logbookId) {
+      return res.status(400).json({ error: 'logbookId is required' })
+    }
+
+    const logbook = await prisma.logbook.findUnique({
+      where: { id: logbookId }
+    })
+
+    if (!logbook) {
+      return res.status(404).json({ error: 'Logbook not found' })
+    }
+
+    if (logbook.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' })
+    }
+
+    const invitation = await prisma.invitation.findFirst({
+      where: {
+        logbookId,
+        role: 'READ',
+        expiresAt: {
+          gt: new Date()
+        }
+      }
+    })
+
+    return res.json({
+      token: invitation ? invitation.token : null,
+      expiresAt: invitation ? invitation.expiresAt : null
+    })
+  } catch (error: any) {
+    console.error('Error fetching share link:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 7. Toggle public share link for a logbook (Owner only)
+router.post('/share-link', async (req: any, res) => {
+  try {
+    const { logbookId, enabled } = req.body
+    if (!logbookId || typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'logbookId and enabled are required' })
+    }
+
+    const logbook = await prisma.logbook.findUnique({
+      where: { id: logbookId }
+    })
+
+    if (!logbook) {
+      return res.status(404).json({ error: 'Logbook not found' })
+    }
+
+    if (logbook.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' })
+    }
+
+    if (enabled) {
+      // Find existing active read-only invitation
+      let invitation = await prisma.invitation.findFirst({
+        where: {
+          logbookId,
+          role: 'READ',
+          expiresAt: {
+            gt: new Date()
+          }
+        }
+      })
+
+      if (!invitation) {
+        // Create one that lasts 100 years
+        const expiresAt = new Date()
+        expiresAt.setFullYear(expiresAt.getFullYear() + 100)
+
+        invitation = await prisma.invitation.create({
+          data: {
+            logbookId,
+            role: 'READ',
+            expiresAt
+          }
+        })
+      }
+
+      return res.json({
+        token: invitation.token,
+        expiresAt: invitation.expiresAt
+      })
+    } else {
+      // Delete any READ invitations
+      await prisma.invitation.deleteMany({
+        where: {
+          logbookId,
+          role: 'READ'
+        }
+      })
+
+      return res.json({ success: true })
+    }
+  } catch (error: any) {
+    console.error('Error toggling share link:', error)
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 })

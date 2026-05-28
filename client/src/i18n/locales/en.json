@@ -209,7 +209,12 @@
       "theme_auto": "Auto (OS Detect)",
       "theme_ocean": "Ocean (Glassmorphism)",
       "theme_material": "Material (Android)",
-      "theme_cupertino": "Cupertino (iOS)"
+      "theme_cupertino": "Cupertino (iOS)",
+      "share_title": "Share Logbook (Read-Only)",
+      "share_desc": "Enable this to generate a public, read-only link. Anyone with the link can view your travels, yacht profile, and crew members. Decryption keys are never transmitted to the server (they stay in the hash part of the URL).",
+      "share_enable": "Enable Public Link",
+      "share_copied": "Link copied!",
+      "share_copy_btn": "Copy Link"
     }
   }
 }

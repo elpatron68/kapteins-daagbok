@@ -11,6 +11,7 @@ import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
+import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -26,6 +27,11 @@ function App() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [appliedTheme, setAppliedTheme] = useState<'ocean' | 'material' | 'cupertino'>('ocean')
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
+
+  // Viewer mode for read-only shared links
+  const [isViewerMode, setIsViewerMode] = useState(false)
+  const [shareToken, setShareToken] = useState('')
+  const [shareKey, setShareKey] = useState('')
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -89,6 +95,15 @@ function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+
+    if (window.location.pathname === '/share' && params.has('token') && hashParams.has('key')) {
+      setShareToken(params.get('token') || '')
+      setShareKey(hashParams.get('key') || '')
+      setIsViewerMode(true)
+      return
+    }
+
     if (params.has('token')) {
       setIsAcceptingInvite(true)
     }
@@ -137,6 +152,14 @@ function App() {
     setActiveLogbookTitle(null)
     localStorage.removeItem('active_logbook_id')
     localStorage.removeItem('active_logbook_title')
+  }
+
+  if (isViewerMode) {
+    return (
+      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+        <ReadOnlyViewer token={shareToken} hexKey={shareKey} />
+      </div>
+    )
   }
 
   if (isAcceptingInvite) {

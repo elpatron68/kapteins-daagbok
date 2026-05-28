@@ -10,6 +10,8 @@ import { Users, User, Plus, Trash2, Edit2, Save, X, Check, Camera } from 'lucide
 
 interface CrewFormProps {
   logbookId: string
+  readOnly?: boolean
+  preloadedData?: any[]
 }
 
 interface CrewMemberData {
@@ -31,7 +33,7 @@ interface DecryptedCrew {
   data: CrewMemberData
 }
 
-export default function CrewForm({ logbookId }: CrewFormProps) {
+export default function CrewForm({ logbookId, readOnly = false, preloadedData }: CrewFormProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
 
@@ -78,7 +80,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
 
   useEffect(() => {
     loadCrewData()
-  }, [logbookId])
+  }, [logbookId, preloadedData])
 
   const resizeImageFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -124,6 +126,31 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setLoading(true)
     setError(null)
     try {
+      if (readOnly && preloadedData) {
+        const decryptedCrews: DecryptedCrew[] = []
+        for (const c of preloadedData) {
+          if (c.payloadId === 'skipper') {
+            setSkipName(c.data.name || '')
+            setSkipAddress(c.data.address || '')
+            setSkipBirthDate(c.data.birthDate || '')
+            setSkipPhone(c.data.phone || '')
+            setSkipNationality(c.data.nationality || '')
+            setSkipPassport(c.data.passportNumber || '')
+            setSkipBloodType(c.data.bloodType || '')
+            setSkipAllergies(c.data.allergies || '')
+            setSkipDiseases(c.data.diseases || '')
+            setSkipPhoto(c.data.photo || null)
+          } else {
+            decryptedCrews.push({
+              payloadId: c.payloadId,
+              data: c.data
+            })
+          }
+        }
+        setCrewList(decryptedCrews)
+        return
+      }
+
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
@@ -164,6 +191,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
 
   const handleSaveSkipper = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
     setSavingSkipper(true)
     setError(null)
     setSkipperSuccess(false)
@@ -253,7 +281,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
 
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!memName.trim()) return
+    if (readOnly || !memName.trim()) return
 
     setSavingMember(true)
     setError(null)
@@ -319,6 +347,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
   }
 
   const handleDeleteMember = async (memberId: string) => {
+    if (readOnly) return
     if (await showConfirm(t('crew.delete_confirm'), t('crew.title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setError(null)
       try {
@@ -368,7 +397,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
         <form onSubmit={handleSaveSkipper} className="vessel-form">
           <div className="form-grid">
             <div className="vessel-photo-wrapper">
-              <div className="vessel-photo-preview" onClick={() => skipFileInputRef.current?.click()}>
+              <div className="vessel-photo-preview" onClick={readOnly ? undefined : () => skipFileInputRef.current?.click()} style={{ cursor: readOnly ? 'default' : 'pointer' }}>
                 {skipPhoto ? (
                   <img src={skipPhoto} alt={skipName || 'Skipper'} className="vessel-photo" />
                 ) : (
@@ -376,38 +405,42 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                     <User size={48} className="placeholder-icon" />
                   </div>
                 )}
-                <div className="vessel-photo-overlay">
-                  <Camera size={24} />
-                  <span>{skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
-                </div>
-              </div>
-              
-              <div className="vessel-photo-actions">
-                <button
-                  type="button"
-                  className="btn secondary btn-sm"
-                  onClick={() => skipFileInputRef.current?.click()}
-                  disabled={savingSkipper}
-                >
-                  <Camera size={16} />
-                  {skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}
-                </button>
-                
-                {skipPhoto && (
-                  <button
-                    type="button"
-                    className="btn danger btn-sm"
-                    onClick={() => {
-                      setSkipPhoto(null)
-                      if (skipFileInputRef.current) skipFileInputRef.current.value = ''
-                    }}
-                    disabled={savingSkipper}
-                  >
-                    <Trash2 size={16} />
-                    {t('vessel.photo_delete')}
-                  </button>
+                {!readOnly && (
+                  <div className="vessel-photo-overlay">
+                    <Camera size={24} />
+                    <span>{skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
+                  </div>
                 )}
               </div>
+              
+              {!readOnly && (
+                <div className="vessel-photo-actions">
+                  <button
+                    type="button"
+                    className="btn secondary btn-sm"
+                    onClick={() => skipFileInputRef.current?.click()}
+                    disabled={savingSkipper}
+                  >
+                    <Camera size={16} />
+                    {skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}
+                  </button>
+                  
+                  {skipPhoto && (
+                    <button
+                      type="button"
+                      className="btn danger btn-sm"
+                      onClick={() => {
+                        setSkipPhoto(null)
+                        if (skipFileInputRef.current) skipFileInputRef.current.value = ''
+                      }}
+                      disabled={savingSkipper}
+                    >
+                      <Trash2 size={16} />
+                      {t('vessel.photo_delete')}
+                    </button>
+                  )}
+                </div>
+              )}
               
               <input
                 type="file"
@@ -436,7 +469,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipName}
                 onChange={(e) => setSkipName(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
                 required
               />
             </div>
@@ -448,7 +481,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipAddress}
                 onChange={(e) => setSkipAddress(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -459,7 +492,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipBirthDate}
                 onChange={(e) => setSkipBirthDate(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -470,7 +503,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipPhone}
                 onChange={(e) => setSkipPhone(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -481,7 +514,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipNationality}
                 onChange={(e) => setSkipNationality(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -492,7 +525,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipPassport}
                 onChange={(e) => setSkipPassport(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -503,7 +536,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipBloodType}
                 onChange={(e) => setSkipBloodType(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -514,7 +547,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipAllergies}
                 onChange={(e) => setSkipAllergies(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
 
@@ -525,24 +558,26 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                 className="input-text"
                 value={skipDiseases}
                 onChange={(e) => setSkipDiseases(e.target.value)}
-                disabled={savingSkipper}
+                disabled={savingSkipper || readOnly}
               />
             </div>
           </div>
 
-          <div className="form-actions">
-            {skipperSuccess && (
-              <div className="success-toast">
-                <Check size={16} />
-                <span>{t('crew.saved')}</span>
-              </div>
-            )}
-            
-            <button type="submit" className="btn primary" disabled={savingSkipper || !skipName.trim()}>
-              <Save size={18} />
-              {t('crew.save')}
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="form-actions">
+              {skipperSuccess && (
+                <div className="success-toast">
+                  <Check size={16} />
+                  <span>{t('crew.saved')}</span>
+                </div>
+              )}
+              
+              <button type="submit" className="btn primary" disabled={savingSkipper || !skipName.trim()}>
+                <Save size={18} />
+                {t('crew.save')}
+              </button>
+            </div>
+          )}
         </form>
       </div>
 
@@ -553,7 +588,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
             <Users size={24} className="form-icon" />
             <h2>{t('crew.crew_section')}</h2>
           </div>
-          {crewList.length < 5 && !showMemberForm && (
+          {!readOnly && crewList.length < 5 && !showMemberForm && (
             <button className="btn primary" onClick={openAddMember} style={{ width: 'auto', padding: '8px 16px' }}>
               <Plus size={16} />
               {t('crew.add_crew')}
@@ -761,14 +796,16 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
                     )}
                     <h4>{m.data.name}</h4>
                   </div>
-                  <div className="card-actions">
-                    <button className="btn-icon" onClick={() => openEditMember(m)} title="Edit">
-                      <Edit2 size={14} />
-                    </button>
-                    <button className="btn-icon logout" onClick={() => handleDeleteMember(m.payloadId)} title="Delete">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                  {!readOnly && (
+                    <div className="card-actions">
+                      <button className="btn-icon" onClick={() => openEditMember(m)} title="Edit">
+                        <Edit2 size={14} />
+                      </button>
+                      <button className="btn-icon logout" onClick={() => handleDeleteMember(m.payloadId)} title="Delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="crew-card-body">

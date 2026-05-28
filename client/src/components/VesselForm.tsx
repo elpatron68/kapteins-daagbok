@@ -9,9 +9,11 @@ import { Ship, Save, Check, Plus, X, Camera, Trash2 } from 'lucide-react'
 
 interface VesselFormProps {
   logbookId: string
+  readOnly?: boolean
+  preloadedData?: any
 }
 
-export default function VesselForm({ logbookId }: VesselFormProps) {
+export default function VesselForm({ logbookId, readOnly = false, preloadedData }: VesselFormProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [homePort, setHomePort] = useState('')
@@ -39,6 +41,20 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
       setLoading(true)
       setError(null)
       try {
+        if (readOnly && preloadedData) {
+          setName(preloadedData.name || '')
+          setHomePort(preloadedData.homePort || '')
+          setCharterCompany(preloadedData.charterCompany || '')
+          setOwner(preloadedData.owner || '')
+          setRegistrationNumber(preloadedData.registrationNumber || '')
+          setCallSign(preloadedData.callSign || '')
+          setAtis(preloadedData.atis || '')
+          setMmsi(preloadedData.mmsi || '')
+          setSails(preloadedData.sails || [])
+          setPhoto(preloadedData.photo || null)
+          return
+        }
+
         const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
         if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
@@ -143,6 +159,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -221,7 +238,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
       <form onSubmit={handleSubmit} className="vessel-form">
         <div className="form-grid">
           <div className="vessel-photo-wrapper">
-            <div className="vessel-photo-preview" onClick={triggerFileInput}>
+            <div className="vessel-photo-preview" onClick={readOnly ? undefined : triggerFileInput} style={{ cursor: readOnly ? 'default' : 'pointer' }}>
               {photo ? (
                 <img src={photo} alt={name || 'Yacht'} className="vessel-photo" />
               ) : (
@@ -229,35 +246,39 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
                   <Ship size={48} className="placeholder-icon" />
                 </div>
               )}
-              <div className="vessel-photo-overlay">
-                <Camera size={24} />
-                <span>{photo ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
-              </div>
-            </div>
-            
-            <div className="vessel-photo-actions">
-              <button
-                type="button"
-                className="btn secondary btn-sm"
-                onClick={triggerFileInput}
-                disabled={saving}
-              >
-                <Camera size={16} />
-                {photo ? t('vessel.photo_change') : t('vessel.photo_add')}
-              </button>
-              
-              {photo && (
-                <button
-                  type="button"
-                  className="btn danger btn-sm"
-                  onClick={handleRemovePhoto}
-                  disabled={saving}
-                >
-                  <Trash2 size={16} />
-                  {t('vessel.photo_delete')}
-                </button>
+              {!readOnly && (
+                <div className="vessel-photo-overlay">
+                  <Camera size={24} />
+                  <span>{photo ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
+                </div>
               )}
             </div>
+            
+            {!readOnly && (
+              <div className="vessel-photo-actions">
+                <button
+                  type="button"
+                  className="btn secondary btn-sm"
+                  onClick={triggerFileInput}
+                  disabled={saving}
+                >
+                  <Camera size={16} />
+                  {photo ? t('vessel.photo_change') : t('vessel.photo_add')}
+                </button>
+                
+                {photo && (
+                  <button
+                    type="button"
+                    className="btn danger btn-sm"
+                    onClick={handleRemovePhoto}
+                    disabled={saving}
+                  >
+                    <Trash2 size={16} />
+                    {t('vessel.photo_delete')}
+                  </button>
+                )}
+              </div>
+            )}
             
             <input
               type="file"
@@ -276,7 +297,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
               required
             />
           </div>
@@ -288,7 +309,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={homePort}
               onChange={(e) => setHomePort(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -299,7 +320,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -310,7 +331,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={charterCompany}
               onChange={(e) => setCharterCompany(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -321,7 +342,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={registrationNumber}
               onChange={(e) => setRegistrationNumber(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -332,7 +353,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={callSign}
               onChange={(e) => setCallSign(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -343,7 +364,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={atis}
               onChange={(e) => setAtis(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -354,7 +375,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               className="input-text"
               value={mmsi}
               onChange={(e) => setMmsi(e.target.value)}
-              disabled={saving}
+              disabled={saving || readOnly}
             />
           </div>
 
@@ -369,61 +390,67 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
                 sails.map((sail, idx) => (
                   <span key={idx} className="sail-badge">
                     {sail}
-                    <button
-                      type="button"
-                      className="remove-btn"
-                      onClick={() => handleRemoveSail(idx)}
-                      disabled={saving}
-                    >
-                      <X size={14} />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="remove-btn"
+                        onClick={() => handleRemoveSail(idx)}
+                        disabled={saving}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </span>
                 ))
               )}
             </div>
 
-            <div className="add-sail-form">
-              <input
-                type="text"
-                className="input-text"
-                placeholder={t('vessel.sail_name_placeholder')}
-                value={newSailName}
-                onChange={(e) => setNewSailName(e.target.value)}
-                disabled={saving}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddSail();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={handleAddSail}
-                disabled={saving || !newSailName.trim()}
-                style={{ width: 'auto' }}
-              >
-                <Plus size={16} />
-                {t('vessel.add_sail')}
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="add-sail-form">
+                <input
+                  type="text"
+                  className="input-text"
+                  placeholder={t('vessel.sail_name_placeholder')}
+                  value={newSailName}
+                  onChange={(e) => setNewSailName(e.target.value)}
+                  disabled={saving}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSail();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={handleAddSail}
+                  disabled={saving || !newSailName.trim()}
+                  style={{ width: 'auto' }}
+                >
+                  <Plus size={16} />
+                  {t('vessel.add_sail')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="form-actions">
-          {success && (
-            <div className="success-toast">
-              <Check size={16} />
-              <span>{t('vessel.saved')}</span>
-            </div>
-          )}
-          
-          <button type="submit" className="btn primary" disabled={saving || !name.trim()}>
-            <Save size={18} />
-            {saving ? t('vessel.saving') : t('vessel.save')}
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="form-actions">
+            {success && (
+              <div className="success-toast">
+                <Check size={16} />
+                <span>{t('vessel.saved')}</span>
+              </div>
+            )}
+            
+            <button type="submit" className="btn primary" disabled={saving || !name.trim()}>
+              <Save size={18} />
+              {saving ? t('vessel.saving') : t('vessel.save')}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   )

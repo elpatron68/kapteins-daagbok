@@ -4,40 +4,54 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 
-export async function generateLogbookPagePdf(logbookId: string, entryId: string): Promise<jsPDF> {
-  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-  if (!masterKey) {
-    throw new Error('Encryption key not found. Please log in.')
-  }
-
-  // 1. Fetch Yacht details
+export async function generateLogbookPagePdf(logbookId: string, entryId: string, preloadedData?: { yacht: any; entry: any }): Promise<jsPDF> {
   let yachtName = '', homePort = '', registration = '', callsign = '', atis = '', mmsi = '';
-  const yachtRecord = await db.yachts.get(logbookId);
-  if (yachtRecord) {
-    try {
-      const yacht = await decryptJson(yachtRecord.encryptedData, yachtRecord.iv, yachtRecord.tag, masterKey);
-      yachtName = yacht.name || '';
-      homePort = yacht.port || '';
-      // owner not needed in PDF layout
-      registration = yacht.registrationNumber || yacht.registration || '';
-      callsign = yacht.callSign || '';
-      atis = yacht.atis || '';
-      mmsi = yacht.mmsi || '';
-    } catch (e) {
-      console.error('Failed to decrypt yacht details for PDF:', e);
+  let entry: any = null;
+
+  if (preloadedData) {
+    const yacht = preloadedData.yacht || {};
+    yachtName = yacht.name || '';
+    homePort = yacht.port || '';
+    registration = yacht.registrationNumber || yacht.registration || '';
+    callsign = yacht.callSign || '';
+    atis = yacht.atis || '';
+    mmsi = yacht.mmsi || '';
+    entry = preloadedData.entry;
+  } else {
+    const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+    if (!masterKey) {
+      throw new Error('Encryption key not found. Please log in.')
     }
+
+    // 1. Fetch Yacht details
+    const yachtRecord = await db.yachts.get(logbookId);
+    if (yachtRecord) {
+      try {
+        const yacht = await decryptJson(yachtRecord.encryptedData, yachtRecord.iv, yachtRecord.tag, masterKey);
+        yachtName = yacht.name || '';
+        homePort = yacht.port || '';
+        registration = yacht.registrationNumber || yacht.registration || '';
+        callsign = yacht.callSign || '';
+        atis = yacht.atis || '';
+        mmsi = yacht.mmsi || '';
+      } catch (e) {
+        console.error('Failed to decrypt yacht details for PDF:', e);
+      }
+    }
+
+    // 2. Fetch active Entry
+    const entryRecord = await db.entries.get(entryId);
+    if (!entryRecord) {
+      throw new Error('Entry not found');
+    }
+
+    entry = await decryptJson(entryRecord.encryptedData, entryRecord.iv, entryRecord.tag, masterKey);
   }
 
-  // 2. Fetch active Entry
-  const entryRecord = await db.entries.get(entryId);
-  if (!entryRecord) {
-    throw new Error('Entry not found');
-  }
-
-  const entry = await decryptJson(entryRecord.encryptedData, entryRecord.iv, entryRecord.tag, masterKey);
   if (!entry) {
-    throw new Error('Failed to decrypt entry');
+    throw new Error('Failed to load entry');
   }
+
 
   // Create PDF landscape A4
   const doc = new jsPDF({
@@ -217,8 +231,8 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string)
   return doc;
 }
 
-export async function downloadLogbookPagePdf(logbookId: string, entryId: string, dateStr: string): Promise<void> {
-  const doc = await generateLogbookPagePdf(logbookId, entryId);
+export async function downloadLogbookPagePdf(logbookId: string, entryId: string, dateStr: string, preloadedData?: { yacht: any; entry: any }): Promise<void> {
+  const doc = await generateLogbookPagePdf(logbookId, entryId, preloadedData);
   const filename = `logbook_${dateStr.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
   doc.save(filename);
 }

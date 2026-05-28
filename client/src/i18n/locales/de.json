@@ -209,7 +209,12 @@
       "theme_auto": "Automatisch (OS-Erkennung)",
       "theme_ocean": "Ocean (Glassmorphismus)",
       "theme_material": "Material (Android)",
-      "theme_cupertino": "Cupertino (iOS)"
+      "theme_cupertino": "Cupertino (iOS)",
+      "share_title": "Logbuch teilen (Schreibgeschützt)",
+      "share_desc": "Aktivieren Sie diese Option, um einen öffentlichen, schreibgeschützten Link zu erstellen. Jeder mit dem Link kann Ihre Reisen, Yacht-Profile und Besatzung ansehen. Die Verschlüsselungsschlüssel werden niemals an den Server übertragen (sie bleiben im Hash-Teil der URL).",
+      "share_enable": "Öffentlichen Link aktivieren",
+      "share_copied": "Link kopiert!",
+      "share_copy_btn": "Link kopieren"
     }
   }
 }

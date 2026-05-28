@@ -13,6 +13,11 @@ import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from
 
 interface LogEntriesListProps {
   logbookId: string
+  readOnly?: boolean
+  preloadedYacht?: any
+  preloadedEntries?: any[]
+  preloadedPhotos?: any[]
+  preloadedGpsTracks?: any[]
 }
 
 interface DecryptedEntryItem {
@@ -24,7 +29,14 @@ interface DecryptedEntryItem {
   updatedAt: string
 }
 
-export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
+export default function LogEntriesList({
+  logbookId,
+  readOnly = false,
+  preloadedYacht,
+  preloadedEntries,
+  preloadedPhotos,
+  preloadedGpsTracks
+}: LogEntriesListProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
   const [entries, setEntries] = useState<DecryptedEntryItem[]>([])
@@ -43,6 +55,26 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setLoading(true)
     setError(null)
     try {
+      if (readOnly && preloadedEntries) {
+        const list = preloadedEntries.map((entry: any) => ({
+          id: entry.payloadId || entry.id,
+          date: entry.date || '',
+          dayOfTravel: entry.dayOfTravel || '',
+          departure: entry.departure || '',
+          destination: entry.destination || '',
+          updatedAt: entry.updatedAt || new Date().toISOString()
+        }))
+
+        list.sort((a, b) => {
+          const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
+          if (dateCompare !== 0) return dateCompare
+          return Number(b.dayOfTravel) - Number(a.dayOfTravel)
+        })
+
+        setEntries(list)
+        return
+      }
+
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
@@ -84,8 +116,12 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setExporting(true)
     setError(null)
     try {
-      const title = localStorage.getItem('active_logbook_title') || 'Logbook'
-      await downloadCsv(logbookId, title)
+      const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
+      if (readOnly && preloadedEntries && preloadedYacht) {
+        await downloadCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
+      } else {
+        await downloadCsv(logbookId, title)
+      }
     } catch (err: any) {
       console.error('Failed to download CSV:', err)
       setError(err.message || 'Failed to generate CSV export.')
@@ -98,12 +134,20 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setExporting(true)
     setError(null)
     try {
-      const title = localStorage.getItem('active_logbook_title') || 'Logbook'
-      await shareCsv(logbookId, title)
+      const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
+      if (readOnly && preloadedEntries && preloadedYacht) {
+        await shareCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
+      } else {
+        await shareCsv(logbookId, title)
+      }
     } catch (err: any) {
       if (err.message === 'share_unsupported') {
-        const title = localStorage.getItem('active_logbook_title') || 'Logbook'
-        await downloadCsv(logbookId, title)
+        const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
+        if (readOnly && preloadedEntries && preloadedYacht) {
+          await downloadCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
+        } else {
+          await downloadCsv(logbookId, title)
+        }
         setError(t('logs.share_unsupported'))
       } else {
         console.error('Failed to share CSV:', err)
@@ -119,7 +163,12 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setExporting(true)
     setError(null)
     try {
-      await downloadLogbookPagePdf(logbookId, entryId, date)
+      if (readOnly && preloadedEntries && preloadedYacht) {
+        const fullEntry = preloadedEntries.find(entry => (entry.payloadId || entry.id) === entryId)
+        await downloadLogbookPagePdf(logbookId, entryId, date, { yacht: preloadedYacht, entry: fullEntry })
+      } else {
+        await downloadLogbookPagePdf(logbookId, entryId, date)
+      }
     } catch (err: any) {
       console.error('Failed to download PDF:', err)
       setError(err.message || 'Failed to generate PDF export.')
@@ -129,6 +178,7 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
   }
 
   const handleCreate = async () => {
+    if (readOnly) return
     setLoading(true)
     setError(null)
     try {
@@ -188,7 +238,8 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
   }
 
   const handleDelete = async (entryId: string, e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent selecting the card
+    e.stopPropagation()
+    if (readOnly) return
     
     if (await showConfirm(t('logs.delete_confirm'), t('logs.delete_entry'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setError(null)
@@ -221,6 +272,10 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
         entryId={selectedEntryId}
         logbookId={logbookId}
         onBack={() => setSelectedEntryId(null)}
+        readOnly={readOnly}
+        preloadedEntry={preloadedEntries?.find(entry => (entry.payloadId || entry.id) === selectedEntryId)}
+        preloadedPhotos={preloadedPhotos}
+        preloadedGpsTrack={preloadedGpsTracks?.find(track => track.entryId === selectedEntryId)}
       />
     )
   }
@@ -252,10 +307,12 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
             <span className="hide-mobile">{t('logs.share_csv')}</span>
           </button>
 
-          <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }}>
-            <Plus size={16} />
-            {t('logs.new_entry')}
-          </button>
+          {!readOnly && (
+            <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }}>
+              <Plus size={16} />
+              {t('logs.new_entry')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -291,9 +348,11 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
                 <Download size={18} />
               </button>
 
-              <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
-                <Trash2 size={18} />
-              </button>
+              {!readOnly && (
+                <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
+                  <Trash2 size={18} />
+                </button>
+              )}
               
               <ChevronRight size={18} style={{ color: '#475569', marginLeft: 'auto' }} />
             </div>

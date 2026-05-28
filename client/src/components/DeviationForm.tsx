@@ -9,9 +9,11 @@ import { Compass, Save, Check } from 'lucide-react'
 
 interface DeviationFormProps {
   logbookId: string
+  readOnly?: boolean
+  preloadedData?: any
 }
 
-export default function DeviationForm({ logbookId }: DeviationFormProps) {
+export default function DeviationForm({ logbookId, readOnly = false, preloadedData }: DeviationFormProps) {
   const { t } = useTranslation()
 
   // Generate headings: 0, 10, 20, ..., 360 (37 items)
@@ -29,6 +31,17 @@ export default function DeviationForm({ logbookId }: DeviationFormProps) {
       setLoading(true)
       setError(null)
       try {
+        if (readOnly && preloadedData) {
+          const map: Record<number, string> = {}
+          if (preloadedData.deviations) {
+            Object.entries(preloadedData.deviations).forEach(([k, v]) => {
+              map[Number(k)] = String(v)
+            })
+          }
+          setDeviations(map)
+          return
+        }
+
         const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
         if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
@@ -71,6 +84,7 @@ export default function DeviationForm({ logbookId }: DeviationFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -162,26 +176,28 @@ export default function DeviationForm({ logbookId }: DeviationFormProps) {
                   className="input-text cell-input"
                   value={deviations[h] || ''}
                   onChange={(e) => handleInputChange(h, e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
             )
           })}
         </div>
 
-        <div className="form-actions mt-6">
-          {success && (
-            <div className="success-toast">
-              <Check size={16} />
-              <span>{t('deviation.saved')}</span>
-            </div>
-          )}
-          
-          <button type="submit" className="btn primary" disabled={saving}>
-            <Save size={18} />
-            {saving ? t('deviation.saving') : t('deviation.save')}
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="form-actions mt-6">
+            {success && (
+              <div className="success-toast">
+                <Check size={16} />
+                <span>{t('deviation.saved')}</span>
+              </div>
+            )}
+            
+            <button type="submit" className="btn primary" disabled={saving}>
+              <Save size={18} />
+              {saving ? t('deviation.saving') : t('deviation.save')}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   )

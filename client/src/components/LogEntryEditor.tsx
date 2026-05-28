@@ -25,6 +25,11 @@ interface LogEntryEditorProps {
   entryId: string
   logbookId: string
   onBack: () => void
+  readOnly?: boolean
+  preloadedEntry?: any
+  preloadedPhotos?: any[]
+  preloadedGpsTrack?: any
+  preloadedYacht?: any
 }
 
 interface LogEvent {
@@ -46,7 +51,16 @@ interface LogEvent {
   remarks: string
 }
 
-export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryEditorProps) {
+export default function LogEntryEditor({
+  entryId,
+  logbookId,
+  onBack,
+  readOnly = false,
+  preloadedEntry,
+  preloadedPhotos,
+  preloadedGpsTrack,
+  preloadedYacht
+}: LogEntryEditorProps) {
   const { t, i18n } = useTranslation()
   const { showAlert } = useDialog()
 
@@ -132,6 +146,10 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   // Load Yacht Sails
   useEffect(() => {
     async function loadYachtSails() {
+      if (readOnly && preloadedYacht?.sails) {
+        setYachtSails(preloadedYacht.sails)
+        return
+      }
       try {
         const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
         if (!masterKey) return
@@ -148,7 +166,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       }
     }
     loadYachtSails()
-  }, [logbookId])
+  }, [logbookId, preloadedYacht])
 
   // Load entry details
   useEffect(() => {
@@ -156,6 +174,29 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       setLoading(true)
       setError(null)
       try {
+        if (readOnly && preloadedEntry) {
+          setDate(preloadedEntry.date || '')
+          setDayOfTravel(preloadedEntry.dayOfTravel || '')
+          setDeparture(preloadedEntry.departure || '')
+          setDestination(preloadedEntry.destination || '')
+          
+          if (preloadedEntry.freshwater) {
+            setFwMorning(String(preloadedEntry.freshwater.morning || 0))
+            setFwRefilled(String(preloadedEntry.freshwater.refilled || 0))
+            setFwEvening(String(preloadedEntry.freshwater.evening || 0))
+          }
+          if (preloadedEntry.fuel) {
+            setFuelMorning(String(preloadedEntry.fuel.morning || 0))
+            setFuelRefilled(String(preloadedEntry.fuel.refilled || 0))
+            setFuelEvening(String(preloadedEntry.fuel.evening || 0))
+          }
+
+          setSignSkipper(preloadedEntry.signSkipper || '')
+          setSignCrew(preloadedEntry.signCrew || '')
+          setEvents(preloadedEntry.events || [])
+          return
+        }
+
         const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
         if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
@@ -193,10 +234,14 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     }
 
     loadEntry()
-  }, [entryId])
+  }, [entryId, preloadedEntry])
 
   // GPS Track Loader
   const loadGpsTrack = async () => {
+    if (readOnly && preloadedGpsTrack) {
+      setSavedTrack(preloadedGpsTrack)
+      return
+    }
     try {
       const track = await getDecryptedGpsTrack(entryId)
       setSavedTrack(track)
@@ -207,7 +252,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   useEffect(() => {
     loadGpsTrack()
-  }, [entryId])
+  }, [entryId, preloadedGpsTrack])
 
   // Leaflet Map Initialization and Rendering
   useEffect(() => {
@@ -277,6 +322,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   // GPX/KML/GeoJSON Upload Handlers
   const handleFileUpload = async (file: File) => {
+    if (readOnly) return
     setUploadError(null)
     const reader = new FileReader()
     reader.onload = async (e) => {
@@ -329,6 +375,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleDeleteTrack = async () => {
+    if (readOnly) return
     if (!window.confirm(t('logs.gps_track_delete_confirm'))) {
       return
     }
@@ -366,6 +413,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleGetGps = () => {
+    if (readOnly) return
     const lookupFallback = async () => {
       const locationQuery = evLocationName.trim() || departure.trim() || destination.trim()
       if (!locationQuery) {
@@ -526,7 +574,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!evTime) return
+    if (readOnly || !evTime) return
 
     const newEvent: LogEvent = {
       time: evTime,
@@ -570,6 +618,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleDeleteEvent = (index: number) => {
+    if (readOnly) return
     setEvents((prev) => prev.filter((_, idx) => idx !== index))
   }
 
@@ -588,6 +637,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
     setSaving(true)
     setError(null)
     setSuccess(false)
@@ -715,20 +765,19 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 className="input-text"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
                 required
               />
             </div>
 
             <div className="input-group">
-              <label>{t('logs.day_of_travel')} *</label>
+              <label>{t('logs.day_of_travel')}</label>
               <input
                 type="text"
                 className="input-text"
-                placeholder="e.g. 1"
                 value={dayOfTravel}
                 onChange={(e) => setDayOfTravel(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
                 required
               />
             </div>
@@ -738,10 +787,9 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
               <input
                 type="text"
                 className="input-text"
-                placeholder="Starting port name"
                 value={departure}
                 onChange={(e) => setDeparture(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
               />
             </div>
 
@@ -750,10 +798,9 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
               <input
                 type="text"
                 className="input-text"
-                placeholder="Destination port name"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
               />
             </div>
           </div>
@@ -769,38 +816,35 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
             </div>
             <div className="consumption-grid">
               <div className="input-group">
-                <label>{t('logs.morning')} (L)</label>
+                <label>{t('logs.freshwater')} ({t('logs.morning')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fwMorning}
                   onChange={(e) => setFwMorning(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
               <div className="input-group">
-                <label>{t('logs.refilled')} (L)</label>
+                <label>{t('logs.freshwater')} ({t('logs.refilled')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fwRefilled}
                   onChange={(e) => setFwRefilled(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
               <div className="input-group">
-                <label>{t('logs.evening')} (L)</label>
+                <label>{t('logs.freshwater')} ({t('logs.evening')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fwEvening}
                   onChange={(e) => setFwEvening(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
@@ -825,38 +869,35 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
             </div>
             <div className="consumption-grid">
               <div className="input-group">
-                <label>{t('logs.morning')} (L)</label>
+                <label>{t('logs.fuel')} ({t('logs.morning')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fuelMorning}
                   onChange={(e) => setFuelMorning(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
               <div className="input-group">
-                <label>{t('logs.refilled')} (L)</label>
+                <label>{t('logs.fuel')} ({t('logs.refilled')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fuelRefilled}
                   onChange={(e) => setFuelRefilled(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
               <div className="input-group">
-                <label>{t('logs.evening')} (L)</label>
+                <label>{t('logs.fuel')} ({t('logs.evening')})</label>
                 <input
                   type="number"
-                  step="any"
                   className="input-text"
                   value={fuelEvening}
                   onChange={(e) => setFuelEvening(e.target.value)}
-                  disabled={saving}
+                  disabled={saving || readOnly}
                 />
               </div>
 
@@ -899,7 +940,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                     <th>{t('logs.event_log')}</th>
                     <th>{t('logs.event_gps')}</th>
                     <th>{t('logs.event_remarks')}</th>
-                    <th></th>
+                    {!readOnly && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -928,11 +969,13 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                         {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
                       </td>
                       <td className="remarks-td">{ev.remarks}</td>
-                      <td>
-                        <button type="button" className="btn-icon logout" onClick={() => handleDeleteEvent(idx)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
+                      {!readOnly && (
+                        <td>
+                          <button type="button" className="btn-icon logout" onClick={() => handleDeleteEvent(idx)}>
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -941,8 +984,9 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           )}
 
           {/* Add New Event Form Sub-Card */}
-          <div className="member-editor-card glass">
-            <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>{t('logs.add_event')}</h4>
+          {!readOnly && (
+            <div className="member-editor-card glass">
+              <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>{t('logs.add_event')}</h4>
             
             <div className="form-grid mb-4">
               <div className="input-group">
@@ -1187,6 +1231,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
               Add Event Entry
             </button>
           </div>
+          )}
         </div>
 
         {/* GPS Track Upload & Map Visualization */}
@@ -1245,15 +1290,17 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                     <Download size={14} />
                     {t('logs.gps_tracking_btn_gpx')}
                   </button>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={handleDeleteTrack}
-                    style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-                  >
-                    <Trash2 size={14} />
-                    {t('logs.gps_track_delete')}
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={handleDeleteTrack}
+                      style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                    >
+                      <Trash2 size={14} />
+                      {t('logs.gps_track_delete')}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1263,7 +1310,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           )}
         </div>
 
-        <PhotoCapture entryId={entryId} logbookId={logbookId} />
+        <PhotoCapture entryId={entryId} logbookId={logbookId} readOnly={readOnly} preloadedPhotos={preloadedPhotos} />
 
         {/* Section 4: Sign-Off Signatures */}
         <div className="form-card">
@@ -1280,7 +1327,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 className="input-text"
                 value={signSkipper}
                 onChange={(e) => setSignSkipper(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
               />
             </div>
 
@@ -1292,26 +1339,28 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 className="input-text"
                 value={signCrew}
                 onChange={(e) => setSignCrew(e.target.value)}
-                disabled={saving}
+                disabled={saving || readOnly}
               />
             </div>
           </div>
         </div>
 
         {/* Save Controls */}
-        <div className="form-actions mt-4">
-          {success && (
-            <div className="success-toast">
-              <Check size={16} />
-              <span>{t('logs.saved')}</span>
-            </div>
-          )}
-          
-          <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim()}>
-            <Save size={18} />
-            {saving ? t('logs.saving') : t('logs.save')}
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="form-actions mt-4">
+            {success && (
+              <div className="success-toast">
+                <Check size={16} />
+                <span>{t('logs.saved')}</span>
+              </div>
+            )}
+            
+            <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim()}>
+              <Save size={18} />
+              {saving ? t('logs.saving') : t('logs.save')}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   )
