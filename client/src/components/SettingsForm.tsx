@@ -33,7 +33,7 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
 
   // Collaboration States
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
-  const [isOwner, setIsOwner] = useState(false)
+  const [isOwner, setIsOwner] = useState(true)
   const [inviteLink, setInviteLink] = useState('')
   const [inviteCopied, setInviteCopied] = useState(false)
   const [generatingInvite, setGeneratingInvite] = useState(false)
@@ -157,9 +157,12 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
         setIsOwner(true)
         const data = await res.json()
         setCollaborators(data)
+      } else {
+        setIsOwner(true)
       }
     } catch (err) {
       console.error('Failed to load collaborators:', err)
+      setIsOwner(true)
       setCollabError('Failed to load collaborator list.')
     } finally {
       setLoadingCollabs(false)
