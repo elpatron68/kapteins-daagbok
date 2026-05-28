@@ -113,15 +113,17 @@ export async function registerUser(username: string): Promise<RegistrationResult
 export interface LoginResult {
   verified: boolean
   prfSuccess: boolean
+  username?: string
   encryptedPayloads?: {
     encryptedMasterKeyRec: string
     encryptedMasterKeyRecIv: string
     encryptedMasterKeyRecTag: string
     userId: string
+    username: string
   }
 }
 
-export async function loginUser(username: string): Promise<LoginResult> {
+export async function loginUser(username?: string): Promise<LoginResult> {
   // 1. Get authentication options
   const optionsRes = await fetch(`${API_BASE}/login-options`, {
     method: 'POST',
@@ -154,8 +156,8 @@ export async function loginUser(username: string): Promise<LoginResult> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      username,
-      credentialResponse
+      credentialResponse,
+      challenge: options.challenge
     })
   })
 
@@ -168,6 +170,8 @@ export async function loginUser(username: string): Promise<LoginResult> {
   if (!result.verified) {
     return { verified: false, prfSuccess: false }
   }
+
+  const resolvedUsername = result.username
 
   // Try to decrypt master key using biometric PRF results
   const prfResults = (credentialResponse as any).clientExtensionResults?.prf
@@ -182,9 +186,9 @@ export async function loginUser(username: string): Promise<LoginResult> {
         prfKey
       )
       activeMasterKey = decryptedMaster
-      localStorage.setItem('active_username', username)
+      localStorage.setItem('active_username', resolvedUsername)
       localStorage.setItem('active_userid', result.userId)
-      return { verified: true, prfSuccess: true }
+      return { verified: true, prfSuccess: true, username: resolvedUsername }
     } catch (e) {
       console.warn('PRF decryption failed, falling back to recovery phrase:', e)
     }
@@ -194,11 +198,13 @@ export async function loginUser(username: string): Promise<LoginResult> {
   return {
     verified: true,
     prfSuccess: false,
+    username: resolvedUsername,
     encryptedPayloads: {
       encryptedMasterKeyRec: result.encryptedMasterKeyRec,
       encryptedMasterKeyRecIv: result.encryptedMasterKeyRecIv,
       encryptedMasterKeyRecTag: result.encryptedMasterKeyRecTag,
-      userId: result.userId
+      userId: result.userId,
+      username: resolvedUsername
     }
   }
 }

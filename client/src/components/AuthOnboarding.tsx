@@ -40,14 +40,13 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
     }
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!username.trim()) return
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
     setLoading(true)
     setError(null)
     try {
-      const result = await loginUser(username.trim())
+      const result = await loginUser()
       if (result.verified) {
         if (result.prfSuccess) {
           // Biometric E2E decryption succeeded
@@ -55,6 +54,9 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
         } else {
           // Biometrics succeeded but PRF key wasn't supported/available, fall back to recovery phrase
           setEncryptedPayloads(result.encryptedPayloads)
+          if (result.username) {
+            setUsername(result.username)
+          }
           setShowRecoveryFallback(true)
         }
       }
@@ -72,7 +74,8 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
     setLoading(true)
     setError(null)
     try {
-      const success = await completeLoginWithRecovery(username.trim(), recoveryInput.trim(), encryptedPayloads)
+      const resolvedUser = username.trim() || encryptedPayloads.username
+      const success = await completeLoginWithRecovery(resolvedUser, recoveryInput.trim(), encryptedPayloads)
       if (success) {
         onAuthenticated()
       } else {
@@ -180,40 +183,51 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
         <p className="tagline">{t('auth.tagline')}</p>
       </div>
 
-      <form className="auth-form">
-        <div className="input-group">
-          <input
-            type="text"
-            className="input-text"
-            placeholder="Username / Skipper Name"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={loading}
-            required
-          />
+      <div className="auth-form" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Prominent Login button */}
+        <button
+          type="button"
+          className="btn primary"
+          onClick={() => handleLogin()}
+          disabled={loading}
+          style={{ width: '100%', padding: '16px' }}
+        >
+          {loading ? 'Processing...' : t('auth.login')}
+        </button>
+
+        {/* Separator */}
+        <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0', width: '100%' }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+          <span style={{ padding: '0 10px', fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>or register</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        {/* Registration form */}
+        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+          <div className="input-group">
+            <input
+              type="text"
+              className="input-text"
+              placeholder="Username / Skipper Name"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
 
-        <div className="auth-submit-actions">
           <button
-            type="button"
-            className="btn primary"
-            onClick={handleLogin}
-            disabled={loading || !username.trim()}
-          >
-            {loading ? 'Processing...' : t('auth.login')}
-          </button>
-          <button
-            type="button"
+            type="submit"
             className="btn secondary"
-            onClick={handleRegister}
             disabled={loading || !username.trim()}
+            style={{ width: '100%' }}
           >
             {t('auth.register')}
           </button>
-        </div>
-      </form>
+        </form>
+
+        {error && <div className="auth-error">{error}</div>}
+      </div>
 
       <div className="auth-footer">
         <button className="btn-icon-text" onClick={toggleLanguage}>

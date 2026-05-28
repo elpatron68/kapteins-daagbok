@@ -16,6 +16,7 @@ const origin = process.env.ORIGIN || 'http://localhost:5173'
 // In-memory challenge stores
 const registrationChallenges = new Map<string, string>()
 const authenticationChallenges = new Map<string, { challenge: string; userId: string }>()
+const activeChallenges = new Set<string>()
 
 // 1. Generate Registration Options
 router.post('/register-options', async (req, res) => {
@@ -127,33 +128,31 @@ router.post('/register-verify', async (req, res) => {
 router.post('/login-options', async (req, res) => {
   try {
     const { username } = req.body
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required' })
-    }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-      include: { credentials: true }
-    })
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' })
+    // If username is supplied, we do a targeted login, otherwise usernameless
+    let allowCredentials: any[] = []
+    if (username) {
+      const user = await prisma.user.findUnique({
+        where: { username },
+        include: { credentials: true }
+      })
+      if (user) {
+        allowCredentials = user.credentials.map(cred => ({
+          id: Buffer.from(cred.credentialId, 'base64url'),
+          type: 'public-key',
+          transports: cred.transports as any[]
+        }))
+      }
     }
 
     const options = await generateAuthenticationOptions({
       rpID,
-      allowCredentials: user.credentials.map(cred => ({
-        id: Buffer.from(cred.credentialId, 'base64url'),
-        type: 'public-key',
-        transports: cred.transports as any[]
-      })),
+      allowCredentials,
       userVerification: 'preferred'
     })
 
-    authenticationChallenges.set(username, {
-      challenge: options.challenge,
-      userId: user.id
-    })
+    // Store challenge
+    activeChallenges.add(options.challenge)
 
     return res.json(options)
   } catch (error: any) {
@@ -165,27 +164,32 @@ router.post('/login-options', async (req, res) => {
 // 4. Verify Authentication Response
 router.post('/login-verify', async (req, res) => {
   try {
-    const { username, credentialResponse } = req.body
-    if (!username || !credentialResponse) {
-      return res.status(400).json({ error: 'Username and credentialResponse are required' })
+    const { credentialResponse, challenge } = req.body
+    if (!credentialResponse || !challenge) {
+      return res.status(400).json({ error: 'credentialResponse and challenge are required' })
     }
 
-    const expectedChallengeInfo = authenticationChallenges.get(username)
-    if (!expectedChallengeInfo) {
+    // Verify challenge
+    if (!activeChallenges.has(challenge)) {
       return res.status(400).json({ error: 'Challenge not found or expired' })
     }
+    activeChallenges.delete(challenge)
 
+    // Find the credential in DB
     const dbCred = await prisma.credential.findUnique({
-      where: { credentialId: credentialResponse.id }
+      where: { credentialId: credentialResponse.id },
+      include: { user: true }
     })
 
-    if (!dbCred || dbCred.userId !== expectedChallengeInfo.userId) {
-      return res.status(400).json({ error: 'Credential not recognized for this user' })
+    if (!dbCred) {
+      return res.status(400).json({ error: 'Credential not recognized' })
     }
+
+    const user = dbCred.user
 
     const verification = await verifyAuthenticationResponse({
       response: credentialResponse,
-      expectedChallenge: expectedChallengeInfo.challenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
@@ -205,20 +209,10 @@ router.post('/login-verify', async (req, res) => {
       data: { counter: BigInt(verification.authenticationInfo.newCounter) }
     })
 
-    authenticationChallenges.delete(username)
-
-    // Retrieve user keys
-    const user = await prisma.user.findUnique({
-      where: { username }
-    })
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' })
-    }
-
     return res.json({
       verified: true,
       userId: user.id,
+      username: user.username,
       encryptedMasterKeyPrf: user.encryptedMasterKeyPrf,
       encryptedMasterKeyPrfIv: user.encryptedMasterKeyPrfIv,
       encryptedMasterKeyPrfTag: user.encryptedMasterKeyPrfTag,
