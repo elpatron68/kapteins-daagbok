@@ -70,7 +70,11 @@ export async function registerUser(username: string): Promise<RegistrationResult
   if (!options.extensions) {
     options.extensions = {}
   }
-  options.extensions.prf = {}
+  options.extensions.prf = {
+    eval: {
+      first: PRF_SALT
+    }
+  }
 
   // 2. Start biometric Passkey creation
   const credentialResponse = await startRegistration(options)
