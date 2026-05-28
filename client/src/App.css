@@ -1727,4 +1727,26 @@ body:has(.theme-cupertino) {
   border-color: #ef4444 !important;
 }
 
+/* Crew Avatar Card Styling */
+.crew-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #334155;
+}
+
+.crew-card-avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+}
+
+
 

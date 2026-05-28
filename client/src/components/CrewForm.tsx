@@ -5,7 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { useDialog } from './ModalDialog.tsx'
-import { Users, User, Plus, Trash2, Edit2, Save, X, Check } from 'lucide-react'
+import { Users, User, Plus, Trash2, Edit2, Save, X, Check, Camera } from 'lucide-react'
 
 interface CrewFormProps {
   logbookId: string
@@ -22,6 +22,7 @@ interface CrewMemberData {
   allergies: string
   diseases: string
   role: 'skipper' | 'crew'
+  photo?: string | null
 }
 
 interface DecryptedCrew {
@@ -44,6 +45,10 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
   const [skipAllergies, setSkipAllergies] = useState('')
   const [skipDiseases, setSkipDiseases] = useState('')
 
+  const skipFileInputRef = React.useRef<HTMLInputElement>(null)
+  const [skipPhoto, setSkipPhoto] = useState<string | null>(null)
+  const [skipPhotoError, setSkipPhotoError] = useState<string | null>(null)
+ 
   // Crew list state
   const [crewList, setCrewList] = useState<DecryptedCrew[]>([])
   
@@ -60,6 +65,10 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
   const [memAllergies, setMemAllergies] = useState('')
   const [memDiseases, setMemDiseases] = useState('')
 
+  const memFileInputRef = React.useRef<HTMLInputElement>(null)
+  const [memPhoto, setMemPhoto] = useState<string | null>(null)
+  const [memPhotoError, setMemPhotoError] = useState<string | null>(null)
+ 
   const [loading, setLoading] = useState(false)
   const [savingSkipper, setSavingSkipper] = useState(false)
   const [savingMember, setSavingMember] = useState(false)
@@ -69,6 +78,46 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
   useEffect(() => {
     loadCrewData()
   }, [logbookId])
+
+  const resizeImageFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            if (!ctx) throw new Error('Could not get canvas context')
+
+            let width = img.width
+            let height = img.height
+            const MAX_WIDTH = 800
+            const MAX_HEIGHT = 600
+
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+              const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height)
+              width = Math.round(width * ratio)
+              height = Math.round(height * ratio)
+            }
+
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(img, 0, 0, width, height)
+
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+            resolve(compressedBase64)
+          } catch (err) {
+            reject(err)
+          }
+        }
+        img.onerror = () => reject(new Error('Invalid image file'))
+        img.src = event.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
 
   const loadCrewData = async () => {
     setLoading(true)
@@ -94,6 +143,7 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
             setSkipBloodType(decrypted.bloodType || '')
             setSkipAllergies(decrypted.allergies || '')
             setSkipDiseases(decrypted.diseases || '')
+            setSkipPhoto(decrypted.photo || null)
           } else {
             decryptedCrews.push({
               payloadId: c.payloadId,
@@ -131,7 +181,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
         bloodType: skipBloodType.trim(),
         allergies: skipAllergies.trim(),
         diseases: skipDiseases.trim(),
-        role: 'skipper'
+        role: 'skipper',
+        photo: skipPhoto
       }
 
       const encrypted = await encryptJson(skipperData, masterKey)
@@ -178,6 +229,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setMemBloodType('')
     setMemAllergies('')
     setMemDiseases('')
+    setMemPhoto(null)
+    setMemPhotoError(null)
     setShowMemberForm(true)
   }
 
@@ -192,6 +245,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setMemBloodType(member.data.bloodType)
     setMemAllergies(member.data.allergies)
     setMemDiseases(member.data.diseases)
+    setMemPhoto(member.data.photo || null)
+    setMemPhotoError(null)
     setShowMemberForm(true)
   }
 
@@ -216,7 +271,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
         bloodType: memBloodType.trim(),
         allergies: memAllergies.trim(),
         diseases: memDiseases.trim(),
-        role: 'crew'
+        role: 'crew',
+        photo: memPhoto
       }
 
       const encrypted = await encryptJson(memberData, masterKey)
@@ -310,6 +366,68 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
 
         <form onSubmit={handleSaveSkipper} className="vessel-form">
           <div className="form-grid">
+            <div className="vessel-photo-wrapper">
+              <div className="vessel-photo-preview" onClick={() => skipFileInputRef.current?.click()}>
+                {skipPhoto ? (
+                  <img src={skipPhoto} alt={skipName || 'Skipper'} className="vessel-photo" />
+                ) : (
+                  <div className="vessel-photo-placeholder">
+                    <User size={48} className="placeholder-icon" />
+                  </div>
+                )}
+                <div className="vessel-photo-overlay">
+                  <Camera size={24} />
+                  <span>{skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
+                </div>
+              </div>
+              
+              <div className="vessel-photo-actions">
+                <button
+                  type="button"
+                  className="btn secondary btn-sm"
+                  onClick={() => skipFileInputRef.current?.click()}
+                  disabled={savingSkipper}
+                >
+                  <Camera size={16} />
+                  {skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}
+                </button>
+                
+                {skipPhoto && (
+                  <button
+                    type="button"
+                    className="btn danger btn-sm"
+                    onClick={() => {
+                      setSkipPhoto(null)
+                      if (skipFileInputRef.current) skipFileInputRef.current.value = ''
+                    }}
+                    disabled={savingSkipper}
+                  >
+                    <Trash2 size={16} />
+                    {t('vessel.photo_delete')}
+                  </button>
+                )}
+              </div>
+              
+              <input
+                type="file"
+                ref={skipFileInputRef}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setSkipPhotoError(null)
+                  try {
+                    const resized = await resizeImageFile(file)
+                    setSkipPhoto(resized)
+                  } catch (err: any) {
+                    setSkipPhotoError(err.message || 'Failed to process image')
+                  }
+                }}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
+              {skipPhotoError && <div className="auth-error mt-2">{skipPhotoError}</div>}
+            </div>
+
             <div className="input-group">
               <label>{t('crew.name')}</label>
               <input
@@ -453,6 +571,68 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
             </div>
 
             <div className="form-grid">
+              <div className="vessel-photo-wrapper">
+                <div className="vessel-photo-preview" onClick={() => memFileInputRef.current?.click()}>
+                  {memPhoto ? (
+                    <img src={memPhoto} alt={memName || 'Crew Member'} className="vessel-photo" />
+                  ) : (
+                    <div className="vessel-photo-placeholder">
+                      <User size={48} className="placeholder-icon" />
+                    </div>
+                  )}
+                  <div className="vessel-photo-overlay">
+                    <Camera size={24} />
+                    <span>{memPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
+                  </div>
+                </div>
+                
+                <div className="vessel-photo-actions">
+                  <button
+                    type="button"
+                    className="btn secondary btn-sm"
+                    onClick={() => memFileInputRef.current?.click()}
+                    disabled={savingMember}
+                  >
+                    <Camera size={16} />
+                    {memPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}
+                  </button>
+                  
+                  {memPhoto && (
+                    <button
+                      type="button"
+                      className="btn danger btn-sm"
+                      onClick={() => {
+                        setMemPhoto(null)
+                        if (memFileInputRef.current) memFileInputRef.current.value = ''
+                      }}
+                      disabled={savingMember}
+                    >
+                      <Trash2 size={16} />
+                      {t('vessel.photo_delete')}
+                    </button>
+                  )}
+                </div>
+                
+                <input
+                  type="file"
+                  ref={memFileInputRef}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setMemPhotoError(null)
+                    try {
+                      const resized = await resizeImageFile(file)
+                      setMemPhoto(resized)
+                    } catch (err: any) {
+                      setMemPhotoError(err.message || 'Failed to process image')
+                    }
+                  }}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                />
+                {memPhotoError && <div className="auth-error mt-2">{memPhotoError}</div>}
+              </div>
+
               <div className="input-group">
                 <label>{t('crew.name')} *</label>
                 <input
@@ -570,7 +750,16 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
             {crewList.map((m) => (
               <div key={m.payloadId} className="crew-member-card glass">
                 <div className="crew-card-header">
-                  <h4>{m.data.name}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {m.data.photo ? (
+                      <img src={m.data.photo} alt={m.data.name} className="crew-card-avatar" />
+                    ) : (
+                      <div className="crew-card-avatar-placeholder">
+                        <User size={18} />
+                      </div>
+                    )}
+                    <h4>{m.data.name}</h4>
+                  </div>
                   <div className="card-actions">
                     <button className="btn-icon" onClick={() => openEditMember(m)} title="Edit">
                       <Edit2 size={14} />
