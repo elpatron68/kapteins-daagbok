@@ -4,7 +4,7 @@ import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
-import { Ship, Save, Check } from 'lucide-react'
+import { Ship, Save, Check, Plus, X } from 'lucide-react'
 
 interface VesselFormProps {
   logbookId: string
@@ -20,6 +20,8 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
   const [callSign, setCallSign] = useState('')
   const [atis, setAtis] = useState('')
   const [mmsi, setMmsi] = useState('')
+  const [sails, setSails] = useState<string[]>([])
+  const [newSailName, setNewSailName] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -48,6 +50,7 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
             setCallSign(decrypted.callSign || '')
             setAtis(decrypted.atis || '')
             setMmsi(decrypted.mmsi || '')
+            setSails(decrypted.sails || [])
           }
         }
       } catch (err: any) {
@@ -60,6 +63,18 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
 
     loadVessel()
   }, [logbookId])
+
+  const handleAddSail = () => {
+    const trimmed = newSailName.trim()
+    if (trimmed && !sails.includes(trimmed)) {
+      setSails([...sails, trimmed])
+    }
+    setNewSailName('')
+  }
+
+  const handleRemoveSail = (indexToRemove: number) => {
+    setSails(sails.filter((_, idx) => idx !== indexToRemove))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,7 +94,8 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
         registrationNumber: registrationNumber.trim(),
         callSign: callSign.trim(),
         atis: atis.trim(),
-        mmsi: mmsi.trim()
+        mmsi: mmsi.trim(),
+        sails: sails
       }
 
       // E2E encrypt
@@ -225,6 +241,58 @@ export default function VesselForm({ logbookId }: VesselFormProps) {
               onChange={(e) => setMmsi(e.target.value)}
               disabled={saving}
             />
+          </div>
+
+          <div className="sails-section">
+            <h3>{t('vessel.sails_list')}</h3>
+            <p className="help-text">{t('vessel.sails_help')}</p>
+            
+            <div className="sails-badges-grid">
+              {sails.length === 0 ? (
+                <span className="no-sails-msg">{t('vessel.no_sails')}</span>
+              ) : (
+                sails.map((sail, idx) => (
+                  <span key={idx} className="sail-badge">
+                    {sail}
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => handleRemoveSail(idx)}
+                      disabled={saving}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))
+              )}
+            </div>
+
+            <div className="add-sail-form">
+              <input
+                type="text"
+                className="input-text"
+                placeholder={t('vessel.sail_name_placeholder')}
+                value={newSailName}
+                onChange={(e) => setNewSailName(e.target.value)}
+                disabled={saving}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSail();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={handleAddSail}
+                disabled={saving || !newSailName.trim()}
+                style={{ width: 'auto' }}
+              >
+                <Plus size={16} />
+                {t('vessel.add_sail')}
+              </button>
+            </div>
           </div>
         </div>
 

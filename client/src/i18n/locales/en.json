@@ -41,7 +41,12 @@
       "save": "Save Vessel Data",
       "saving": "Saving...",
       "saved": "Vessel details saved successfully!",
-      "loading": "Loading vessel details..."
+      "loading": "Loading vessel details...",
+      "sails_list": "Sails (Available Sails)",
+      "sails_help": "List the sails available on your vessel (e.g. Mainsail, Genoa, Jib).",
+      "add_sail": "Add Sail",
+      "sail_name_placeholder": "e.g. Mainsail",
+      "no_sails": "No sails defined."
     },
     "logs": {
       "title": "Logbook Journal",
@@ -85,6 +90,7 @@
       "event_wind_pressure": "Barometer (hPa)",
       "event_heel": "Heel Angle (°)",
       "event_sails": "Sails / Motor Status",
+      "motor_propulsion": "Engine Propulsion",
       "event_distance": "Distance (nm)",
       "export_csv": "Download CSV",
       "share_csv": "Share CSV",

@@ -44,12 +44,13 @@ interface LogEvent {
 }
 
 export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryEditorProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { showAlert } = useDialog()
 
   // General details state
   const [date, setDate] = useState('')
   const [dayOfTravel, setDayOfTravel] = useState('')
+  const [yachtSails, setYachtSails] = useState<string[]>([])
   const [departure, setDeparture] = useState('')
   const [destination, setDestination] = useState('')
 
@@ -119,6 +120,27 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     const cons = morning + refilled - evening
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
+
+  // Load Yacht Sails
+  useEffect(() => {
+    async function loadYachtSails() {
+      try {
+        const masterKey = getActiveMasterKey()
+        if (!masterKey) return
+
+        const yacht = await db.yachts.get(logbookId)
+        if (yacht) {
+          const decrypted = await decryptJson(yacht.encryptedData, yacht.iv, yacht.tag, masterKey)
+          if (decrypted && decrypted.sails && Array.isArray(decrypted.sails)) {
+            setYachtSails(decrypted.sails)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load yacht sails in editor:', err)
+      }
+    }
+    loadYachtSails()
+  }, [logbookId])
 
   // Load entry details
   useEffect(() => {
@@ -322,6 +344,33 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     } finally {
       setWeatherLoading(false)
     }
+  }
+
+  const defaultSails = i18n.language === 'de'
+    ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
+    : ['Mainsail', 'Genoa', 'Jib', 'Spinnaker', 'Gennaker']
+
+  const toggleSailOrMotor = (item: string) => {
+    let currentItems = evSailsOrMotor
+      .split(/\s*(?:\+|\bplus\b|,)\s*/i)
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    if (currentItems.some(s => s.toLowerCase() === item.toLowerCase())) {
+      currentItems = currentItems.filter(s => s.toLowerCase() !== item.toLowerCase())
+    } else {
+      currentItems.push(item)
+    }
+
+    setEvSailsOrMotor(currentItems.join(' + '))
+  }
+
+  const isItemActive = (item: string) => {
+    const currentItems = evSailsOrMotor
+      .split(/\s*(?:\+|\bplus\b|,)\s*/i)
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean)
+    return currentItems.includes(item.toLowerCase())
   }
 
   const handleAddEvent = (e: React.FormEvent) => {
@@ -912,6 +961,25 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                   onChange={(e) => setEvSailsOrMotor(e.target.value)}
                   disabled={saving}
                 />
+                <div className="sails-picker-container">
+                  <div className="sails-picker-pills">
+                    {(yachtSails.length > 0 ? yachtSails : defaultSails).map((sail) => (
+                      <span
+                        key={sail}
+                        className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
+                        onClick={() => toggleSailOrMotor(sail)}
+                      >
+                        {sail}
+                      </span>
+                    ))}
+                    <span
+                      className={`sail-pill motor-pill ${isItemActive(t('logs.motor_propulsion')) ? 'active' : ''}`}
+                      onClick={() => toggleSailOrMotor(t('logs.motor_propulsion'))}
+                    >
+                      {t('logs.motor_propulsion')}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="input-group">

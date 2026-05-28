@@ -41,7 +41,12 @@
       "save": "Schiffsdaten speichern",
       "saving": "Wird gespeichert...",
       "saved": "Schiffsdaten erfolgreich gespeichert!",
-      "loading": "Schiffsdaten werden geladen..."
+      "loading": "Schiffsdaten werden geladen...",
+      "sails_list": "Besegelung (vorhandene Segel)",
+      "sails_help": "Tragen Sie hier die Segel ein, die an Eurem Schiff zur Verfügung stehen (z. B. Großsegel, Genua, Fock).",
+      "add_sail": "Segel hinzufügen",
+      "sail_name_placeholder": "z. B. Großsegel",
+      "no_sails": "Keine Segel hinterlegt."
     },
     "logs": {
       "title": "Logbuch-Journal",
@@ -85,6 +90,7 @@
       "event_wind_pressure": "Luftdruck (hPa)",
       "event_heel": "Krängung (°)",
       "event_sails": "Segelführung / Motor",
+      "motor_propulsion": "Maschinenfahrt",
       "event_distance": "Distanz (sm)",
       "export_csv": "CSV herunterladen",
       "share_csv": "CSV teilen",
