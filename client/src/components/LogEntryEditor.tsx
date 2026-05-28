@@ -365,8 +365,37 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   }
 
   const handleGetGps = () => {
+    const lookupFallback = async () => {
+      const locationQuery = evLocationName.trim() || departure.trim() || destination.trim()
+      if (!locationQuery) {
+        showAlert('GPS capturing failed, and no location name is entered in "Ort / Hafen" or "Start-Hafen" to look up coordinates.')
+        return
+      }
+
+      const apiKey = localStorage.getItem('owm_api_key')
+      if (!apiKey) {
+        showAlert('GPS capturing failed, and no OpenWeatherMap API key is configured to perform location lookup.')
+        return
+      }
+
+      try {
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(locationQuery)}&appid=${apiKey}&units=metric`
+        )
+        if (!res.ok) throw new Error('Location not found')
+        const data = await res.json()
+        if (data.coord) {
+          setEvGpsLat(Number(data.coord.lat).toFixed(6))
+          setEvGpsLng(Number(data.coord.lon).toFixed(6))
+          showAlert(`Coordinates loaded for "${locationQuery}" via OpenWeatherMap.`)
+        }
+      } catch (e) {
+        showAlert('Failed to retrieve GPS location or look up coordinates by location name.')
+      }
+    }
+
     if (!navigator.geolocation) {
-      showAlert('Geolocation is not supported by your browser')
+      lookupFallback()
       return
     }
 
@@ -376,17 +405,17 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
         setEvGpsLng(pos.coords.longitude.toFixed(6))
       },
       (err) => {
-        console.error('GPS capturing failed:', err)
-        showAlert(`Failed to retrieve coordinates: ${err.message}`)
+        console.warn('GPS capturing failed, trying fallback:', err)
+        lookupFallback()
       }
     )
   }
 
   const handleFetchWeather = async () => {
     const hasGps = evGpsLat && evGpsLng
-    const hasLocation = evLocationName.trim()
+    const fallbackLocation = evLocationName.trim() || departure.trim() || destination.trim()
 
-    if (!hasGps && !hasLocation) {
+    if (!hasGps && !fallbackLocation) {
       showAlert(t('settings.gps_error'))
       return
     }
@@ -400,10 +429,10 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     setWeatherLoading(true)
     try {
       let url = ''
-      if (hasLocation) {
-        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(evLocationName.trim())}&appid=${apiKey}&units=metric`
-      } else {
+      if (hasGps) {
         url = `https://api.openweathermap.org/data/2.5/weather?lat=${evGpsLat}&lon=${evGpsLng}&appid=${apiKey}&units=metric`
+      } else {
+        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(fallbackLocation)}&appid=${apiKey}&units=metric`
       }
 
       const res = await fetch(url)
@@ -413,7 +442,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       const data = await res.json()
 
       // If fetched by location, automatically pre-fill GPS coordinates
-      if (hasLocation && data.coord) {
+      if (!hasGps && data.coord) {
         setEvGpsLat(Number(data.coord.lat).toFixed(6))
         setEvGpsLng(Number(data.coord.lon).toFixed(6))
       }
@@ -1006,7 +1035,12 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                     onClick={handleFetchWeather}
                     title={t('logs.weather_btn')}
                     style={{ width: 'auto', padding: '12px' }}
-                    disabled={saving || weatherLoading || (!evLocationName.trim() && (!evGpsLat || !evGpsLng))}
+                    disabled={
+                      saving ||
+                      weatherLoading ||
+                      (!evGpsLat && !evLocationName.trim() && !departure.trim() && !destination.trim()) ||
+                      (!!evGpsLat && !evGpsLng)
+                    }
                   >
                     <CloudSun size={16} />
                   </button>
