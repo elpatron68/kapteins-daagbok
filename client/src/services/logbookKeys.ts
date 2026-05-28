@@ -24,19 +24,24 @@ export async function getLogbookKey(logbookId: string): Promise<ArrayBuffer | nu
     throw new Error('Master key not found. Please log in.')
   }
 
-  // Derive CryptoKey from user master key
-  const aesKey = await window.crypto.subtle.importKey(
-    'raw',
-    masterKeyBytes,
-    { name: 'AES-GCM' },
-    false,
-    ['decrypt']
-  )
+  try {
+    // Derive CryptoKey from user master key
+    const aesKey = await window.crypto.subtle.importKey(
+      'raw',
+      masterKeyBytes,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    )
 
-  // Decrypt logbook key using User Master Key
-  const decrypted = await decryptBuffer(record.encryptedKey, record.iv, record.tag, aesKey)
-  keyCache.set(logbookId, decrypted)
-  return decrypted
+    // Decrypt logbook key using User Master Key
+    const decrypted = await decryptBuffer(record.encryptedKey, record.iv, record.tag, aesKey)
+    keyCache.set(logbookId, decrypted)
+    return decrypted
+  } catch (err) {
+    console.warn(`Failed to decrypt logbook key for ${logbookId}, returning null to allow fallback:`, err)
+    return null
+  }
 }
 
 /**
