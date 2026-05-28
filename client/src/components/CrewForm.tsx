@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
+import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { useDialog } from './ModalDialog.tsx'
@@ -123,8 +124,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setLoading(true)
     setError(null)
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const localCrews = await db.crews.where({ logbookId }).toArray()
       
@@ -168,8 +169,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setSkipperSuccess(false)
 
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const skipperData: CrewMemberData = {
         name: skipName.trim(),
@@ -258,8 +259,8 @@ export default function CrewForm({ logbookId }: CrewFormProps) {
     setError(null)
 
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const memberData: CrewMemberData = {
         name: memName.trim(),

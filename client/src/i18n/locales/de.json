@@ -135,7 +135,15 @@
       "gps_track_delete": "Track-Datei löschen",
       "gps_track_delete_confirm": "Sind Sie sicher, dass Sie diese Track-Datei dauerhaft löschen möchten?",
       "exporting": "Exportiere...",
-      "share_unsupported": "Teilen wird auf diesem Gerät nicht unterstützt. Datei wurde stattdessen heruntergeladen."
+      "share_unsupported": "Teilen wird auf diesem Gerät nicht unterstützt. Datei wurde stattdessen heruntergeladen.",
+      "invite_crew": "Crew einladen",
+      "invite_link_copied": "Einladungslink in die Zwischenablage kopiert!",
+      "invite_link_desc": "Teilen Sie diesen Link mit Crewmitgliedern, um ihnen Schreibrechte für dieses Logbuch zu gewähren.",
+      "collaborators_list": "Mitglieder / Crew",
+      "revoke": "Entfernen",
+      "revoke_confirm": "Sind Sie sicher, dass Sie diesem Crewmitglied den Zugriff entziehen möchten?",
+      "invite_role": "Rolle",
+      "invite_expires": "Link ist 48 Stunden lang gültig"
     },
     "dashboard": {
       "title": "Ihre Logbücher",

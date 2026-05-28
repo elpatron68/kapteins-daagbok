@@ -8,6 +8,7 @@ import CrewForm from './components/CrewForm.tsx'
 import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
+import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import { db } from './services/db.js'
@@ -24,6 +25,7 @@ function App() {
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
   const [appliedTheme, setAppliedTheme] = useState<'ocean' | 'material' | 'cupertino'>('ocean')
+  const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -86,6 +88,11 @@ function App() {
   }, [isAuthenticated])
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('token')) {
+      setIsAcceptingInvite(true)
+    }
+
     const savedUser = localStorage.getItem('active_username')
     const key = getActiveMasterKey()
     if (savedUser && key) {
@@ -130,6 +137,26 @@ function App() {
     setActiveLogbookTitle(null)
     localStorage.removeItem('active_logbook_id')
     localStorage.removeItem('active_logbook_title')
+  }
+
+  if (isAcceptingInvite) {
+    return (
+      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+        <InvitationAcceptance
+          onAccepted={(logbookId, title) => {
+            setIsAuthenticated(true)
+            setIsAcceptingInvite(false)
+            handleSelectLogbook(logbookId, title)
+            // Clean URL query parameters and hash anchor
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }}
+          onCancel={() => {
+            setIsAcceptingInvite(false)
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }}
+        />
+      </div>
+    )
   }
 
   if (!isAuthenticated) {
@@ -251,7 +278,7 @@ function App() {
           )}
 
           {activeTab === 'settings' && (
-            <SettingsForm />
+            <SettingsForm logbookId={activeLogbookId} />
           )}
         </main>
       </div>

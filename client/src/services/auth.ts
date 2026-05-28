@@ -9,6 +9,7 @@ import {
   base64ToBuffer,
   bufferToBase64
 } from './crypto.js'
+import { clearLogbookKeysCache } from './logbookKeys.js'
 
 const API_BASE = '/api/auth'
 
@@ -261,6 +262,7 @@ export async function completeLoginWithRecovery(
 
 export function logoutUser() {
   setActiveMasterKey(null)
+  clearLogbookKeysCache()
   localStorage.removeItem('active_username')
   localStorage.removeItem('active_userid')
 }

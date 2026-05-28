@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
+import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -41,7 +42,7 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
     async function decryptPhotosList() {
       if (!localPhotos) return
       
-      const masterKey = getActiveMasterKey()
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) return
 
       const list: DecryptedPhoto[] = []
@@ -102,8 +103,8 @@ export default function PhotoCapture({ entryId, logbookId }: PhotoCaptureProps) 
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
 
           // Encrypt
-          const masterKey = getActiveMasterKey()
-          if (!masterKey) throw new Error('Master key not found. Please log in.')
+          const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+          if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
           const photoId = window.crypto.randomUUID()
           const photoPayload = {

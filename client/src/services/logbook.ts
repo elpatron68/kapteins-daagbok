@@ -1,6 +1,7 @@
 import { db, type LocalLogbook } from './db.js'
 import { getActiveMasterKey } from './auth.js'
-import { encryptJson, decryptJson } from './crypto.js'
+import { encryptJson, decryptJson, encryptBuffer, decryptBuffer } from './crypto.js'
+import { getLogbookKey, saveLogbookKey, generateLogbookKey } from './logbookKeys.js'
 
 const API_BASE = '/api/logbooks'
 
@@ -11,8 +12,8 @@ export interface DecryptedLogbook {
   isSynced: boolean
 }
 
-// Helper to decrypt a logbook's title using the active master key
-export async function decryptLogbookTitle(encryptedTitle: string): Promise<string> {
+// Helper to decrypt a logbook's title using the active logbook key or master key
+export async function decryptLogbookTitle(logbookId: string, encryptedTitle: string): Promise<string> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) {
     throw new Error('Master key not found. User must log in.')
@@ -20,7 +21,8 @@ export async function decryptLogbookTitle(encryptedTitle: string): Promise<strin
 
   try {
     const parsed = JSON.parse(encryptedTitle)
-    const decrypted = await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, masterKey)
+    const key = await getLogbookKey(logbookId) || masterKey
+    const decrypted = await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, key)
     return decrypted
   } catch (error) {
     console.error('Failed to decrypt logbook title:', error)
@@ -53,6 +55,29 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       if (response.ok) {
         const serverLogbooks = await response.json()
         
+        // Decrypt and save logbook keys locally if they exist
+        for (const lb of serverLogbooks) {
+          const encryptedKeyStr = lb.encryptedKey || (lb.collaborators && lb.collaborators[0]?.encryptedLogbookKey)
+          const ivStr = lb.iv || (lb.collaborators && lb.collaborators[0]?.iv)
+          const tagStr = lb.tag || (lb.collaborators && lb.collaborators[0]?.tag)
+
+          if (encryptedKeyStr && ivStr && tagStr) {
+            try {
+              const aesKey = await window.crypto.subtle.importKey(
+                'raw',
+                masterKey,
+                { name: 'AES-GCM' },
+                false,
+                ['decrypt']
+              )
+              const decryptedKey = await decryptBuffer(encryptedKeyStr, ivStr, tagStr, aesKey)
+              await saveLogbookKey(lb.id, decryptedKey)
+            } catch (err) {
+              console.error(`Failed to decrypt and save logbook key for logbook ${lb.id}:`, err)
+            }
+          }
+        }
+
         // Update Dexie database cache
         const localLogbooks: LocalLogbook[] = serverLogbooks.map((lb: any) => ({
           id: lb.id,
@@ -62,7 +87,6 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
         }))
 
         // Clear existing cache for this user and insert new ones
-        // Note: Currently Dexie schema doesn't store userId on logbook table, but we can bulkPut.
         await db.logbooks.bulkPut(localLogbooks)
       }
     } catch (error) {
@@ -76,7 +100,7 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
   // Decrypt titles
   const decrypted: DecryptedLogbook[] = []
   for (const lb of cachedLogbooks) {
-    const title = await decryptLogbookTitle(lb.encryptedTitle)
+    const title = await decryptLogbookTitle(lb.id, lb.encryptedTitle)
     decrypted.push({
       id: lb.id,
       title,
@@ -100,11 +124,33 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     throw new Error('Master key not found. User must log in.')
   }
 
-  // 1. E2E Encrypt title
-  const encrypted = await encryptJson(title, masterKey)
-  const encryptedTitleStr = JSON.stringify(encrypted)
-  const localId = window.crypto.randomUUID()
+  // 1. Generate Logbook Key and save it locally
+  const logbookKey = generateLogbookKey()
+  await saveLogbookKey(localIdForCreate(), logbookKey) // Generate temporary ID to bind to key
+
+  const localId = tempUUID
   const now = new Date().toISOString()
+
+  // 2. Encrypt logbook key with user's master key
+  const aesMasterKey = await window.crypto.subtle.importKey(
+    'raw',
+    masterKey,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  )
+  const encryptedKey = await encryptBuffer(logbookKey, aesMasterKey)
+
+  // 3. E2E Encrypt title using the Logbook Key
+  const encrypted = await encryptJson(title, logbookKey)
+  const encryptedTitleStr = JSON.stringify(encrypted)
+
+  const payloadData = {
+    encryptedTitle: encryptedTitleStr,
+    encryptedKey: encryptedKey.ciphertext,
+    iv: encryptedKey.iv,
+    tag: encryptedKey.tag
+  }
 
   if (navigator.onLine) {
     try {
@@ -116,7 +162,7 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
         },
         body: JSON.stringify({
           id: localId,
-          encryptedTitle: encryptedTitleStr
+          ...payloadData
         })
       })
 
@@ -154,7 +200,7 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     type: 'logbook',
     payloadId: localId,
     logbookId: localId,
-    data: JSON.stringify({ encryptedTitle: encryptedTitleStr }),
+    data: JSON.stringify(payloadData),
     updatedAt: now
   })
 
@@ -164,6 +210,13 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     updatedAt: now,
     isSynced: false
   }
+}
+
+// Temporary UUID helpers to preserve single localId assignment across generation
+let tempUUID = ''
+function localIdForCreate(): string {
+  tempUUID = window.crypto.randomUUID()
+  return tempUUID
 }
 
 // Delete a logbook and all associated payloads locally and on server

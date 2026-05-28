@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import authRouter from './routes/auth.js'
 import logbooksRouter from './routes/logbooks.js'
 import syncRouter from './routes/sync.js'
+import collaborationRouter from './routes/collaboration.js'
 import { prisma } from './db.js'
 
 dotenv.config()
@@ -18,6 +19,7 @@ app.use(express.json({ limit: '50mb' }))
 app.use('/api/auth', authRouter)
 app.use('/api/logbooks', logbooksRouter)
 app.use('/api/sync', syncRouter)
+app.use('/api/collaboration', collaborationRouter)
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

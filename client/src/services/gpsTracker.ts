@@ -1,5 +1,6 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
+import { getLogbookKey } from './logbookKeys.js'
 import { encryptJson, decryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
 
@@ -20,13 +21,14 @@ export interface SavedGpsTrack {
 
 // Get the decrypted track data for a journal entry (with legacy array format compatibility)
 export async function getDecryptedGpsTrack(entryId: string): Promise<SavedGpsTrack | null> {
-  const masterKey = getActiveMasterKey()
-  if (!masterKey) {
-    throw new Error('Master key not found. Please log in.')
-  }
-
   const record = await db.gpsTracks.get(entryId)
   if (!record) return null
+
+  const logbookId = record.logbookId
+  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+  if (!masterKey) {
+    throw new Error('Encryption key not found. Please log in.')
+  }
 
   try {
     const decrypted = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
@@ -55,8 +57,8 @@ export async function saveUploadedGpsTrack(
   filename: string,
   fileType: string
 ): Promise<void> {
-  const masterKey = getActiveMasterKey()
-  if (!masterKey) throw new Error('Master key not found. Please log in.')
+  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+  if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
   const trackData: SavedGpsTrack = {
     waypoints,

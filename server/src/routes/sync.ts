@@ -49,10 +49,16 @@ router.post('/push', async (req: any, res) => {
               id: logbookId,
               userId: req.userId,
               encryptedTitle: parsed.encryptedTitle,
+              encryptedKey: parsed.encryptedKey || null,
+              iv: parsed.iv || null,
+              tag: parsed.tag || null,
               updatedAt: itemUpdatedAt
             },
             update: {
               encryptedTitle: parsed.encryptedTitle,
+              encryptedKey: parsed.encryptedKey || null,
+              iv: parsed.iv || null,
+              tag: parsed.tag || null,
               updatedAt: itemUpdatedAt
             }
           })
@@ -60,7 +66,7 @@ router.post('/push', async (req: any, res) => {
           continue
         }
 
-        // Standard Authorization: Logbook must exist and belong to user
+        // Standard Authorization: Logbook must exist and belong to user or collaborator
         const logbook = await prisma.logbook.findUnique({
           where: { id: logbookId }
         })
@@ -70,12 +76,26 @@ router.post('/push', async (req: any, res) => {
           continue
         }
 
-        if (logbook.userId !== req.userId) {
+        const isOwner = logbook.userId === req.userId
+        const isCollaborator = await prisma.collaboration.findUnique({
+          where: {
+            logbookId_userId: {
+              logbookId,
+              userId: req.userId
+            }
+          }
+        })
+
+        if (!isOwner && !isCollaborator) {
           results.push({ payloadId, status: 'error', error: 'Forbidden: Access denied' })
           continue
         }
 
         if (type === 'logbook' && action === 'delete') {
+          if (!isOwner) {
+            results.push({ payloadId, status: 'error', error: 'Forbidden: Only owner can delete logbook' })
+            continue
+          }
           await prisma.logbook.delete({
             where: { id: logbookId }
           })
@@ -211,7 +231,7 @@ router.get('/pull', async (req: any, res) => {
       return res.status(400).json({ error: 'logbookId is required' })
     }
 
-    // Authorize: Check if logbook belongs to user
+    // Authorize: Check if logbook belongs to user or is collaborator
     const logbook = await prisma.logbook.findUnique({
       where: { id: logbookId }
     })
@@ -220,7 +240,17 @@ router.get('/pull', async (req: any, res) => {
       return res.status(404).json({ error: 'Logbook not found' })
     }
 
-    if (logbook.userId !== req.userId) {
+    const isOwner = logbook.userId === req.userId
+    const isCollaborator = await prisma.collaboration.findUnique({
+      where: {
+        logbookId_userId: {
+          logbookId,
+          userId: req.userId
+        }
+      }
+    })
+
+    if (!isOwner && !isCollaborator) {
       return res.status(403).json({ error: 'Forbidden: Access denied' })
     }
 

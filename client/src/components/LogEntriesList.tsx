@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
+import { getLogbookKey } from '../services/logbookKeys.js'
 import { decryptJson, encryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
@@ -42,8 +43,8 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setLoading(true)
     setError(null)
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const local = await db.entries.where({ logbookId }).toArray()
       
@@ -131,8 +132,8 @@ export default function LogEntriesList({ logbookId }: LogEntriesListProps) {
     setLoading(true)
     setError(null)
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const localId = window.crypto.randomUUID()
       const nowStr = new Date().toISOString()

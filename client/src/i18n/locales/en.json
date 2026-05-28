@@ -135,7 +135,15 @@
       "gps_track_delete": "Delete Track File",
       "gps_track_delete_confirm": "Are you sure you want to permanently delete this track file?",
       "exporting": "Exporting...",
-      "share_unsupported": "Web sharing is not supported on this device. File downloaded instead."
+      "share_unsupported": "Web sharing is not supported on this device. File downloaded instead.",
+      "invite_crew": "Invite Crew",
+      "invite_link_copied": "Invitation link copied to clipboard!",
+      "invite_link_desc": "Share this link with crew members to grant them write permissions for this logbook.",
+      "collaborators_list": "Members / Crew",
+      "revoke": "Revoke Access",
+      "revoke_confirm": "Are you sure you want to revoke access for this crew member?",
+      "invite_role": "Role",
+      "invite_expires": "Link expires in 48 hours"
     },
     "dashboard": {
       "title": "Your Logbooks",

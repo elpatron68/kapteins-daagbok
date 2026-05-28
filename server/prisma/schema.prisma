@@ -8,17 +8,18 @@ generator client {
 }
 
 model User {
-  id                       String       @id @default(uuid())
-  username                 String       @unique
-  createdAt                DateTime     @default(now())
-  encryptedMasterKeyPrf    String?      // Encrypted using PRF-derived key
+  id                       String          @id @default(uuid())
+  username                 String          @unique
+  createdAt                DateTime        @default(now())
+  encryptedMasterKeyPrf    String?         // Encrypted using PRF-derived key
   encryptedMasterKeyPrfIv  String?
   encryptedMasterKeyPrfTag String?
-  encryptedMasterKeyRec    String       // Encrypted using 12-word recovery phrase
+  encryptedMasterKeyRec    String          // Encrypted using 12-word recovery phrase
   encryptedMasterKeyRecIv  String
   encryptedMasterKeyRecTag String
   credentials              Credential[]
   logbooks                 Logbook[]
+  collaborations           Collaboration[]
 }
 
 model Credential {
@@ -40,14 +41,51 @@ model Logbook {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // E2E Encrypted key for the owner (encrypted with owner's master key)
+  encryptedKey   String?
+  iv             String?
+  tag            String?
+
   yachts         YachtPayload[]
   crews          CrewPayload[]
   deviations     DeviationPayload[]
   entries        EntryPayload[]
   photos         PhotoPayload[]
   gpsTracks      GpsTrackPayload[]
+  collaborators  Collaboration[]
+  invitations    Invitation[]
 
   @@index([userId])
+}
+
+model Collaboration {
+  id                  String   @id @default(uuid())
+  logbookId           String
+  userId              String
+  role                String   // "READ" | "WRITE"
+  
+  // The Logbook Key encrypted with this collaborator's master key
+  encryptedLogbookKey String
+  iv                  String
+  tag                 String
+  
+  createdAt           DateTime @default(now())
+
+  logbook             Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([logbookId, userId])
+}
+
+model Invitation {
+  token      String   @id @default(uuid())
+  logbookId  String
+  role       String   // "READ" | "WRITE"
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  logbook    Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
 }
 
 model YachtPayload {

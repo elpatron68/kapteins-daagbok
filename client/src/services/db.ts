@@ -61,6 +61,13 @@ export interface LocalGpsTrack {
   updatedAt: string
 }
 
+export interface LocalLogbookKey {
+  logbookId: string
+  encryptedKey: string
+  iv: string
+  tag: string
+}
+
 export interface SyncQueueItem {
   id?: number
   action: 'create' | 'update' | 'delete'
@@ -79,6 +86,7 @@ class DaagboxDatabase extends Dexie {
   entries!: Table<LocalEntry>
   photos!: Table<LocalPhoto>
   gpsTracks!: Table<LocalGpsTrack>
+  logbookKeys!: Table<LocalLogbookKey>
   syncQueue!: Table<SyncQueueItem>
 
   constructor() {
@@ -100,6 +108,17 @@ class DaagboxDatabase extends Dexie {
       syncQueue: '++id, action, type, payloadId, logbookId',
       photos: 'payloadId, entryId, logbookId, updatedAt',
       gpsTracks: 'entryId, logbookId, updatedAt'
+    })
+    this.version(3).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt',
+      logbookKeys: 'logbookId'
     })
   }
 }

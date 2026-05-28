@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
+import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { Compass, Save, Check } from 'lucide-react'
@@ -28,8 +29,8 @@ export default function DeviationForm({ logbookId }: DeviationFormProps) {
       setLoading(true)
       setError(null)
       try {
-        const masterKey = getActiveMasterKey()
-        if (!masterKey) throw new Error('Master key not found. Please log in.')
+        const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+        if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
         const local = await db.deviations.get(logbookId)
         if (local) {
@@ -75,8 +76,8 @@ export default function DeviationForm({ logbookId }: DeviationFormProps) {
     setSuccess(false)
 
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       // Parse values, substituting 0 if empty
       const sanitizedDeviations: Record<number, number> = {}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
+import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
@@ -132,7 +133,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
   useEffect(() => {
     async function loadYachtSails() {
       try {
-        const masterKey = getActiveMasterKey()
+        const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
         if (!masterKey) return
 
         const yacht = await db.yachts.get(logbookId)
@@ -155,8 +156,8 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       setLoading(true)
       setError(null)
       try {
-        const masterKey = getActiveMasterKey()
-        if (!masterKey) throw new Error('Master key not found. Please log in.')
+        const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+        if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
         const local = await db.entries.get(entryId)
         if (local) {
@@ -592,8 +593,8 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
     setSuccess(false)
 
     try {
-      const masterKey = getActiveMasterKey()
-      if (!masterKey) throw new Error('Master key not found. Please log in.')
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const entryData = {
         date,

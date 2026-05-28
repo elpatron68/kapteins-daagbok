@@ -1,12 +1,13 @@
 import { jsPDF } from 'jspdf'
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
+import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 
 export async function generateLogbookPagePdf(logbookId: string, entryId: string): Promise<jsPDF> {
-  const masterKey = getActiveMasterKey()
+  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
   if (!masterKey) {
-    throw new Error('Master key not found. Please log in.')
+    throw new Error('Encryption key not found. Please log in.')
   }
 
   // 1. Fetch Yacht details

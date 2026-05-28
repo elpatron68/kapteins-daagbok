@@ -1,5 +1,6 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
+import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
@@ -12,9 +13,9 @@ function escapeCsvValue(val: string | number | undefined | null): string {
 }
 
 export async function exportLogbookToCsv(logbookId: string): Promise<string> {
-  const masterKey = getActiveMasterKey()
+  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
   if (!masterKey) {
-    throw new Error('Master key not found. User must log in.')
+    throw new Error('Encryption key not found. User must log in.')
   }
 
   // 1. Fetch Yacht details
