@@ -11,191 +11,62 @@ export interface GpsWaypoint {
   heading?: number
 }
 
-let watchId: number | null = null
-let wakeLock: any = null
-let activeEntryId: string | null = null
-let lastWaypoint: GpsWaypoint | null = null
-let onWaypointAddedCallback: ((waypoint: GpsWaypoint) => void) | null = null
-
-// Haversine formula to compute distance in meters
-export function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371e3 // Earth's radius in meters
-  const phi1 = (lat1 * Math.PI) / 180
-  const phi2 = (lat2 * Math.PI) / 180
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return R * c
+export interface SavedGpsTrack {
+  waypoints: GpsWaypoint[]
+  gpxContent: string // Holds the raw text file content (GPX, KML or GeoJSON)
+  filename: string
+  fileType: string // 'gpx' | 'kml' | 'geojson'
 }
 
-// Request Screen Wake Lock
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await (navigator as any).wakeLock.request('screen')
-      console.log('GPS Tracker: Screen Wake Lock acquired')
-    }
-  } catch (err) {
-    console.warn('GPS Tracker: Wake Lock request failed:', err)
-  }
-}
-
-// Release Screen Wake Lock
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release().then(() => {
-      wakeLock = null;
-      console.log('GPS Tracker: Screen Wake Lock released')
-    })
-  }
-}
-
-// Handle visibility changes to re-acquire wake lock if tab is minimized/restored
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', async () => {
-    if (watchId !== null && document.visibilityState === 'visible') {
-      await requestWakeLock()
-    }
-  })
-}
-
-// Start GPS Tracking Run
-export async function startGpsTracking(
-  logbookId: string,
-  entryId: string,
-  onWaypointAdded?: (waypoint: GpsWaypoint) => void
-): Promise<void> {
-  if (watchId !== null) {
-    throw new Error('Tracking is already active')
-  }
-
-  if (!navigator.geolocation) {
-    throw new Error('Geolocation is not supported by your device')
-  }
-
-  activeEntryId = entryId
-  onWaypointAddedCallback = onWaypointAdded || null
-  lastWaypoint = null
-
-  // Acquire Screen Wake Lock to prevent standby/sleep
-  await requestWakeLock()
-
-  // Load last waypoint from existing track to resume or filter correctly
-  try {
-    const existingTrack = await getDecryptedGpsTrack(entryId)
-    if (existingTrack && existingTrack.length > 0) {
-      lastWaypoint = existingTrack[existingTrack.length - 1]
-    }
-  } catch (e) {
-    console.warn('Could not read existing waypoints for filtering:', e)
-  }
-
-  watchId = navigator.geolocation.watchPosition(
-    async (position) => {
-      const { latitude, longitude, speed, heading } = position.coords
-      const now = Date.now()
-
-      // Convert speed from m/s to knots (1 m/s = 1.94384 knots)
-      const speedKnots = speed !== null && speed !== undefined && speed >= 0 ? speed * 1.94384 : undefined
-      const headingDeg = heading !== null && heading !== undefined && heading >= 0 ? heading : undefined
-
-      const newWaypoint: GpsWaypoint = {
-        timestamp: now,
-        lat: Number(latitude.toFixed(6)),
-        lng: Number(longitude.toFixed(6)),
-        speedKnots: speedKnots !== undefined ? Number(speedKnots.toFixed(1)) : undefined,
-        heading: headingDeg !== undefined ? Number(headingDeg.toFixed(0)) : undefined
-      }
-
-      // Filter: Only add if distance to last waypoint > 15 meters OR if 30 seconds elapsed
-      if (lastWaypoint) {
-        const distance = getDistanceMeters(lastWaypoint.lat, lastWaypoint.lng, newWaypoint.lat, newWaypoint.lng)
-        const timeElapsed = now - lastWaypoint.timestamp
-
-        // Throttle check
-        if (distance < 15 && timeElapsed < 30000) {
-          // Skip insignificant waypoint
-          return
-        }
-      }
-
-      // Save waypoint
-      try {
-        await saveWaypoint(logbookId, entryId, newWaypoint)
-        lastWaypoint = newWaypoint
-        if (onWaypointAddedCallback) {
-          onWaypointAddedCallback(newWaypoint)
-        }
-      } catch (err) {
-        console.error('GPS Tracker: Failed to save waypoint:', err)
-      }
-    },
-    (error) => {
-      console.error('GPS Geolocation tracking error:', error)
-    },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 0
-    }
-  )
-}
-
-// Stop GPS Tracking Run
-export function stopGpsTracking(): void {
-  if (watchId !== null) {
-    navigator.geolocation.clearWatch(watchId)
-    watchId = null
-  }
-  releaseWakeLock()
-  activeEntryId = null
-  onWaypointAddedCallback = null
-  lastWaypoint = null
-  console.log('GPS Tracker: Stopped tracking')
-}
-
-// Is Tracking currently running for this entry?
-export function isGpsTrackingActive(entryId?: string): boolean {
-  if (entryId) {
-    return watchId !== null && activeEntryId === entryId
-  }
-  return watchId !== null
-}
-
-// Get the decrypted waypoints array for a journal entry
-export async function getDecryptedGpsTrack(entryId: string): Promise<GpsWaypoint[]> {
+// Get the decrypted track data for a journal entry (with legacy array format compatibility)
+export async function getDecryptedGpsTrack(entryId: string): Promise<SavedGpsTrack | null> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) {
     throw new Error('Master key not found. Please log in.')
   }
 
   const record = await db.gpsTracks.get(entryId)
-  if (!record) return []
+  if (!record) return null
 
   try {
     const decrypted = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
-    return Array.isArray(decrypted) ? decrypted : []
+    if (Array.isArray(decrypted)) {
+      // Legacy format (just coordinate array)
+      return {
+        waypoints: decrypted,
+        gpxContent: generateLegacyGpxString(decrypted, 'legacy'),
+        filename: 'track_legacy.gpx',
+        fileType: 'gpx'
+      }
+    }
+    return decrypted
   } catch (err) {
     console.error('Failed to decrypt GPS track:', err)
-    return []
+    return null
   }
 }
 
-// Helper: append waypoint, encrypt, and save/queue sync
-async function saveWaypoint(logbookId: string, entryId: string, waypoint: GpsWaypoint): Promise<void> {
+// Encrypt and save uploaded GPS track to local Dexie and remote sync
+export async function saveUploadedGpsTrack(
+  logbookId: string,
+  entryId: string,
+  gpxContent: string,
+  waypoints: GpsWaypoint[],
+  filename: string,
+  fileType: string
+): Promise<void> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) throw new Error('Master key not found. Please log in.')
 
-  // Fetch current waypoints
-  const waypoints = await getDecryptedGpsTrack(entryId)
-  waypoints.push(waypoint)
+  const trackData: SavedGpsTrack = {
+    waypoints,
+    gpxContent,
+    filename,
+    fileType
+  }
 
-  // Encrypt array
-  const encrypted = await encryptJson(waypoints, masterKey)
+  // Encrypt JSON
+  const encrypted = await encryptJson(trackData, masterKey)
   const now = new Date().toISOString()
 
   // Save to Dexie
@@ -208,9 +79,9 @@ async function saveWaypoint(logbookId: string, entryId: string, waypoint: GpsWay
     updatedAt: now
   })
 
-  // Add to Sync queue (payloadId is entryId here)
+  // Add to Sync queue (payloadId is entryId)
   await db.syncQueue.put({
-    action: 'create', // upsert mapping is used on server
+    action: 'create',
     type: 'gpsTrack',
     payloadId: entryId,
     logbookId,
@@ -222,17 +93,200 @@ async function saveWaypoint(logbookId: string, entryId: string, waypoint: GpsWay
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
 }
 
-// Generate GPX file contents from Waypoints
-export function generateGpxString(waypoints: GpsWaypoint[], dateStr: string): string {
+// Delete GPS track from local DB and sync queue
+export async function deleteGpsTrack(logbookId: string, entryId: string): Promise<void> {
+  const now = new Date().toISOString()
+
+  // Delete from Dexie
+  await db.gpsTracks.delete(entryId)
+
+  // Add to Sync queue
+  await db.syncQueue.put({
+    action: 'delete',
+    type: 'gpsTrack',
+    payloadId: entryId,
+    logbookId,
+    data: '',
+    updatedAt: now
+  })
+
+  // Trigger sync
+  syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+}
+
+// Download the track file exactly as uploaded
+export function downloadTrackFile(track: SavedGpsTrack): void {
+  const blob = new Blob([track.gpxContent], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = url
+  a.download = track.filename || 'track.gpx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Main parser entry point
+export function parseTrackFile(text: string, filename: string): { waypoints: GpsWaypoint[]; type: string } {
+  const lowerName = filename.toLowerCase()
+  if (lowerName.endsWith('.kml') || text.includes('<kml')) {
+    return { waypoints: parseKmlFile(text), type: 'kml' }
+  } else if (lowerName.endsWith('.json') || lowerName.endsWith('.geojson') || text.trim().startsWith('{')) {
+    return { waypoints: parseGeoJsonFile(text), type: 'geojson' }
+  } else {
+    return { waypoints: parseGpxFile(text), type: 'gpx' }
+  }
+}
+
+// 1. GPX Parser
+export function parseGpxFile(gpxText: string): GpsWaypoint[] {
+  const parser = new DOMParser()
+  const xmlDoc = parser.parseFromString(gpxText, 'text/xml')
+  const trackPoints = xmlDoc.getElementsByTagName('trkpt')
+  const waypoints: GpsWaypoint[] = []
+
+  for (let i = 0; i < trackPoints.length; i++) {
+    const el = trackPoints[i]
+    const lat = parseFloat(el.getAttribute('lat') || '')
+    const lon = parseFloat(el.getAttribute('lon') || '')
+    if (isNaN(lat) || isNaN(lon)) continue
+
+    const timeEl = el.getElementsByTagName('time')[0]
+    const timestamp = timeEl && timeEl.textContent ? new Date(timeEl.textContent).getTime() : Date.now()
+
+    const speedEl = el.getElementsByTagName('speed')[0]
+    const speedKnots = speedEl && speedEl.textContent ? parseFloat(speedEl.textContent) * 1.94384 : undefined
+
+    const courseEl = el.getElementsByTagName('course')[0] || el.getElementsByTagName('heading')[0]
+    const heading = courseEl && courseEl.textContent ? parseFloat(courseEl.textContent) : undefined
+
+    waypoints.push({
+      timestamp,
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lon.toFixed(6)),
+      speedKnots: speedKnots !== undefined && !isNaN(speedKnots) ? Number(speedKnots.toFixed(1)) : undefined,
+      heading: heading !== undefined && !isNaN(heading) ? Number(heading.toFixed(0)) : undefined
+    })
+  }
+  return waypoints
+}
+
+// 2. KML Parser
+export function parseKmlFile(kmlText: string): GpsWaypoint[] {
+  const parser = new DOMParser()
+  const xmlDoc = parser.parseFromString(kmlText, 'text/xml')
+  const waypoints: GpsWaypoint[] = []
+
+  // Check for standard KML <coordinates> tags
+  const coordsTags = xmlDoc.getElementsByTagName('coordinates')
+  for (let i = 0; i < coordsTags.length; i++) {
+    const text = coordsTags[i].textContent || ''
+    const coordStrings = text.trim().split(/\s+/)
+    for (const str of coordStrings) {
+      const parts = str.split(',')
+      if (parts.length >= 2) {
+        const lon = parseFloat(parts[0])
+        const lat = parseFloat(parts[1])
+        if (!isNaN(lat) && !isNaN(lon)) {
+          waypoints.push({
+            timestamp: Date.now(),
+            lat: Number(lat.toFixed(6)),
+            lng: Number(lon.toFixed(6))
+          })
+        }
+      }
+    }
+  }
+
+  // Check for gx:coord extensions (commonly used in Google Earth tracks)
+  const gxCoords = xmlDoc.getElementsByTagName('gx:coord')
+  if (gxCoords.length > 0) {
+    for (let i = 0; i < gxCoords.length; i++) {
+      const text = gxCoords[i].textContent || ''
+      const parts = text.trim().split(/\s+/)
+      if (parts.length >= 2) {
+        const lon = parseFloat(parts[0])
+        const lat = parseFloat(parts[1])
+        if (!isNaN(lat) && !isNaN(lon)) {
+          waypoints.push({
+            timestamp: Date.now(),
+            lat: Number(lat.toFixed(6)),
+            lng: Number(lon.toFixed(6))
+          })
+        }
+      }
+    }
+  }
+
+  return waypoints
+}
+
+// 3. GeoJSON Parser
+export function parseGeoJsonFile(geoJsonText: string): GpsWaypoint[] {
+  const waypoints: GpsWaypoint[] = []
+  try {
+    const data = JSON.parse(geoJsonText)
+
+    const processGeometry = (geom: any) => {
+      if (!geom) return
+      if (geom.type === 'LineString' && Array.isArray(geom.coordinates)) {
+        for (const coord of geom.coordinates) {
+          const lon = coord[0]
+          const lat = coord[1]
+          if (typeof lat === 'number' && typeof lon === 'number') {
+            waypoints.push({
+              timestamp: Date.now(),
+              lat: Number(lat.toFixed(6)),
+              lng: Number(lon.toFixed(6))
+            })
+          }
+        }
+      } else if (geom.type === 'MultiLineString' && Array.isArray(geom.coordinates)) {
+        for (const line of geom.coordinates) {
+          if (Array.isArray(line)) {
+            for (const coord of line) {
+              const lon = coord[0]
+              const lat = coord[1]
+              if (typeof lat === 'number' && typeof lon === 'number') {
+                waypoints.push({
+                  timestamp: Date.now(),
+                  lat: Number(lat.toFixed(6)),
+                  lng: Number(lon.toFixed(6))
+                })
+              }
+            }
+          }
+        }
+      }
+    };
+
+    if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+      for (const feature of data.features) {
+        if (feature && feature.geometry) {
+          processGeometry(feature.geometry)
+        }
+      }
+    } else if (data.type === 'Feature' && data.geometry) {
+      processGeometry(data.geometry)
+    } else if (data.type === 'LineString' || data.type === 'MultiLineString') {
+      processGeometry(data)
+    }
+  } catch (err) {
+    console.error('Failed to parse GeoJSON track:', err)
+  }
+
+  return waypoints
+}
+
+// Generate legacy fallback GPX string
+function generateLegacyGpxString(waypoints: GpsWaypoint[], dateStr: string): string {
   const trkpts = waypoints
     .map((wp) => {
       const timeISO = new Date(wp.timestamp).toISOString()
-      const courseTag = wp.heading !== undefined ? `<course>${wp.heading}</course>` : ''
-      const speedTag = wp.speedKnots !== undefined ? `<speed>${(wp.speedKnots / 1.94384).toFixed(2)}</speed>` : '' // speed back in m/s for GPX spec
       return `        <trkpt lat="${wp.lat}" lon="${wp.lng}">
           <time>${timeISO}</time>
-          ${courseTag}
-          ${speedTag}
         </trkpt>`
     })
     .join('\n')
@@ -249,22 +303,4 @@ ${trkpts}
     </trkseg>
   </trk>
 </gpx>`
-}
-
-// Download GPX file client-side
-export function downloadGpxFile(waypoints: GpsWaypoint[], dateStr: string): void {
-  if (waypoints.length === 0) {
-    return
-  }
-  const gpxContent = generateGpxString(waypoints, dateStr)
-  const blob = new Blob([gpxContent], { type: 'application/gpx+xml;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `track_${dateStr.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.gpx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
 }
