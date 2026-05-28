@@ -506,6 +506,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .section-title-bar h2 {
@@ -853,6 +855,9 @@ body {
   font-size: 20px;
   margin: 0;
   color: #fbbf24;
+  min-width: 0;
+  flex-shrink: 1;
+  word-break: break-word;
 }
 
 .form-icon {
@@ -871,7 +876,7 @@ body {
   gap: 20px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1024px) {
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -1749,7 +1754,7 @@ body:has(.theme-cupertino) {
 }
 
 /* Responsive Form and Paddings Fix */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .app-layout {
     padding: 16px;
   }
@@ -1758,6 +1763,9 @@ body:has(.theme-cupertino) {
   }
   .form-card {
     padding: 20px;
+  }
+  .member-editor-card {
+    padding: 16px;
   }
 }
 
@@ -1784,12 +1792,24 @@ body:has(.theme-cupertino) {
   .form-actions button {
     width: 100%;
   }
+  .member-editor-card {
+    padding: 12px;
+  }
 }
 
 .gps-input-row {
   display: flex;
   gap: 8px;
   width: 100%;
+}
+
+.gps-input-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.gps-input-row button {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 480px) {
@@ -1802,6 +1822,28 @@ body:has(.theme-cupertino) {
   }
   .gps-input-row button {
     flex: 1 1 calc(50% - 4px);
+  }
+}
+
+.section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.consumption-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .consumption-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 

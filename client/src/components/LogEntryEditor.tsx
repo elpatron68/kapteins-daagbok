@@ -519,7 +519,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
       {/* Top Header Controls */}
       <div className="form-card" style={{ paddingBottom: '20px' }}>
         <div className="section-title-bar">
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div className="section-title-left">
             <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
               <ChevronLeft size={16} />
               {t('logs.back_to_list')}
@@ -615,7 +615,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
               <Compass size={20} className="form-icon" />
               <h3>{t('logs.freshwater')}</h3>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="consumption-grid">
               <div className="input-group">
                 <label>{t('logs.morning')} (L)</label>
                 <input
@@ -671,7 +671,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
               <Compass size={20} className="form-icon" />
               <h3>{t('logs.fuel')}</h3>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="consumption-grid">
               <div className="input-group">
                 <label>{t('logs.morning')} (L)</label>
                 <input
