@@ -1,7 +1,7 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 
-const API_BASE = 'http://localhost:5000/api/sync'
+const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
 
 let isSyncing = false

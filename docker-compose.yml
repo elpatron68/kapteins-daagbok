@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: daagbox-prod-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: daagbox
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d daagbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: daagbox-prod-backend
+    restart: always
+    environment:
+      PORT: 5000
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/daagbox?schema=public"
+    command: sh -c "npx prisma db push && node dist/index.js"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: daagbox-prod-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+    name: daagbox-prod-pgdata

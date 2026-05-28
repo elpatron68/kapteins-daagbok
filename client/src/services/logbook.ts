@@ -2,7 +2,7 @@ import { db, type LocalLogbook } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { encryptJson, decryptJson } from './crypto.js'
 
-const API_BASE = 'http://localhost:5000/api/logbooks'
+const API_BASE = '/api/logbooks'
 
 export interface DecryptedLogbook {
   id: string

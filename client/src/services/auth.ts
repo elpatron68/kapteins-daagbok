@@ -10,7 +10,7 @@ import {
   bufferToBase64
 } from './crypto.js'
 
-const API_BASE = 'http://localhost:5000/api/auth'
+const API_BASE = '/api/auth'
 
 // Shared in-memory container for the active user's session master key
 let activeMasterKey: ArrayBuffer | null = null
