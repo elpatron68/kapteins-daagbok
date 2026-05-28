@@ -5,7 +5,9 @@ import {
   deriveKeyFromPrf,
   encryptBuffer,
   decryptBuffer,
-  generateRecoveryPhrase
+  generateRecoveryPhrase,
+  base64ToBuffer,
+  bufferToBase64
 } from './crypto.js'
 
 const API_BASE = 'http://localhost:5000/api/auth'
@@ -13,12 +15,31 @@ const API_BASE = 'http://localhost:5000/api/auth'
 // Shared in-memory container for the active user's session master key
 let activeMasterKey: ArrayBuffer | null = null
 
+// Restore key from sessionStorage on load if present (survives reload)
+try {
+  const savedKey = sessionStorage.getItem('active_master_key')
+  if (savedKey) {
+    activeMasterKey = base64ToBuffer(savedKey)
+  }
+} catch (e) {
+  console.error('Failed to restore active master key:', e)
+}
+
 export function getActiveMasterKey(): ArrayBuffer | null {
   return activeMasterKey
 }
 
 export function setActiveMasterKey(key: ArrayBuffer | null) {
   activeMasterKey = key
+  if (key) {
+    try {
+      sessionStorage.setItem('active_master_key', bufferToBase64(key))
+    } catch (e) {
+      console.error('Failed to save master key to sessionStorage:', e)
+    }
+  } else {
+    sessionStorage.removeItem('active_master_key')
+  }
 }
 
 // Convert string salt to 32-byte Uint8Array
@@ -99,7 +120,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
 
   const result = await verifyRes.json()
   if (result.verified) {
-    activeMasterKey = masterKey
+    setActiveMasterKey(masterKey)
     localStorage.setItem('active_username', username)
     localStorage.setItem('active_userid', result.userId)
   }
@@ -185,7 +206,7 @@ export async function loginUser(username?: string): Promise<LoginResult> {
         result.encryptedMasterKeyPrfTag,
         prfKey
       )
-      activeMasterKey = decryptedMaster
+      setActiveMasterKey(decryptedMaster)
       localStorage.setItem('active_username', resolvedUsername)
       localStorage.setItem('active_userid', result.userId)
       return { verified: true, prfSuccess: true, username: resolvedUsername }
@@ -228,7 +249,7 @@ export async function completeLoginWithRecovery(
       encryptedPayloads.encryptedMasterKeyRecTag,
       recoveryKey
     )
-    activeMasterKey = decryptedMaster
+    setActiveMasterKey(decryptedMaster)
     localStorage.setItem('active_username', username)
     localStorage.setItem('active_userid', encryptedPayloads.userId)
     return true
@@ -239,7 +260,7 @@ export async function completeLoginWithRecovery(
 }
 
 export function logoutUser() {
-  activeMasterKey = null
+  setActiveMasterKey(null)
   localStorage.removeItem('active_username')
   localStorage.removeItem('active_userid')
 }
