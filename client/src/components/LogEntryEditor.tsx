@@ -1230,7 +1230,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
           </div>
           <div className="form-grid">
             <div className="input-group">
-              <label>{t('logs.sign_skipper')} *</label>
+              <label>{t('logs.sign_skipper')}</label>
               <input
                 type="text"
                 placeholder="e.g. MARKUS SKIPPER"
@@ -1238,12 +1238,11 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 value={signSkipper}
                 onChange={(e) => setSignSkipper(e.target.value)}
                 disabled={saving}
-                required
               />
             </div>
 
             <div className="input-group">
-              <label>{t('logs.sign_crew')} *</label>
+              <label>{t('logs.sign_crew')}</label>
               <input
                 type="text"
                 placeholder="e.g. JAN MATE"
@@ -1251,7 +1250,6 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
                 value={signCrew}
                 onChange={(e) => setSignCrew(e.target.value)}
                 disabled={saving}
-                required
               />
             </div>
           </div>
@@ -1266,7 +1264,7 @@ export default function LogEntryEditor({ entryId, logbookId, onBack }: LogEntryE
             </div>
           )}
           
-          <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim() || !signSkipper.trim() || !signCrew.trim()}>
+          <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim()}>
             <Save size={18} />
             {saving ? t('logs.saving') : t('logs.save')}
           </button>
