@@ -15,6 +15,12 @@ interface SpotlightRect {
   height: number
 }
 
+function buildCutoutClipPath(rect: SpotlightRect): string {
+  const right = rect.left + rect.width
+  const bottom = rect.top + rect.height
+  return `polygon(evenodd, 0 0, 100vw 0, 100vw 100vh, 0 100vh, 0 0, ${rect.left}px ${rect.top}px, ${right}px ${rect.top}px, ${right}px ${bottom}px, ${rect.left}px ${bottom}px, ${rect.left}px ${rect.top}px)`
+}
+
 export default function AppTourOverlay() {
   const { t } = useTranslation()
   const {
@@ -70,6 +76,23 @@ export default function AppTourOverlay() {
 
   useEffect(() => {
     if (!isActive) return
+    document.body.classList.add('app-tour-active')
+    return () => document.body.classList.remove('app-tour-active')
+  }, [isActive])
+
+  useEffect(() => {
+    if (!isActive || !currentStepId || isCenteredTourStep(currentStepId)) return
+
+    const selector = getTourTargetSelector(currentStepId)
+    if (!selector) return
+
+    const el = document.querySelector(selector)
+    el?.classList.add('app-tour-target-active')
+    return () => el?.classList.remove('app-tour-target-active')
+  }, [currentStepId, isActive])
+
+  useEffect(() => {
+    if (!isActive) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') skipTour()
     }
@@ -92,9 +115,17 @@ export default function AppTourOverlay() {
         }
       : { top: '20%', left: '50%', transform: 'translateX(-50%)', maxWidth: '420px' }
 
+  const backdropStyle = spotlight && !centered
+    ? { clipPath: buildCutoutClipPath(spotlight) }
+    : undefined
+
   return (
     <div className="app-tour-root" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="app-tour-backdrop" onClick={skipTour} />
+      <div
+        className={`app-tour-backdrop${spotlight && !centered ? ' app-tour-backdrop--cutout' : ''}`}
+        style={backdropStyle}
+        onClick={skipTour}
+      />
 
       {!centered && spotlight && (
         <div

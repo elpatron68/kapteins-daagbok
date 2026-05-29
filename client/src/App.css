@@ -2572,17 +2572,30 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(2, 6, 23, 0.72);
+  background: rgba(2, 6, 23, 0.62);
   pointer-events: auto;
+}
+
+.app-tour-backdrop--cutout {
+  background: rgba(2, 6, 23, 0.5);
 }
 
 .app-tour-spotlight {
   position: fixed;
   border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.72);
-  border: 2px solid rgba(56, 189, 248, 0.85);
+  border: 2px solid #38bdf8;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 0 32px rgba(56, 189, 248, 0.5),
+    0 12px 40px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   z-index: 10001;
+}
+
+body.app-tour-active .app-tour-target-active {
+  position: relative;
+  z-index: 10001 !important;
+  isolation: isolate;
 }
 
 .app-tour-tooltip {
@@ -2591,9 +2604,9 @@ html.theme-cupertino .events-scroll-container {
   width: min(420px, calc(100vw - 32px));
   padding: 20px 20px 16px;
   border-radius: 16px;
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
   pointer-events: auto;
 }
 
@@ -2627,7 +2640,7 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-progress {
   margin: 0 0 8px;
   font-size: 12px;
-  color: #64748b;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2635,14 +2648,14 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-title {
   margin: 0 0 8px;
   font-size: 20px;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 .app-tour-body {
   margin: 0 0 16px;
   font-size: 14px;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .app-tour-actions {
@@ -2655,7 +2668,7 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-link {
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 13px;
   cursor: pointer;
   padding: 0;
