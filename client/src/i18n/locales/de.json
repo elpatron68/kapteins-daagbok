@@ -76,6 +76,13 @@
     "vessel": {
       "title": "Schiffs-Stammdaten",
       "name": "Yachtname",
+      "type": "Yachttyp",
+      "type_unset": "— nicht angegeben —",
+      "type_sailing": "Segelyacht",
+      "type_motor": "Motoryacht",
+      "length_m": "Länge (m)",
+      "draft_m": "Tiefgang (m)",
+      "air_draft_m": "Höhe (m)",
       "port": "Heimathafen",
       "owner": "Eigner",
       "charter": "Charterfirma",

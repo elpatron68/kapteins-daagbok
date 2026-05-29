@@ -16,6 +16,10 @@ interface VesselFormProps {
 export default function VesselForm({ logbookId, readOnly = false, preloadedData }: VesselFormProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
+  const [vesselType, setVesselType] = useState<'sailing' | 'motor' | ''>('')
+  const [lengthM, setLengthM] = useState('')
+  const [draftM, setDraftM] = useState('')
+  const [airDraftM, setAirDraftM] = useState('')
   const [homePort, setHomePort] = useState('')
   const [charterCompany, setCharterCompany] = useState('')
   const [owner, setOwner] = useState('')
@@ -43,6 +47,10 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
       try {
         if (readOnly && preloadedData) {
           setName(preloadedData.name || '')
+          setVesselType(preloadedData.vesselType || '')
+          setLengthM(preloadedData.lengthM != null ? String(preloadedData.lengthM) : '')
+          setDraftM(preloadedData.draftM != null ? String(preloadedData.draftM) : '')
+          setAirDraftM(preloadedData.airDraftM != null ? String(preloadedData.airDraftM) : '')
           setHomePort(preloadedData.homePort || '')
           setCharterCompany(preloadedData.charterCompany || '')
           setOwner(preloadedData.owner || '')
@@ -64,6 +72,10 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
           const decrypted = await decryptJson(local.encryptedData, local.iv, local.tag, masterKey)
           if (decrypted) {
             setName(decrypted.name || '')
+            setVesselType(decrypted.vesselType || '')
+            setLengthM(decrypted.lengthM != null ? String(decrypted.lengthM) : '')
+            setDraftM(decrypted.draftM != null ? String(decrypted.draftM) : '')
+            setAirDraftM(decrypted.airDraftM != null ? String(decrypted.airDraftM) : '')
             setHomePort(decrypted.homePort || '')
             setCharterCompany(decrypted.charterCompany || '')
             setOwner(decrypted.owner || '')
@@ -170,6 +182,10 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
 
       const yachtData = {
         name: name.trim(),
+        vesselType: vesselType || undefined,
+        lengthM: lengthM.trim() || undefined,
+        draftM: draftM.trim() || undefined,
+        airDraftM: airDraftM.trim() || undefined,
         homePort: homePort.trim(),
         charterCompany: charterCompany.trim(),
         owner: owner.trim(),
@@ -299,6 +315,59 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
               onChange={(e) => setName(e.target.value)}
               disabled={saving || readOnly}
               required
+            />
+          </div>
+
+          <div className="input-group">
+            <label>{t('vessel.type')}</label>
+            <select
+              className="input-text"
+              value={vesselType}
+              onChange={(e) => setVesselType(e.target.value as 'sailing' | 'motor' | '')}
+              disabled={saving || readOnly}
+            >
+              <option value="">{t('vessel.type_unset')}</option>
+              <option value="sailing">{t('vessel.type_sailing')}</option>
+              <option value="motor">{t('vessel.type_motor')}</option>
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>{t('vessel.length_m')}</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              className="input-text"
+              value={lengthM}
+              onChange={(e) => setLengthM(e.target.value)}
+              disabled={saving || readOnly}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="input-group">
+            <label>{t('vessel.draft_m')}</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              className="input-text"
+              value={draftM}
+              onChange={(e) => setDraftM(e.target.value)}
+              disabled={saving || readOnly}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="input-group">
+            <label>{t('vessel.air_draft_m')}</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              className="input-text"
+              value={airDraftM}
+              onChange={(e) => setAirDraftM(e.target.value)}
+              disabled={saving || readOnly}
+              placeholder="0.00"
             />
           </div>
 

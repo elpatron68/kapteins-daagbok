@@ -76,6 +76,13 @@
     "vessel": {
       "title": "Vessel Master Data",
       "name": "Yacht Name",
+      "type": "Vessel Type",
+      "type_unset": "— not specified —",
+      "type_sailing": "Sailing yacht",
+      "type_motor": "Motor yacht",
+      "length_m": "Length (m)",
+      "draft_m": "Draft (m)",
+      "air_draft_m": "Air draft (m)",
       "port": "Home Port",
       "owner": "Owner",
       "charter": "Charter Company",

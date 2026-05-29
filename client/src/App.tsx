@@ -5,7 +5,8 @@ import AuthOnboarding from './components/AuthOnboarding.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
 import VesselForm from './components/VesselForm.tsx'
 import CrewForm from './components/CrewForm.tsx'
-import DeviationForm from './components/DeviationForm.tsx'
+// Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert (Komponente bleibt erhalten)
+// import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
@@ -16,7 +17,7 @@ import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
+import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
   const [activeLogbookTitle, setActiveLogbookTitle] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'vessel' | 'crew' | 'deviation' | 'logs' | 'settings'>('logs')
+  const [activeTab, setActiveTab] = useState<'vessel' | 'crew' | 'logs' | 'settings'>('logs')
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
   const [appliedTheme, setAppliedTheme] = useState<'ocean' | 'material' | 'cupertino'>('ocean')
@@ -271,6 +272,7 @@ function App() {
             {t('nav.crew')}
           </button>
 
+          {/* Compass Deviation Table — für Freizeit-Skipper vorerst ausgeblendet
           <button
             className={`sidebar-btn ${activeTab === 'deviation' ? 'active' : ''}`}
             onClick={() => setActiveTab('deviation')}
@@ -278,6 +280,7 @@ function App() {
             <Compass size={18} />
             {t('nav.deviation')}
           </button>
+          */}
 
           <button
             className={`sidebar-btn ${activeTab === 'settings' ? 'active' : ''}`}
@@ -302,9 +305,11 @@ function App() {
             <CrewForm logbookId={activeLogbookId} />
           )}
 
+          {/* Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert
           {activeTab === 'deviation' && (
             <DeviationForm logbookId={activeLogbookId} />
           )}
+          */}
 
           {activeTab === 'settings' && (
             <SettingsForm logbookId={activeLogbookId} />
