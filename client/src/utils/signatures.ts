@@ -20,6 +20,13 @@ export function normalizeSignature(value: unknown): SignatureValue | undefined {
   return undefined
 }
 
+export function hasAnySignature(
+  skipper: SignatureValue | '' | undefined,
+  crew: SignatureValue | '' | undefined
+): boolean {
+  return !!(skipper || crew)
+}
+
 export function isSignatureValidForEntry(sig: PasskeySignature, entryHash: string): boolean {
   return sig.entryHash === entryHash
 }

@@ -10,6 +10,7 @@ interface SignaturePadProps {
   onChange: (value: string) => void
   disabled?: boolean
   readOnly?: boolean
+  onBeforeSign?: () => Promise<boolean> | boolean
 }
 
 const STROKE_COLOR = '#0f172a'
@@ -21,7 +22,8 @@ export default function SignaturePad({
   value,
   onChange,
   disabled = false,
-  readOnly = false
+  readOnly = false,
+  onBeforeSign
 }: SignaturePadProps) {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -138,9 +140,15 @@ export default function SignaturePad({
     onChange(canvas.toDataURL('image/png'))
   }
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = async (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (readOnly || disabled) return
     event.preventDefault()
+
+    if (!value && !hasInk.current && onBeforeSign) {
+      const allowed = await onBeforeSign()
+      if (!allowed) return
+    }
+
     const point = getPoint(event)
     if (!point) return
 

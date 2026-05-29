@@ -2220,6 +2220,23 @@ body:has(.theme-cupertino) {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.signature-lock-notice {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(212, 175, 55, 0.08);
+  color: rgba(254, 243, 199, 0.95);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.signature-lock-notice.locked {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.08);
+  color: rgba(220, 252, 231, 0.95);
+}
+
 .passkey-sign-block {
   display: flex;
   flex-direction: column;

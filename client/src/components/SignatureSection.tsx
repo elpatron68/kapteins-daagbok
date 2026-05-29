@@ -22,6 +22,7 @@ interface SignatureSectionProps {
   onSignCrewChange: (value: SignatureValue | '') => void
   onPasskeySignSkipper: () => Promise<void>
   onPasskeySignCrew: () => Promise<void>
+  onBeforeSign?: () => Promise<boolean>
 }
 
 function padValue(value: SignatureValue | ''): string {
@@ -49,6 +50,7 @@ interface RoleSignatureBlockProps {
   offlineHint?: string
   onChange: (value: SignatureValue | '') => void
   onPasskeySign: () => Promise<void>
+  onBeforeSign?: () => Promise<boolean>
 }
 
 function RoleSignatureBlock({
@@ -64,7 +66,8 @@ function RoleSignatureBlock({
   classicHint,
   offlineHint,
   onChange,
-  onPasskeySign
+  onPasskeySign,
+  onBeforeSign
 }: RoleSignatureBlockProps) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<SignatureMode>(() => modeFromValue(value, showPasskey))
@@ -166,6 +169,7 @@ function RoleSignatureBlock({
             onChange={handlePadChange}
             disabled={disabled}
             readOnly={false}
+            onBeforeSign={onBeforeSign}
           />
           {classicHint && !passkeySignature && (
             <p className="signature-hint">{classicHint}</p>
@@ -193,12 +197,14 @@ export default function SignatureSection({
   onSignSkipperChange,
   onSignCrewChange,
   onPasskeySignSkipper,
-  onPasskeySignCrew
+  onPasskeySignCrew,
+  onBeforeSign
 }: SignatureSectionProps) {
   const { t } = useTranslation()
 
   const showSkipperPasskey = isOwner && isOnline
   const showCrewPasskey = hasWriteCollaborators && isOnline
+  const hasSignature = !!(signSkipper || signCrew)
 
   return (
     <div className="form-card">
@@ -206,6 +212,12 @@ export default function SignatureSection({
         <Check size={20} className="form-icon" />
         <h3>{t('logs.signatures')}</h3>
       </div>
+
+      {!readOnly && (
+        <p className={`signature-lock-notice ${hasSignature ? 'locked' : ''}`}>
+          {hasSignature ? t('logs.sign_lock_active') : t('logs.sign_lock_notice')}
+        </p>
+      )}
 
       <div className="form-grid signature-grid">
         <RoleSignatureBlock
@@ -222,6 +234,7 @@ export default function SignatureSection({
           offlineHint={!isOnline && isOwner ? t('logs.sign_offline_hint') : undefined}
           onChange={onSignSkipperChange}
           onPasskeySign={onPasskeySignSkipper}
+          onBeforeSign={onBeforeSign}
         />
 
         <RoleSignatureBlock
@@ -237,6 +250,7 @@ export default function SignatureSection({
           classicHint={showCrewPasskey ? t('logs.sign_crew_passkey_hint') : undefined}
           onChange={onSignCrewChange}
           onPasskeySign={onPasskeySignCrew}
+          onBeforeSign={onBeforeSign}
         />
       </div>
     </div>

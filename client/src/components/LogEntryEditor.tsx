@@ -15,7 +15,8 @@ import {
   normalizeSignature,
   serializeSignature,
   isPasskeySignature,
-  isSignatureValidForEntry
+  isSignatureValidForEntry,
+  hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
 import { buildLogEntryPayload } from '../utils/logEntryPayload.js'
@@ -73,7 +74,7 @@ export default function LogEntryEditor({
   preloadedYacht
 }: LogEntryEditorProps) {
   const { t, i18n } = useTranslation()
-  const { showAlert } = useDialog()
+  const { showAlert, showConfirm } = useDialog()
 
   // General details state
   const [date, setDate] = useState('')
@@ -141,6 +142,8 @@ export default function LogEntryEditor({
   const [dragOver, setDragOver] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const lockedContentHashRef = useRef<string | null>(null)
+  const contentReadyRef = useRef(false)
 
   const applyTrackStats = (waypoints: SavedTrack['waypoints']) => {
     const stats = computeTrackStats(waypoints)
@@ -221,10 +224,56 @@ export default function LogEntryEditor({
     return () => { cancelled = true }
   }, [buildPayloadForSigning])
 
+  useEffect(() => {
+    contentReadyRef.current = false
+    if (loading) return
+    const timer = window.setTimeout(() => {
+      contentReadyRef.current = true
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [loading])
+
+  useEffect(() => {
+    if (!entryHash || !contentReadyRef.current || readOnly) return
+
+    const hasSig = hasAnySignature(signSkipper, signCrew)
+    if (!hasSig) {
+      lockedContentHashRef.current = null
+      return
+    }
+
+    if (!lockedContentHashRef.current) {
+      lockedContentHashRef.current = entryHash
+      return
+    }
+
+    if (entryHash !== lockedContentHashRef.current) {
+      lockedContentHashRef.current = null
+      setSignSkipper('')
+      setSignCrew('')
+      void showAlert(
+        t('logs.sign_cleared_re_sign'),
+        t('logs.sign_cleared_re_sign_title')
+      )
+    }
+  }, [entryHash, signSkipper, signCrew, readOnly, showAlert, t])
+
+  const confirmSignWarning = useCallback(async (): Promise<boolean> => {
+    return showConfirm(
+      t('logs.sign_lock_warning'),
+      t('logs.sign_lock_warning_title'),
+      t('logs.sign_proceed'),
+      t('logs.sign_cancel')
+    )
+  }, [showConfirm, t])
+
   const skipperSignatureValid = !isPasskeySignature(signSkipper) || isSignatureValidForEntry(signSkipper, entryHash)
   const crewSignatureValid = !isPasskeySignature(signCrew) || isSignatureValidForEntry(signCrew, entryHash)
 
   const handlePasskeySignSkipper = async () => {
+    const confirmed = await confirmSignWarning()
+    if (!confirmed) return
+
     const hash = await hashEntryForSigning(buildPayloadForSigning())
     const signature = await signLogEntry({
       logbookId,
@@ -234,9 +283,13 @@ export default function LogEntryEditor({
     })
     setSignSkipper(signature)
     setEntryHash(hash)
+    lockedContentHashRef.current = hash
   }
 
   const handlePasskeySignCrew = async () => {
+    const confirmed = await confirmSignWarning()
+    if (!confirmed) return
+
     const hash = await hashEntryForSigning(buildPayloadForSigning())
     const signature = await signLogEntry({
       logbookId,
@@ -246,6 +299,7 @@ export default function LogEntryEditor({
     })
     setSignCrew(signature)
     setEntryHash(hash)
+    lockedContentHashRef.current = hash
   }
 
   // Auto-calculate Freshwater Consumption
@@ -296,6 +350,8 @@ export default function LogEntryEditor({
     async function loadEntry() {
       setLoading(true)
       setError(null)
+      lockedContentHashRef.current = null
+      contentReadyRef.current = false
       try {
         if (readOnly && preloadedEntry) {
           setDate(preloadedEntry.date || '')
@@ -307,11 +363,13 @@ export default function LogEntryEditor({
             setFwMorning(String(preloadedEntry.freshwater.morning || 0))
             setFwRefilled(String(preloadedEntry.freshwater.refilled || 0))
             setFwEvening(String(preloadedEntry.freshwater.evening || 0))
+            setFwConsumption(String(preloadedEntry.freshwater.consumption ?? 0))
           }
           if (preloadedEntry.fuel) {
             setFuelMorning(String(preloadedEntry.fuel.morning || 0))
             setFuelRefilled(String(preloadedEntry.fuel.refilled || 0))
             setFuelEvening(String(preloadedEntry.fuel.evening || 0))
+            setFuelConsumption(String(preloadedEntry.fuel.consumption ?? 0))
           }
 
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
@@ -337,11 +395,13 @@ export default function LogEntryEditor({
               setFwMorning(String(decrypted.freshwater.morning || 0))
               setFwRefilled(String(decrypted.freshwater.refilled || 0))
               setFwEvening(String(decrypted.freshwater.evening || 0))
+              setFwConsumption(String(decrypted.freshwater.consumption ?? 0))
             }
             if (decrypted.fuel) {
               setFuelMorning(String(decrypted.fuel.morning || 0))
               setFuelRefilled(String(decrypted.fuel.refilled || 0))
               setFuelEvening(String(decrypted.fuel.evening || 0))
+              setFuelConsumption(String(decrypted.fuel.consumption ?? 0))
             }
 
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
@@ -1404,6 +1464,7 @@ export default function LogEntryEditor({
           onSignCrewChange={setSignCrew}
           onPasskeySignSkipper={handlePasskeySignSkipper}
           onPasskeySignCrew={handlePasskeySignCrew}
+          onBeforeSign={confirmSignWarning}
         />
 
         {/* Save Controls */}
