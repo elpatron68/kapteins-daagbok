@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
@@ -34,6 +34,8 @@ export default function AppTourOverlay() {
   } = useAppTour()
 
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null)
+  const skipTourRef = useRef(skipTour)
+  skipTourRef.current = skipTour
 
   useLayoutEffect(() => {
     if (!isActive || !currentStepId || isCenteredTourStep(currentStepId)) {
@@ -94,11 +96,11 @@ export default function AppTourOverlay() {
   useEffect(() => {
     if (!isActive) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') skipTour()
+      if (event.key === 'Escape') skipTourRef.current()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [isActive, skipTour])
+  }, [isActive])
 
   if (!isActive || !currentStepId) return null
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
@@ -141,14 +141,14 @@ function App() {
     }
   }, [isAuthenticated, activeLogbookId])
 
-  const handleSelectLogbook = useCallback((id: string, title: string) => {
+  const selectLogbook = (id: string, title: string) => {
     setActiveLogbookId(id)
     setActiveLogbookTitle(title)
     setActiveTab('logs')
     setTourSelectedEntryId(null)
     localStorage.setItem('active_logbook_id', id)
     localStorage.setItem('active_logbook_title', title)
-  }, [])
+  }
 
   const handleAuthenticated = async () => {
     setIsAuthenticated(true)
@@ -156,7 +156,7 @@ function App() {
     try {
       const demo = await seedDemoLogbookIfNeeded()
       if (demo) {
-        handleSelectLogbook(demo.logbookId, demo.title)
+        selectLogbook(demo.logbookId, demo.title)
         if (demo.firstEntryId) {
           setDemoHighlightEntryId(demo.firstEntryId)
         }
@@ -209,7 +209,7 @@ function App() {
           onAccepted={(logbookId, title) => {
             setIsAuthenticated(true)
             setIsAcceptingInvite(false)
-            handleSelectLogbook(logbookId, title)
+            selectLogbook(logbookId, title)
             // Clean URL query parameters and hash anchor
             window.history.replaceState({}, document.title, window.location.pathname)
           }}
@@ -237,7 +237,7 @@ function App() {
       <div style={{ display: 'contents' }}>
         {pwaInstallBanner}
         <LogbookDashboard
-          onSelectLogbook={handleSelectLogbook}
+          onSelectLogbook={selectLogbook}
           onLogout={handleLogout}
         />
       </div>

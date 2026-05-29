@@ -115,9 +115,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
 
     setStepIndex(0)
     setIsActive(true)
-    applyStepSideEffects(STEP_ORDER[0])
-    scrollToCurrentTarget(STEP_ORDER[0])
-  }, [applyStepSideEffects, scrollToCurrentTarget])
+  }, [])
 
   const finishTour = useCallback(() => {
     const userId = localStorage.getItem('active_userid')
@@ -130,24 +128,26 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
   const skipTour = finishTour
 
   const nextStep = useCallback(() => {
-    const nextIndex = stepIndex + 1
-    if (nextIndex >= STEP_ORDER.length) {
-      finishTour()
-      return
-    }
-    const nextId = STEP_ORDER[nextIndex]
-    setStepIndex(nextIndex)
-    applyStepSideEffects(nextId)
-    scrollToCurrentTarget(nextId)
-  }, [applyStepSideEffects, finishTour, scrollToCurrentTarget, stepIndex])
+    setStepIndex((current) => {
+      if (current + 1 >= STEP_ORDER.length) {
+        finishTour()
+        return current
+      }
+      return current + 1
+    })
+  }, [finishTour])
 
   const prevStep = useCallback(() => {
-    const prevIndex = Math.max(0, stepIndex - 1)
-    const prevId = STEP_ORDER[prevIndex]
-    setStepIndex(prevIndex)
-    applyStepSideEffects(prevId)
-    scrollToCurrentTarget(prevId)
-  }, [applyStepSideEffects, scrollToCurrentTarget, stepIndex])
+    setStepIndex((current) => Math.max(0, current - 1))
+  }, [])
+
+  useEffect(() => {
+    if (!isActive) return
+    const stepId = STEP_ORDER[stepIndex]
+    if (!stepId) return
+    applyStepSideEffects(stepId)
+    scrollToCurrentTarget(stepId)
+  }, [isActive, stepIndex, applyStepSideEffects, scrollToCurrentTarget])
 
   const restartTour = useCallback(() => {
     const userId = localStorage.getItem('active_userid')

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
@@ -70,14 +70,9 @@ export default function LogEntriesList({
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const prevSelectedEntryIdRef = useRef<string | null | undefined>(undefined)
 
-  useEffect(() => {
-    if (!selectedEntryId) {
-      loadEntries()
-    }
-  }, [logbookId, selectedEntryId])
-
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -136,7 +131,20 @@ export default function LogEntriesList({
     } finally {
       setLoading(false)
     }
-  }
+  }, [logbookId, readOnly, preloadedEntries])
+
+  useEffect(() => {
+    loadEntries()
+  }, [loadEntries])
+
+  useEffect(() => {
+    const prevSelectedEntryId = prevSelectedEntryIdRef.current
+    prevSelectedEntryIdRef.current = selectedEntryId
+
+    if (prevSelectedEntryId !== undefined && prevSelectedEntryId !== null && selectedEntryId === null) {
+      loadEntries()
+    }
+  }, [selectedEntryId, loadEntries])
 
   const handleDownloadCsv = async () => {
     setExporting(true)
