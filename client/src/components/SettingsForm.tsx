@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, Compass } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
+import LogbookBackupPanel from './LogbookBackupPanel.tsx'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { useDialog } from './ModalDialog.tsx'
@@ -12,6 +13,7 @@ import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
+  onLogbookRestored?: (logbookId: string, title: string) => void
 }
 
 interface Collaborator {
@@ -29,7 +31,7 @@ const bufferToHex = (buffer: ArrayBuffer): string => {
     .join('')
 }
 
-export default function SettingsForm({ logbookId }: SettingsFormProps) {
+export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsFormProps) {
   const { t } = useTranslation()
   const { showConfirm, showAlert } = useDialog()
   const { restartTour } = useAppTour()
@@ -452,6 +454,11 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Backup & Restore (owner only) */}
+      {logbookId && isOwner && (
+        <LogbookBackupPanel logbookId={logbookId} onRestored={onLogbookRestored} />
       )}
 
       {/* Crew Collaboration Card (Only visible to Logbook Owner) */}

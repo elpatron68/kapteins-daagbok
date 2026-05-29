@@ -425,7 +425,10 @@ function App() {
           */}
 
           {activeTab === 'settings' && (
-            <SettingsForm logbookId={activeLogbookId} />
+            <SettingsForm
+              logbookId={activeLogbookId}
+              onLogbookRestored={selectLogbook}
+            />
           )}
         </main>
       </div>

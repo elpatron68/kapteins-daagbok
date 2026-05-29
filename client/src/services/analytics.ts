@@ -17,7 +17,9 @@ export const PlausibleEvents = {
   PDF_EXPORTED: 'PDF Exported',
   CSV_EXPORTED: 'CSV Exported',
   CSV_SHARED: 'CSV Shared',
-  PHOTO_UPLOADED: 'Photo Uploaded'
+  PHOTO_UPLOADED: 'Photo Uploaded',
+  BACKUP_EXPORTED: 'Backup Exported',
+  BACKUP_RESTORED: 'Backup Restored'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]

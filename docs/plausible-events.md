@@ -32,6 +32,8 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | CSV Exported | CSV-Download aus der Eintragsliste (`LogEntriesList.tsx`) | — |
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
 | Photo Uploaded | Foto hochgeladen (`PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
+| Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`) | `entries`, `photos` (Anzahlen, keine Inhalte) |
+| Backup Restored | Backup wiederhergestellt (`LogbookBackupPanel.tsx`) | `entries`, `photos`, `mode`: `same_id` \| `overwrite` \| `new_id` |
 
 ## Bewusst nicht getrackt
 
@@ -47,6 +49,7 @@ Empfohlene Goal-Ketten für Auswertung:
 2. **Onboarding:** Account Created → Onboarding Tour Completed (vs. Onboarding Tour Skipped)
 3. **Kollaboration:** Invite Generated → Invite Accepted
 4. **Export:** Travel Day Saved → PDF Exported / CSV Exported
+5. **Datensicherung:** Backup Exported → Backup Restored
 
 ## Entwicklung
 

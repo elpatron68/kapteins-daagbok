@@ -3048,6 +3048,66 @@ html.theme-cupertino .events-scroll-container {
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
+.backup-panel .backup-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.backup-panel .backup-section--import {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.backup-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-heading);
+}
+
+.backup-section-desc {
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.backup-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.backup-preview {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--app-radius-card);
+  border: 1px solid var(--app-border-subtle);
+}
+
+.backup-preview-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-text-heading);
+}
+
+.backup-preview-stats {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--app-text-muted);
+}
+
+.backup-preview-date {
+  margin: 0;
+  font-size: 12px;
+}
+
 .app-tour-root {
   position: fixed;
   inset: 0;
