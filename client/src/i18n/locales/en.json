@@ -222,7 +222,8 @@
       "no_logbooks": "No logbooks found. Create your first logbook to begin!",
       "loading": "Loading logbooks...",
       "status_synced": "Synced",
-      "status_local": "Local Cache Only"
+      "status_local": "Local Cache Only",
+      "delete_btn": "Delete logbook"
     },
     "crew": {
       "title": "Skipper & Crew Profiles",

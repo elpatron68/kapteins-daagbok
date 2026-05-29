@@ -219,7 +219,12 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
                     </div>
                   </div>
 
-                  <button className="btn-delete" onClick={(e) => handleDelete(lb.id, e)} title="Delete Logbook">
+                  <button
+                    className="btn-delete"
+                    onClick={(e) => handleDelete(lb.id, e)}
+                    title={t('dashboard.delete_btn')}
+                    style={{ visibility: lb.isShared ? 'hidden' : 'visible' }}
+                  >
                     <Trash2 size={18} />
                   </button>
                 </div>

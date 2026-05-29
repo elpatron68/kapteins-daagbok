@@ -222,7 +222,8 @@
       "no_logbooks": "Keine Logbücher gefunden. Erstellen Sie Ihr erstes Logbuch, um zu beginnen!",
       "loading": "Logbücher werden geladen...",
       "status_synced": "Synchronisiert",
-      "status_local": "Nur lokaler Cache"
+      "status_local": "Nur lokaler Cache",
+      "delete_btn": "Logbuch löschen"
     },
     "crew": {
       "title": "Skipper- & Crew-Profile",

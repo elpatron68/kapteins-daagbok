@@ -10,6 +10,7 @@ export interface DecryptedLogbook {
   title: string
   updatedAt: string
   isSynced: boolean
+  isShared: boolean
 }
 
 // Helper to decrypt a logbook's title using the active logbook key or master key
@@ -42,6 +43,8 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
     throw new Error('Master key not found. User must log in.')
   }
 
+  const sharedLogbookIds = new Set<string>()
+
   if (navigator.onLine) {
     try {
       const response = await fetch(API_BASE, {
@@ -57,9 +60,18 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
         
         // Decrypt and save logbook keys locally if they exist
         for (const lb of serverLogbooks) {
-          const encryptedKeyStr = lb.encryptedKey || (lb.collaborators && lb.collaborators[0]?.encryptedLogbookKey)
-          const ivStr = lb.iv || (lb.collaborators && lb.collaborators[0]?.iv)
-          const tagStr = lb.tag || (lb.collaborators && lb.collaborators[0]?.tag)
+          const isShared = lb.userId !== userId
+          if (isShared) sharedLogbookIds.add(lb.id)
+
+          const encryptedKeyStr = isShared
+            ? lb.collaborators?.[0]?.encryptedLogbookKey
+            : (lb.encryptedKey || lb.collaborators?.[0]?.encryptedLogbookKey)
+          const ivStr = isShared
+            ? lb.collaborators?.[0]?.iv
+            : (lb.iv || lb.collaborators?.[0]?.iv)
+          const tagStr = isShared
+            ? lb.collaborators?.[0]?.tag
+            : (lb.tag || lb.collaborators?.[0]?.tag)
 
           if (encryptedKeyStr && ivStr && tagStr) {
             try {
@@ -75,6 +87,8 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
             } catch (err) {
               console.error(`Failed to decrypt and save logbook key for logbook ${lb.id}:`, err)
             }
+          } else if (isShared) {
+            console.warn(`Shared logbook ${lb.id} is missing collaboration key on server`)
           }
         }
         // Clear local cache for any logbooks that are no longer on the server
@@ -113,7 +127,8 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       id: lb.id,
       title,
       updatedAt: lb.updatedAt,
-      isSynced: lb.isSynced === 1
+      isSynced: lb.isSynced === 1,
+      isShared: sharedLogbookIds.has(lb.id)
     })
   }
 
@@ -187,7 +202,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
           id: serverLb.id,
           title,
           updatedAt: serverLb.updatedAt,
-          isSynced: true
+          isSynced: true,
+          isShared: false
         }
       }
     } catch (error) {
@@ -216,7 +232,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     id: localId,
     title,
     updatedAt: now,
-    isSynced: false
+    isSynced: false,
+    isShared: false
   }
 }
 
