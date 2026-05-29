@@ -1980,6 +1980,11 @@ body:has(.theme-cupertino) {
   margin-bottom: 12px;
 }
 
+.track-stats-grid {
+  margin-top: 16px;
+  align-items: start;
+}
+
 .signature-grid {
   align-items: start;
 }

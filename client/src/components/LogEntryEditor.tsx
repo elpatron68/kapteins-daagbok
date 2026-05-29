@@ -19,6 +19,7 @@ import {
   parseTrackFile,
   type SavedTrack
 } from '../services/trackUpload.js'
+import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 
 interface LogEntryEditorProps {
   entryId: string
@@ -86,6 +87,11 @@ export default function LogEntryEditor({
   const [signSkipper, setSignSkipper] = useState('')
   const [signCrew, setSignCrew] = useState('')
 
+  // GPS track stats (from uploaded track)
+  const [trackDistanceNm, setTrackDistanceNm] = useState('')
+  const [trackSpeedMaxKn, setTrackSpeedMaxKn] = useState('')
+  const [trackSpeedAvgKn, setTrackSpeedAvgKn] = useState('')
+
   // Events list state
   const [events, setEvents] = useState<LogEvent[]>([])
 
@@ -120,6 +126,27 @@ export default function LogEntryEditor({
   const [dragOver, setDragOver] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const applyTrackStats = (waypoints: SavedTrack['waypoints']) => {
+    const stats = computeTrackStats(waypoints)
+    if (!stats) return
+    const formatted = formatTrackStats(stats)
+    setTrackDistanceNm(formatted.distanceNm)
+    setTrackSpeedMaxKn(formatted.speedMaxKn)
+    setTrackSpeedAvgKn(formatted.speedAvgKn)
+  }
+
+  const loadTrackStatsFromEntry = (entry: any) => {
+    if (entry?.trackDistanceNm != null && entry.trackDistanceNm !== '') {
+      setTrackDistanceNm(String(entry.trackDistanceNm))
+    }
+    if (entry?.trackSpeedMaxKn != null && entry.trackSpeedMaxKn !== '') {
+      setTrackSpeedMaxKn(String(entry.trackSpeedMaxKn))
+    }
+    if (entry?.trackSpeedAvgKn != null && entry.trackSpeedAvgKn !== '') {
+      setTrackSpeedAvgKn(String(entry.trackSpeedAvgKn))
+    }
+  }
 
   // Auto-calculate Freshwater Consumption
   useEffect(() => {
@@ -189,6 +216,7 @@ export default function LogEntryEditor({
 
           setSignSkipper(preloadedEntry.signSkipper || '')
           setSignCrew(preloadedEntry.signCrew || '')
+          loadTrackStatsFromEntry(preloadedEntry)
           setEvents(preloadedEntry.events || [])
           return
         }
@@ -218,6 +246,7 @@ export default function LogEntryEditor({
 
             setSignSkipper(decrypted.signSkipper || '')
             setSignCrew(decrypted.signCrew || '')
+            loadTrackStatsFromEntry(decrypted)
             setEvents(decrypted.events || [])
           }
         }
@@ -249,6 +278,12 @@ export default function LogEntryEditor({
     loadTrack()
   }, [entryId, preloadedTrack])
 
+  useEffect(() => {
+    if (!savedTrack || savedTrack.waypoints.length < 2) return
+    if (trackDistanceNm || trackSpeedMaxKn || trackSpeedAvgKn) return
+    applyTrackStats(savedTrack.waypoints)
+  }, [savedTrack, trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn])
+
   // Track file upload handlers
   const handleFileUpload = async (file: File) => {
     if (readOnly) return
@@ -268,6 +303,7 @@ export default function LogEntryEditor({
         }
 
         await saveUploadedTrack(logbookId, entryId, text, parsedWps, file.name, fileType)
+        applyTrackStats(parsedWps)
         await loadTrack()
       } catch (err: any) {
         console.error('File parsing failed:', err)
@@ -311,6 +347,9 @@ export default function LogEntryEditor({
     try {
       await deleteTrack(logbookId, entryId)
       setSavedTrack(null)
+      setTrackDistanceNm('')
+      setTrackSpeedMaxKn('')
+      setTrackSpeedAvgKn('')
       setUploadError(null)
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete track')
@@ -570,6 +609,9 @@ export default function LogEntryEditor({
         },
         signSkipper: isSignatureImage(signSkipper) ? signSkipper : signSkipper.trim(),
         signCrew: isSignatureImage(signCrew) ? signCrew : signCrew.trim(),
+        trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
+        trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
+        trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
         events
       }
 
@@ -1178,6 +1220,15 @@ export default function LogEntryEditor({
                   {savedTrack.waypoints.length > 0 && (
                     <> · {savedTrack.waypoints.length} {t('logs.track_upload_points')}</>
                   )}
+                  {trackDistanceNm && (
+                    <> · {trackDistanceNm} sm</>
+                  )}
+                  {trackSpeedMaxKn && (
+                    <> · max {trackSpeedMaxKn} kn</>
+                  )}
+                  {trackSpeedAvgKn && (
+                    <> · Ø {trackSpeedAvgKn} kn</>
+                  )}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1201,6 +1252,47 @@ export default function LogEntryEditor({
                     {t('logs.gps_track_delete')}
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {(savedTrack || trackDistanceNm || trackSpeedMaxKn || trackSpeedAvgKn) && (
+            <div className="form-grid track-stats-grid">
+              <div className="input-group">
+                <label>{t('logs.track_distance')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 5.0"
+                  className="input-text"
+                  value={trackDistanceNm}
+                  onChange={(e) => setTrackDistanceNm(e.target.value)}
+                  disabled={saving || readOnly}
+                />
+              </div>
+              <div className="input-group">
+                <label>{t('logs.track_speed_max')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 7.8"
+                  className="input-text"
+                  value={trackSpeedMaxKn}
+                  onChange={(e) => setTrackSpeedMaxKn(e.target.value)}
+                  disabled={saving || readOnly}
+                />
+              </div>
+              <div className="input-group">
+                <label>{t('logs.track_speed_avg')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="e.g. 4.6"
+                  className="input-text"
+                  value={trackSpeedAvgKn}
+                  onChange={(e) => setTrackSpeedAvgKn(e.target.value)}
+                  disabled={saving || readOnly}
+                />
               </div>
             </div>
           )}

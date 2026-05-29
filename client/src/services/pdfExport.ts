@@ -78,10 +78,19 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.text(`ATIS: ${atis || '—'}`, 210, 21);
   doc.text(`MMSI: ${mmsi || '—'}`, 250, 21);
 
-  doc.text(`Datum: ${entry.date || '—'}`, 10, 26);
-  doc.text(`Reisetag: ${entry.dayOfTravel || '—'}`, 60, 26);
-  doc.text(`Reise von (Departure): ${entry.departure || '—'}`, 110, 26);
-  doc.text(`nach (Destination): ${entry.destination || '—'}`, 200, 26);
+  doc.text(`Datum: ${entry.date || '—'}`, 10, 23);
+  doc.text(`Reisetag: ${entry.dayOfTravel || '—'}`, 60, 23);
+  doc.text(`Reise von (Departure): ${entry.departure || '—'}`, 110, 23);
+  doc.text(`nach (Destination): ${entry.destination || '—'}`, 200, 23);
+
+  if (entry.trackDistanceNm) {
+    doc.setFont('Helvetica', 'normal');
+    doc.text(
+      `GPS-Track: ${entry.trackDistanceNm} sm · max. ${entry.trackSpeedMaxKn ?? '—'} kn · Ø ${entry.trackSpeedAvgKn ?? '—'} kn`,
+      10,
+      27
+    );
+  }
 
   // Divider line
   doc.setLineWidth(0.3);
