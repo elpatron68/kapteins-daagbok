@@ -45,7 +45,7 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
 }
 
 // Convert string salt to 32-byte Uint8Array
-const PRF_SALT = new TextEncoder().encode("KapteinsDaagboxPRFSaltForE2EKey")
+const PRF_SALT = new TextEncoder().encode("KapteinsDaagboxPRFSaltForE2EKey_")
 
 export interface RegistrationResult {
   verified: boolean
@@ -88,7 +88,11 @@ export async function registerUser(username: string): Promise<RegistrationResult
   let encryptedMasterKeyPrfIv = null
   let encryptedMasterKeyPrfTag = null
 
-  const prfResults = (credentialResponse as any).clientExtensionResults?.prf
+  console.log('Registration credential response:', credentialResponse)
+  const clientExtensionResults = credentialResponse.clientExtensionResults || {}
+  console.log('Registration client extension results:', clientExtensionResults)
+  const prfResults = (clientExtensionResults as any).prf
+  console.log('Registration PRF extension result:', prfResults)
 
   if (prfResults?.enabled && prfResults.results?.first) {
     const prfKey = await deriveKeyFromPrf(prfResults.results.first)
@@ -152,13 +156,16 @@ export interface LoginResult {
 }
 
 export async function loginUser(username?: string): Promise<LoginResult> {
-  // Log browser supported extensions to diagnose PRF availability
-  console.log(
-    'Browser supported WebAuthn extensions:',
-    window.PublicKeyCredential && (window.PublicKeyCredential as any).getClientExtensionResults
-      ? (window.PublicKeyCredential as any).getClientExtensionResults()
-      : 'none'
-  )
+  // Log browser WebAuthn capabilities to diagnose PRF availability
+  if (window.PublicKeyCredential && (window.PublicKeyCredential as any).getClientCapabilities) {
+    (window.PublicKeyCredential as any).getClientCapabilities().then((caps: any) => {
+      console.log('Browser WebAuthn client capabilities:', caps)
+    }).catch((err: any) => {
+      console.warn('Error reading WebAuthn client capabilities:', err)
+    })
+  } else {
+    console.log('window.PublicKeyCredential.getClientCapabilities is not supported.')
+  }
 
   // 1. Get authentication options
   const optionsRes = await fetch(`${API_BASE}/login-options`, {

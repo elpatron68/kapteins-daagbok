@@ -46,7 +46,7 @@ router.get('/', async (req: any, res) => {
 // 2. Create a new logbook
 router.post('/', async (req: any, res) => {
   try {
-    const { id, encryptedTitle } = req.body
+    const { id, encryptedTitle, encryptedKey, iv, tag } = req.body
     if (!encryptedTitle) {
       return res.status(400).json({ error: 'encryptedTitle is required' })
     }
@@ -55,7 +55,10 @@ router.post('/', async (req: any, res) => {
       data: {
         id: id || undefined,
         userId: req.userId,
-        encryptedTitle
+        encryptedTitle,
+        encryptedKey,
+        iv,
+        tag
       }
     })
 
