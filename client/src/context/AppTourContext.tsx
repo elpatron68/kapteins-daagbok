@@ -16,7 +16,7 @@ import {
 import { getStoredDemoFirstEntryId } from '../services/demoLogbook.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
-export type AppTab = 'vessel' | 'crew' | 'logs' | 'settings'
+export type AppTab = 'vessel' | 'crew' | 'logs' | 'stats' | 'settings'
 
 export type TourStepId =
   | 'welcome'

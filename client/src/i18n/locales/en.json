@@ -10,6 +10,7 @@
       "crew": "Crew List",
       "deviation": "Deviation Table",
       "logs": "Logbook Entries",
+      "stats": "Statistics",
       "settings": "Settings"
     },
     "auth": {
@@ -336,6 +337,39 @@
     "demo": {
       "logbook_title": "Baltic Sea Demo Logbook",
       "badge": "Demo"
+    },
+    "stats": {
+      "title": "Statistics",
+      "subtitle": "Routes, consumption and propulsion at a glance",
+      "scope_label": "Scope",
+      "scope_logbook": "This logbook",
+      "scope_account": "All logbooks",
+      "loading": "Calculating statistics…",
+      "no_data": "No travel days yet.",
+      "total_distance": "Total distance",
+      "travel_days": "Travel days",
+      "sail_distance": "Under sail",
+      "motor_distance": "Engine",
+      "unknown_propulsion": "Unknown",
+      "fuel_total": "Total fuel",
+      "water_total": "Total water",
+      "daily_etmal": "Daily mileage",
+      "daily_consumption": "Daily consumption",
+      "route_overview": "Route",
+      "route_map_title": "Route overview",
+      "propulsion_title": "Sail vs. engine",
+      "propulsion_hint": "Split is based on logbook events per travel day, not GPS segments.",
+      "avg_distance": "Avg. per travel day",
+      "avg_fuel": "Avg. fuel",
+      "avg_water": "Avg. water",
+      "fuel_per_nm": "Fuel per nm",
+      "fuel_legend": "Fuel",
+      "water_legend": "Water",
+      "unit_nm": "nm",
+      "unit_l": "L",
+      "day_label": "Day {{day}}",
+      "account_logbooks": "Logbooks overview",
+      "col_logbook": "Logbook"
     },
     "tour": {
       "skip": "Skip tour",

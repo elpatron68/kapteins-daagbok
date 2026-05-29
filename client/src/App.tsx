@@ -8,6 +8,7 @@ import CrewForm from './components/CrewForm.tsx'
 // Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert (Komponente bleibt erhalten)
 // import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
+import StatsDashboard from './components/StatsDashboard.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
@@ -27,7 +28,7 @@ import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages } from 'lucide-react'
+import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages, BarChart2 } from 'lucide-react'
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
 import {
@@ -338,6 +339,14 @@ function App() {
           */}
 
           <button
+            className={`sidebar-btn ${activeTab === 'stats' ? 'active' : ''}`}
+            onClick={() => setActiveTab('stats')}
+          >
+            <BarChart2 size={18} />
+            {t('nav.stats')}
+          </button>
+
+          <button
             className={`sidebar-btn ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -363,6 +372,10 @@ function App() {
 
           {activeTab === 'crew' && (
             <CrewForm logbookId={activeLogbookId} />
+          )}
+
+          {activeTab === 'stats' && activeLogbookId && activeLogbookTitle && (
+            <StatsDashboard logbookId={activeLogbookId} logbookTitle={activeLogbookTitle} />
           )}
 
           {/* Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert

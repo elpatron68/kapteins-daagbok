@@ -10,6 +10,7 @@
       "crew": "Crew-Liste",
       "deviation": "Ablenkungstabelle",
       "logs": "Logbucheinträge",
+      "stats": "Statistik",
       "settings": "Einstellungen"
     },
     "auth": {
@@ -336,6 +337,39 @@
     "demo": {
       "logbook_title": "Demo-Logbuch Ostsee",
       "badge": "Demo"
+    },
+    "stats": {
+      "title": "Statistik",
+      "subtitle": "Strecken, Verbrauch und Antriebsart auf einen Blick",
+      "scope_label": "Auswertungsbereich",
+      "scope_logbook": "Dieses Logbuch",
+      "scope_account": "Alle Logbücher",
+      "loading": "Statistik wird berechnet…",
+      "no_data": "Noch keine Reisetage vorhanden.",
+      "total_distance": "Gesamtstrecke",
+      "travel_days": "Reisetage",
+      "sail_distance": "Unter Segel",
+      "motor_distance": "Maschinenfahrt",
+      "unknown_propulsion": "Unbekannt",
+      "fuel_total": "Kraftstoff gesamt",
+      "water_total": "Wasser gesamt",
+      "daily_etmal": "Tages-Etmale",
+      "daily_consumption": "Tagesverbrauch",
+      "route_overview": "Route",
+      "route_map_title": "Streckenübersicht",
+      "propulsion_title": "Segel vs. Maschine",
+      "propulsion_hint": "Die Aufteilung basiert auf den Logbuch-Events pro Reisetag, nicht auf GPS-Segmenten.",
+      "avg_distance": "Ø pro Reisetag",
+      "avg_fuel": "Ø Kraftstoff",
+      "avg_water": "Ø Wasser",
+      "fuel_per_nm": "Kraftstoff pro sm",
+      "fuel_legend": "Kraftstoff",
+      "water_legend": "Wasser",
+      "unit_nm": "sm",
+      "unit_l": "L",
+      "day_label": "Tag {{day}}",
+      "account_logbooks": "Logbücher im Überblick",
+      "col_logbook": "Logbuch"
     },
     "tour": {
       "skip": "Tour überspringen",
