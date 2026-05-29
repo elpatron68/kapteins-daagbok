@@ -4,6 +4,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react'
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000
 const UPDATE_SUPPRESS_KEY = 'pwa_update_suppress_until'
 const UPDATE_SUPPRESS_MS = 30_000
+const UPDATE_DISMISS_SUPPRESS_MS = 60 * 60 * 1000
 const UPDATE_RELOAD_FALLBACK_MS = 2000
 
 function isUpdateSuppressed(): boolean {
@@ -11,8 +12,8 @@ function isUpdateSuppressed(): boolean {
   return Date.now() < suppressUntil
 }
 
-function suppressUpdatePrompt(): void {
-  sessionStorage.setItem(UPDATE_SUPPRESS_KEY, String(Date.now() + UPDATE_SUPPRESS_MS))
+function suppressUpdatePrompt(durationMs = UPDATE_SUPPRESS_MS): void {
+  sessionStorage.setItem(UPDATE_SUPPRESS_KEY, String(Date.now() + durationMs))
 }
 
 function clearUpdateSuppression(): void {
@@ -94,6 +95,7 @@ export function usePwaUpdate() {
 
   const dismissUpdate = () => {
     setNeedRefresh(false)
+    suppressUpdatePrompt(UPDATE_DISMISS_SUPPRESS_MS)
   }
 
   return { needRefresh, updateApp, dismissUpdate }
