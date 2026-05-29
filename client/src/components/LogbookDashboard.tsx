@@ -83,7 +83,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent selecting the logbook when clicking delete
     
-    if (await showConfirm(t('dashboard.delete_confirm'), t('dashboard.title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
+    if (await showConfirm(t('dashboard.delete_confirm'), t('dashboard.delete_btn'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setLoading(true)
       setError(null)
       try {
