@@ -2177,6 +2177,85 @@ body:has(.theme-cupertino) {
   text-transform: uppercase;
 }
 
+.signature-role-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signature-hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.65);
+  line-height: 1.4;
+}
+
+.passkey-sign-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passkey-sign-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.passkey-sign-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  color: #dcfce7;
+}
+
+.passkey-sign-badge.invalid {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.08);
+  color: #fef3c7;
+}
+
+.passkey-sign-badge-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.passkey-sign-date {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.passkey-sign-invalid-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  width: 100%;
+}
+
+.passkey-sign-btn {
+  align-self: flex-start;
+}
+
+.passkey-sign-clear {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 12px;
+}
+
+.passkey-sign-error {
+  margin: 0;
+  font-size: 12px;
+  color: #fca5a5;
+}
+
 /* PWA install prompt */
 .pwa-install-banner {
   position: fixed;

@@ -69,7 +69,50 @@ router.post('/', async (req: any, res) => {
   }
 })
 
-// 3. Delete a logbook
+// 3. Access metadata for a logbook (owner / collaborator)
+router.get('/:id/access', async (req: any, res) => {
+  try {
+    const { id } = req.params
+
+    const logbook = await prisma.logbook.findUnique({
+      where: { id },
+      include: {
+        collaborators: {
+          where: { userId: req.userId }
+        },
+        _count: {
+          select: {
+            collaborators: {
+              where: { role: 'WRITE' }
+            }
+          }
+        }
+      }
+    })
+
+    if (!logbook) {
+      return res.status(404).json({ error: 'Logbook not found' })
+    }
+
+    const isOwner = logbook.userId === req.userId
+    const collaboration = logbook.collaborators[0]
+
+    if (!isOwner && !collaboration) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' })
+    }
+
+    return res.json({
+      isOwner,
+      role: isOwner ? 'OWNER' : collaboration!.role,
+      writeCollaboratorCount: logbook._count.collaborators
+    })
+  } catch (error: any) {
+    console.error('Error fetching logbook access:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+// 4. Delete a logbook
 router.delete('/:id', async (req: any, res) => {
   try {
     const { id } = req.params

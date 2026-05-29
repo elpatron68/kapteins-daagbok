@@ -2,7 +2,7 @@ import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
-import { formatSignatureForExport } from '../utils/signatures.js'
+import { formatSignatureForExport, normalizeSignature } from '../utils/signatures.js'
 import i18n from '../i18n/index.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
@@ -90,15 +90,21 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
   ];
 
   const rows: string[][] = [headers];
-  const signaturePlaceholder = i18n.t('logs.sign_export_image');
+  const exportLabels = {
+    imagePlaceholder: i18n.t('logs.sign_export_image'),
+    passkeyLabel: (username: string, signedAt: string) => {
+      const date = new Date(signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
+      return i18n.t('logs.sign_passkey_export', { username, date })
+    }
+  };
 
   for (const entry of decryptedEntries) {
     const dateVal = entry.date || '';
     const travelDay = entry.dayOfTravel || '';
     const dep = entry.departure || '';
     const dest = entry.destination || '';
-    const signS = formatSignatureForExport(entry.signSkipper, signaturePlaceholder);
-    const signC = formatSignatureForExport(entry.signCrew, signaturePlaceholder);
+    const signS = formatSignatureForExport(normalizeSignature(entry.signSkipper), exportLabels);
+    const signC = formatSignatureForExport(normalizeSignature(entry.signCrew), exportLabels);
     const trackDist = entry.trackDistanceNm ?? '';
     const trackMax = entry.trackSpeedMaxKn ?? '';
     const trackAvg = entry.trackSpeedAvgKn ?? '';

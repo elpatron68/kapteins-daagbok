@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
@@ -8,10 +8,20 @@ import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
-import SignaturePad from './SignaturePad.tsx'
+import SignatureSection from './SignatureSection.tsx'
 import TrackMap from './TrackMap.tsx'
 import { useDialog } from './ModalDialog.tsx'
-import { isSignatureImage } from '../utils/signatures.js'
+import {
+  normalizeSignature,
+  serializeSignature,
+  isPasskeySignature,
+  isSignatureValidForEntry
+} from '../utils/signatures.js'
+import type { SignatureValue } from '../types/signatures.js'
+import { buildLogEntryPayload } from '../utils/logEntryPayload.js'
+import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
+import { signLogEntry } from '../services/entrySigning.js'
+import { getLogbookAccess } from '../services/logbookAccess.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -85,8 +95,12 @@ export default function LogEntryEditor({
   const [fuelConsumption, setFuelConsumption] = useState('0')
 
   // Signatures
-  const [signSkipper, setSignSkipper] = useState('')
-  const [signCrew, setSignCrew] = useState('')
+  const [signSkipper, setSignSkipper] = useState<SignatureValue | ''>('')
+  const [signCrew, setSignCrew] = useState<SignatureValue | ''>('')
+  const [isOwner, setIsOwner] = useState(false)
+  const [hasWriteCollaborators, setHasWriteCollaborators] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [entryHash, setEntryHash] = useState('')
 
   // GPS track stats (from uploaded track)
   const [trackDistanceNm, setTrackDistanceNm] = useState('')
@@ -147,6 +161,91 @@ export default function LogEntryEditor({
     if (entry?.trackSpeedAvgKn != null && entry.trackSpeedAvgKn !== '') {
       setTrackSpeedAvgKn(String(entry.trackSpeedAvgKn))
     }
+  }
+
+  const buildPayloadForSigning = useCallback(() => {
+    return buildLogEntryPayload({
+      date,
+      dayOfTravel,
+      departure,
+      destination,
+      freshwater: {
+        morning: parseFloat(fwMorning) || 0,
+        refilled: parseFloat(fwRefilled) || 0,
+        evening: parseFloat(fwEvening) || 0,
+        consumption: parseFloat(fwConsumption) || 0
+      },
+      fuel: {
+        morning: parseFloat(fuelMorning) || 0,
+        refilled: parseFloat(fuelRefilled) || 0,
+        evening: parseFloat(fuelEvening) || 0,
+        consumption: parseFloat(fuelConsumption) || 0
+      },
+      trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
+      trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
+      trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
+      events
+    })
+  }, [
+    date, dayOfTravel, departure, destination,
+    fwMorning, fwRefilled, fwEvening, fwConsumption,
+    fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
+    trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn,
+    events
+  ])
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  useEffect(() => {
+    getLogbookAccess(logbookId).then((access) => {
+      if (!access) return
+      setIsOwner(access.isOwner)
+      setHasWriteCollaborators(access.writeCollaboratorCount > 0)
+    })
+  }, [logbookId])
+
+  useEffect(() => {
+    let cancelled = false
+    hashEntryForSigning(buildPayloadForSigning()).then((hash) => {
+      if (!cancelled) setEntryHash(hash)
+    })
+    return () => { cancelled = true }
+  }, [buildPayloadForSigning])
+
+  const skipperSignatureValid = !isPasskeySignature(signSkipper) || isSignatureValidForEntry(signSkipper, entryHash)
+  const crewSignatureValid = !isPasskeySignature(signCrew) || isSignatureValidForEntry(signCrew, entryHash)
+
+  const handlePasskeySignSkipper = async () => {
+    const hash = await hashEntryForSigning(buildPayloadForSigning())
+    const signature = await signLogEntry({
+      logbookId,
+      entryId,
+      entryHash: hash,
+      role: 'skipper'
+    })
+    setSignSkipper(signature)
+    setEntryHash(hash)
+  }
+
+  const handlePasskeySignCrew = async () => {
+    const hash = await hashEntryForSigning(buildPayloadForSigning())
+    const signature = await signLogEntry({
+      logbookId,
+      entryId,
+      entryHash: hash,
+      role: 'crew'
+    })
+    setSignCrew(signature)
+    setEntryHash(hash)
   }
 
   // Auto-calculate Freshwater Consumption
@@ -215,8 +314,8 @@ export default function LogEntryEditor({
             setFuelEvening(String(preloadedEntry.fuel.evening || 0))
           }
 
-          setSignSkipper(preloadedEntry.signSkipper || '')
-          setSignCrew(preloadedEntry.signCrew || '')
+          setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
+          setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
           loadTrackStatsFromEntry(preloadedEntry)
           setEvents(preloadedEntry.events || [])
           return
@@ -245,8 +344,8 @@ export default function LogEntryEditor({
               setFuelEvening(String(decrypted.fuel.evening || 0))
             }
 
-            setSignSkipper(decrypted.signSkipper || '')
-            setSignCrew(decrypted.signCrew || '')
+            setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
+            setSignCrew(normalizeSignature(decrypted.signCrew) || '')
             loadTrackStatsFromEntry(decrypted)
             setEvents(decrypted.events || [])
           }
@@ -591,29 +690,11 @@ export default function LogEntryEditor({
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
+      const entryPayload = buildPayloadForSigning()
       const entryData = {
-        date,
-        dayOfTravel: dayOfTravel.trim(),
-        departure: departure.trim(),
-        destination: destination.trim(),
-        freshwater: {
-          morning: parseFloat(fwMorning) || 0,
-          refilled: parseFloat(fwRefilled) || 0,
-          evening: parseFloat(fwEvening) || 0,
-          consumption: parseFloat(fwConsumption) || 0
-        },
-        fuel: {
-          morning: parseFloat(fuelMorning) || 0,
-          refilled: parseFloat(fuelRefilled) || 0,
-          evening: parseFloat(fuelEvening) || 0,
-          consumption: parseFloat(fuelConsumption) || 0
-        },
-        signSkipper: isSignatureImage(signSkipper) ? signSkipper : signSkipper.trim(),
-        signCrew: isSignatureImage(signCrew) ? signCrew : signCrew.trim(),
-        trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
-        trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
-        trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
-        events
+        ...entryPayload,
+        signSkipper: serializeSignature(signSkipper),
+        signCrew: serializeSignature(signCrew)
       }
 
       // E2E encrypt
@@ -1309,32 +1390,21 @@ export default function LogEntryEditor({
 
         <PhotoCapture entryId={entryId} logbookId={logbookId} readOnly={readOnly} preloadedPhotos={preloadedPhotos} />
 
-        {/* Section 4: Sign-Off Signatures */}
-        <div className="form-card">
-          <div className="form-header">
-            <Check size={20} className="form-icon" />
-            <h3>{t('logs.signatures')}</h3>
-          </div>
-          <div className="form-grid signature-grid">
-            <SignaturePad
-              id="sign-skipper"
-              label={t('logs.sign_skipper')}
-              value={signSkipper}
-              onChange={setSignSkipper}
-              disabled={saving}
-              readOnly={readOnly}
-            />
-
-            <SignaturePad
-              id="sign-crew"
-              label={t('logs.sign_crew')}
-              value={signCrew}
-              onChange={setSignCrew}
-              disabled={saving}
-              readOnly={readOnly}
-            />
-          </div>
-        </div>
+        <SignatureSection
+          readOnly={readOnly}
+          disabled={saving}
+          isOnline={isOnline}
+          isOwner={isOwner}
+          hasWriteCollaborators={hasWriteCollaborators}
+          signSkipper={signSkipper}
+          signCrew={signCrew}
+          skipperSignatureValid={skipperSignatureValid}
+          crewSignatureValid={crewSignatureValid}
+          onSignSkipperChange={setSignSkipper}
+          onSignCrewChange={setSignCrew}
+          onPasskeySignSkipper={handlePasskeySignSkipper}
+          onPasskeySignCrew={handlePasskeySignCrew}
+        />
 
         {/* Save Controls */}
         {!readOnly && (
