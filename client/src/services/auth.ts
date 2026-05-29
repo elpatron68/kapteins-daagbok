@@ -87,7 +87,25 @@ export async function registerUser(username: string): Promise<RegistrationResult
   options.extensions.prf = {}
 
   // 2. Start biometric Passkey creation
-  const credentialResponse = await startRegistration({ optionsJSON: options })
+  let credentialResponse
+  const prfRequested = !!options.extensions?.prf
+  try {
+    credentialResponse = await startRegistration({ optionsJSON: options })
+  } catch (err: any) {
+    const isOptionError = err.name === 'NotSupportedError' || 
+                          err.message?.toLowerCase().includes('options') || 
+                          err.message?.toLowerCase().includes('process') ||
+                          err.message?.toLowerCase().includes('unable to')
+    if (prfRequested && isOptionError) {
+      console.warn('Registration with PRF extension failed, retrying without PRF:', err)
+      if (options.extensions) {
+        delete options.extensions.prf
+      }
+      credentialResponse = await startRegistration({ optionsJSON: options })
+    } else {
+      throw err
+    }
+  }
 
   // 3. Cryptographic Key derivation setup
   const masterKey = generateMasterKey()
@@ -204,7 +222,25 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
 
   // 2. Start biometric Passkey verification
-  const credentialResponse = await startAuthentication({ optionsJSON: options })
+  let credentialResponse
+  const prfRequested = !!options.extensions?.prf
+  try {
+    credentialResponse = await startAuthentication({ optionsJSON: options })
+  } catch (err: any) {
+    const isOptionError = err.name === 'NotSupportedError' || 
+                          err.message?.toLowerCase().includes('options') || 
+                          err.message?.toLowerCase().includes('process') ||
+                          err.message?.toLowerCase().includes('unable to')
+    if (prfRequested && isOptionError) {
+      console.warn('Authentication with PRF extension failed, retrying without PRF:', err)
+      if (options.extensions) {
+        delete options.extensions.prf
+      }
+      credentialResponse = await startAuthentication({ optionsJSON: options })
+    } else {
+      throw err
+    }
+  }
 
   // 3. Verify assertion on the server
   const verifyRes = await fetch(`${API_BASE}/login-verify`, {
