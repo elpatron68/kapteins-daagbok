@@ -5,6 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
 import { Camera, Trash2 } from 'lucide-react'
@@ -159,7 +160,8 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
 
           setCaption('')
           if (fileInputRef.current) fileInputRef.current.value = ''
-          
+          trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'logbook' })
+
           syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
         } catch (err: any) {
           console.error('Failed to process image:', err)

@@ -16,7 +16,8 @@ export const PlausibleEvents = {
   INVITE_ACCEPTED: 'Invite Accepted',
   PDF_EXPORTED: 'PDF Exported',
   CSV_EXPORTED: 'CSV Exported',
-  CSV_SHARED: 'CSV Shared'
+  CSV_SHARED: 'CSV Shared',
+  PHOTO_UPLOADED: 'Photo Uploaded'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]

@@ -31,6 +31,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | PDF Exported | PDF-Export eines Reisetags (`LogEntryEditor.tsx`, `LogEntriesList.tsx`) | `scope`: `entry` |
 | CSV Exported | CSV-Download aus der Eintragsliste (`LogEntriesList.tsx`) | — |
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
+| Photo Uploaded | Foto hochgeladen (`PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
 
 ## Bewusst nicht getrackt
 

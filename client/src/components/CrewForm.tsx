@@ -455,6 +455,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                   try {
                     const resized = await resizeImageFile(file)
                     setSkipPhoto(resized)
+                    trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'crew', role: 'skipper' })
                   } catch (err: any) {
                     setSkipPhotoError(err.message || 'Failed to process image')
                   }
@@ -662,6 +663,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                     try {
                       const resized = await resizeImageFile(file)
                       setMemPhoto(resized)
+                      trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'crew', role: 'crew' })
                     } catch (err: any) {
                       setMemPhotoError(err.message || 'Failed to process image')
                     }
