@@ -764,7 +764,7 @@ export default function LogEntryEditor({
             </div>
             <div className="consumption-grid">
               <div className="input-group">
-                <label>{t('logs.freshwater')} ({t('logs.morning')})</label>
+                <label>{t('logs.morning')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -775,7 +775,7 @@ export default function LogEntryEditor({
               </div>
 
               <div className="input-group">
-                <label>{t('logs.freshwater')} ({t('logs.refilled')})</label>
+                <label>{t('logs.refilled')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -786,7 +786,7 @@ export default function LogEntryEditor({
               </div>
 
               <div className="input-group">
-                <label>{t('logs.freshwater')} ({t('logs.evening')})</label>
+                <label>{t('logs.evening')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -799,11 +799,12 @@ export default function LogEntryEditor({
               <div className="input-group">
                 <label>{t('logs.consumption')} (L)</label>
                 <input
-                  type="text"
-                  className="input-text cell-input text-green"
-                  style={{ color: '#4ade80', fontWeight: 'bold' }}
+                  type="number"
+                  className="input-text consumption-value"
                   value={fwConsumption}
-                  disabled
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly="true"
                 />
               </div>
             </div>
@@ -817,7 +818,7 @@ export default function LogEntryEditor({
             </div>
             <div className="consumption-grid">
               <div className="input-group">
-                <label>{t('logs.fuel')} ({t('logs.morning')})</label>
+                <label>{t('logs.morning')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -828,7 +829,7 @@ export default function LogEntryEditor({
               </div>
 
               <div className="input-group">
-                <label>{t('logs.fuel')} ({t('logs.refilled')})</label>
+                <label>{t('logs.refilled')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -839,7 +840,7 @@ export default function LogEntryEditor({
               </div>
 
               <div className="input-group">
-                <label>{t('logs.fuel')} ({t('logs.evening')})</label>
+                <label>{t('logs.evening')}</label>
                 <input
                   type="number"
                   className="input-text"
@@ -852,11 +853,12 @@ export default function LogEntryEditor({
               <div className="input-group">
                 <label>{t('logs.consumption')} (L)</label>
                 <input
-                  type="text"
-                  className="input-text cell-input text-green"
-                  style={{ color: '#4ade80', fontWeight: 'bold' }}
+                  type="number"
+                  className="input-text consumption-value"
                   value={fuelConsumption}
-                  disabled
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly="true"
                 />
               </div>
             </div>
