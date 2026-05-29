@@ -8,6 +8,7 @@ import { useDialog } from './ModalDialog.tsx'
 import { notifyAppearanceChanged } from '../services/appearance.js'
 import ThemedSelect from './ThemedSelect.tsx'
 import { useAppTour } from '../context/AppTourContext.tsx'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -208,6 +209,7 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
       const link = `${window.location.origin}/invite?token=${invite.token}#key=${hexKey}`
       
       setInviteLink(link)
+      trackPlausibleEvent(PlausibleEvents.INVITE_GENERATED)
     } catch (err: any) {
       console.error('Failed to generate invite:', err)
       showAlert(err.message || 'Failed to generate invite link.')

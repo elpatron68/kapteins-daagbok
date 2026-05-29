@@ -11,6 +11,7 @@ import {
   bufferToBase64
 } from './crypto.js'
 import { clearLogbookKeysCache } from './logbookKeys.js'
+import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 import { db } from './db.js'
 
 const API_BASE = '/api/auth'
@@ -255,6 +256,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
     localStorage.setItem('active_userid', result.userId)
     rememberUsername(username)
     sessionStorage.setItem('seed_demo_logbook', '1')
+    trackPlausibleEvent(PlausibleEvents.ACCOUNT_CREATED)
   }
 
   return {
@@ -545,6 +547,7 @@ export async function deleteAccount(): Promise<boolean> {
 
       // Wipe localStorage and session variables
       logoutUser()
+      trackPlausibleEvent(PlausibleEvents.ACCOUNT_DELETED)
       return true
     }
   } catch (err) {

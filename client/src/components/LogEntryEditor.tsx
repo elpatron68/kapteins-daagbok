@@ -23,6 +23,7 @@ import { buildLogEntryPayload } from '../utils/logEntryPayload.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -284,6 +285,7 @@ export default function LogEntryEditor({
     setSignSkipper(signature)
     setEntryHash(hash)
     lockedContentHashRef.current = hash
+    trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'skipper' })
   }
 
   const handlePasskeySignCrew = async () => {
@@ -300,6 +302,7 @@ export default function LogEntryEditor({
     setSignCrew(signature)
     setEntryHash(hash)
     lockedContentHashRef.current = hash
+    trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'crew' })
   }
 
   // Auto-calculate Freshwater Consumption
@@ -465,6 +468,7 @@ export default function LogEntryEditor({
         await saveUploadedTrack(logbookId, entryId, text, parsedWps, file.name, fileType)
         applyTrackStats(parsedWps)
         await loadTrack()
+        trackPlausibleEvent(PlausibleEvents.GPS_TRACK_UPLOADED)
       } catch (err: any) {
         console.error('File parsing failed:', err)
         setUploadError(err.message || 'Failed to parse track file.')
@@ -731,6 +735,7 @@ export default function LogEntryEditor({
     setError(null)
     try {
       await downloadLogbookPagePdf(logbookId, entryId, date)
+      trackPlausibleEvent(PlausibleEvents.PDF_EXPORTED, { scope: 'entry' })
     } catch (err: any) {
       console.error('Failed to download PDF:', err)
       setError(err.message || 'Failed to generate PDF export.')
@@ -782,6 +787,7 @@ export default function LogEntryEditor({
       })
 
       setSuccess(true)
+      trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
       setTimeout(() => {
         setSuccess(false)
         onBack()

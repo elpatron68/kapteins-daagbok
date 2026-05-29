@@ -5,6 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { useDialog } from './ModalDialog.tsx'
 import { Users, User, Plus, Trash2, Edit2, Save, X, Check, Camera } from 'lucide-react'
 
@@ -236,6 +237,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
       })
 
       setSkipperSuccess(true)
+      trackPlausibleEvent(PlausibleEvents.CREW_SAVED, { role: 'skipper', action: 'update' })
       setTimeout(() => setSkipperSuccess(false), 3000)
 
       syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
@@ -337,6 +339,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
       }
 
       setShowMemberForm(false)
+      trackPlausibleEvent(PlausibleEvents.CREW_SAVED, { role: 'crew', action: isNew ? 'create' : 'update' })
       syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
     } catch (err: any) {
       console.error('Failed to save crew member:', err)

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../services/db.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, type DecryptedLogbook } from '../services/logbook.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
 import AccountDangerZone from './AccountDangerZone.tsx'
@@ -70,6 +71,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
       const created = await createLogbook(newTitle.trim())
       setLogbooks((prev) => [created, ...prev])
       setNewTitle('')
+      trackPlausibleEvent(PlausibleEvents.LOGBOOK_CREATED)
     } catch (err: any) {
       setError(err.message || 'Failed to create logbook')
     } finally {

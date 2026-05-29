@@ -5,6 +5,7 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { Ship, Save, Check, Plus, X, Camera, Trash2 } from 'lucide-react'
 
 interface VesselFormProps {
@@ -251,6 +252,7 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
       })
 
       setSuccess(true)
+      trackPlausibleEvent(PlausibleEvents.VESSEL_SAVED)
       setTimeout(() => setSuccess(false), 3000)
 
       // Trigger background sync task

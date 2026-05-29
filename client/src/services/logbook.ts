@@ -2,6 +2,7 @@ import { db, type LocalLogbook } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { encryptJson, decryptJson, encryptBuffer, decryptBuffer } from './crypto.js'
 import { getLogbookKey, saveLogbookKey, generateLogbookKey } from './logbookKeys.js'
+import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 
 const API_BASE = '/api/logbooks'
 
@@ -303,4 +304,5 @@ export async function deleteLogbook(id: string): Promise<void> {
 
   // Perform local cascading cleanup
   await deleteLocalLogbookCache(id)
+  trackPlausibleEvent(PlausibleEvents.LOGBOOK_DELETED)
 }

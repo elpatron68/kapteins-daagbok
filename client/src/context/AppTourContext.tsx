@@ -14,6 +14,7 @@ import {
   markTourCompleted
 } from '../services/appTourStorage.js'
 import { getStoredDemoFirstEntryId } from '../services/demoLogbook.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 export type AppTab = 'vessel' | 'crew' | 'logs' | 'settings'
 
@@ -117,25 +118,34 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     setIsActive(true)
   }, [])
 
-  const finishTour = useCallback(() => {
+  const dismissTour = useCallback((outcome: 'completed' | 'skipped', stepIndexAtDismiss: number) => {
     const userId = localStorage.getItem('active_userid')
     if (userId) markTourCompleted(userId)
+    if (outcome === 'completed') {
+      trackPlausibleEvent(PlausibleEvents.ONBOARDING_TOUR_COMPLETED)
+    } else {
+      const step = STEP_ORDER[stepIndexAtDismiss] ?? 'welcome'
+      trackPlausibleEvent(PlausibleEvents.ONBOARDING_TOUR_SKIPPED, { step })
+    }
     setIsActive(false)
     setStepIndex(0)
   }, [])
 
-  const stopTour = finishTour
-  const skipTour = finishTour
+  const stopTour = useCallback(() => {
+    dismissTour('completed', stepIndex)
+  }, [dismissTour, stepIndex])
+
+  const skipTour = useCallback(() => {
+    dismissTour('skipped', stepIndex)
+  }, [dismissTour, stepIndex])
 
   const nextStep = useCallback(() => {
-    setStepIndex((current) => {
-      if (current + 1 >= STEP_ORDER.length) {
-        finishTour()
-        return current
-      }
-      return current + 1
-    })
-  }, [finishTour])
+    if (stepIndex + 1 >= STEP_ORDER.length) {
+      dismissTour('completed', stepIndex)
+      return
+    }
+    setStepIndex(stepIndex + 1)
+  }, [dismissTour, stepIndex])
 
   const prevStep = useCallback(() => {
     setStepIndex((current) => Math.max(0, current - 1))

@@ -7,6 +7,7 @@ import { decryptJson, encryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
@@ -157,6 +158,7 @@ export default function LogEntriesList({
       } else {
         await downloadCsv(logbookId, title)
       }
+      trackPlausibleEvent(PlausibleEvents.CSV_EXPORTED)
     } catch (err: any) {
       console.error('Failed to download CSV:', err)
       setError(err.message || 'Failed to generate CSV export.')
@@ -175,6 +177,7 @@ export default function LogEntriesList({
       } else {
         await shareCsv(logbookId, title)
       }
+      trackPlausibleEvent(PlausibleEvents.CSV_SHARED)
     } catch (err: any) {
       if (err.message === 'share_unsupported') {
         const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
@@ -204,6 +207,7 @@ export default function LogEntriesList({
       } else {
         await downloadLogbookPagePdf(logbookId, entryId, date)
       }
+      trackPlausibleEvent(PlausibleEvents.PDF_EXPORTED, { scope: 'entry' })
     } catch (err: any) {
       console.error('Failed to download PDF:', err)
       setError(err.message || 'Failed to generate PDF export.')
@@ -291,6 +295,7 @@ export default function LogEntriesList({
 
       // Open immediately in details editor
       setSelectedEntryId(localId)
+      trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_CREATED)
       syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
     } catch (err: any) {
       console.error('Failed to create entry:', err)

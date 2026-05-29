@@ -13,6 +13,7 @@ import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
+import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
   applyAppearanceToDocument,
   resolveAppTheme,
@@ -153,6 +154,7 @@ function App() {
 
   const handleAuthenticated = async () => {
     setIsAuthenticated(true)
+    trackPlausibleEvent(PlausibleEvents.LOGGED_IN)
 
     try {
       const demo = await seedDemoLogbookIfNeeded()
@@ -214,6 +216,7 @@ function App() {
         <InvitationAcceptance
           onAccepted={(logbookId, title) => {
             setIsAuthenticated(true)
+            trackPlausibleEvent(PlausibleEvents.LOGGED_IN)
             setIsAcceptingInvite(false)
             selectLogbook(logbookId, title)
             // Clean URL query parameters and hash anchor

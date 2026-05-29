@@ -12,6 +12,7 @@ import { decryptJson, encryptBuffer } from '../services/crypto.js'
 import { saveLogbookKey } from '../services/logbookKeys.js'
 import { syncLogbook } from '../services/sync.js'
 import { db } from '../services/db.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 interface InvitationAcceptanceProps {
   onAccepted: (logbookId: string, title: string) => void
@@ -194,6 +195,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       }
 
       await syncLogbook(logbookId)
+      trackPlausibleEvent(PlausibleEvents.INVITE_ACCEPTED)
       onAccepted(logbookId, decryptedTitle)
     } catch (err: any) {
       console.error('Accepting invitation failed:', err)
