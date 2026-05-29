@@ -47,16 +47,6 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
 // Convert string salt to 32-byte Uint8Array
 const PRF_SALT = new TextEncoder().encode("KapteinsDaagboxPRFSaltForE2EKey_")
 
-function bufferToBase64URL(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  const base64 = window.btoa(binary)
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-
 function base64urlToBuffer(base64url: string): ArrayBuffer {
   let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
   while (base64.length % 4) {
@@ -96,7 +86,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
   }
   options.extensions.prf = {
     eval: {
-      first: bufferToBase64URL(PRF_SALT.buffer)
+      first: PRF_SALT.buffer
     }
   }
 
@@ -207,13 +197,13 @@ export async function loginUser(username?: string): Promise<LoginResult> {
 
   const options = await optionsRes.json()
 
-  // Add PRF extension evaluation input as a Base64URL string for JSON options
+  // Add PRF extension evaluation input
   if (!options.extensions) {
     options.extensions = {}
   }
   options.extensions.prf = {
     eval: {
-      first: bufferToBase64URL(PRF_SALT.buffer)
+      first: PRF_SALT.buffer
     }
   }
 
