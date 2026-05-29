@@ -5,6 +5,7 @@ import { ensureLogbookKey } from '../services/logbookKeys.js'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { useDialog } from './ModalDialog.tsx'
+import { notifyAppearanceChanged } from '../services/appearance.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -30,6 +31,7 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
   const { showConfirm, showAlert } = useDialog()
   const [apiKey, setApiKey] = useState(localStorage.getItem('owm_api_key') || '')
   const [theme, setTheme] = useState(localStorage.getItem('active_theme') || 'auto')
+  const [colorScheme, setColorScheme] = useState(localStorage.getItem('active_color_scheme') || 'auto')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -245,17 +247,29 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
     }
   }
 
+  const persistAppearance = (nextTheme: string, nextColorScheme: string) => {
+    localStorage.setItem('active_theme', nextTheme)
+    localStorage.setItem('active_color_scheme', nextColorScheme)
+    notifyAppearanceChanged()
+  }
+
+  const handleThemeChange = (nextTheme: string) => {
+    setTheme(nextTheme)
+    persistAppearance(nextTheme, colorScheme)
+  }
+
+  const handleColorSchemeChange = (nextColorScheme: string) => {
+    setColorScheme(nextColorScheme)
+    persistAppearance(theme, nextColorScheme)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setSuccess(false)
     
-    // Save to localStorage
     localStorage.setItem('owm_api_key', apiKey.trim())
-    localStorage.setItem('active_theme', theme)
-    
-    // Notify App of theme change
-    window.dispatchEvent(new Event('theme-changed'))
+    persistAppearance(theme, colorScheme)
     
     setSaving(false)
     setSuccess(true)
@@ -316,14 +330,36 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
               id="app-theme"
               className="input-text"
               value={theme}
-              onChange={(e) => setTheme(e.target.value)}
+              onChange={(e) => handleThemeChange(e.target.value)}
               disabled={saving}
-              style={{ background: 'rgba(11, 12, 16, 0.85)', color: '#f1f5f9' }}
             >
               <option value="auto">{t('settings.theme_auto')}</option>
               <option value="ocean">{t('settings.theme_ocean')}</option>
               <option value="material">{t('settings.theme_material')}</option>
               <option value="cupertino">{t('settings.theme_cupertino')}</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="member-editor-card glass mt-4">
+          <h3 style={{ marginTop: 0, marginBottom: '12px', color: 'var(--app-accent-light)', fontSize: '16px' }}>
+            {t('settings.color_scheme_title')}
+          </h3>
+          <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 16px 0' }}>
+            {t('settings.color_scheme_label')}
+          </p>
+
+          <div className="input-group">
+            <select
+              id="app-color-scheme"
+              className="input-text"
+              value={colorScheme}
+              onChange={(e) => handleColorSchemeChange(e.target.value)}
+              disabled={saving}
+            >
+              <option value="auto">{t('settings.color_scheme_auto')}</option>
+              <option value="light">{t('settings.color_scheme_light')}</option>
+              <option value="dark">{t('settings.color_scheme_dark')}</option>
             </select>
           </div>
         </div>

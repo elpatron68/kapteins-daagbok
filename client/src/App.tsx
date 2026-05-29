@@ -11,6 +11,12 @@ import LogEntriesList from './components/LogEntriesList.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
+import {
+  applyAppearanceToDocument,
+  resolveAppTheme,
+  resolveColorScheme,
+  subscribeToSystemColorScheme
+} from './services/appearance.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
@@ -28,7 +34,6 @@ function App() {
   const [activeTab, setActiveTab] = useState<'vessel' | 'crew' | 'logs' | 'settings'>('logs')
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [appliedTheme, setAppliedTheme] = useState<'ocean' | 'material' | 'cupertino'>('ocean')
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
 
   // Viewer mode for read-only shared links
@@ -41,27 +46,16 @@ function App() {
     [activeLogbookId]
   )
 
-  const updateAppliedTheme = () => {
-    const configTheme = localStorage.getItem('active_theme') || 'auto'
-    if (configTheme === 'auto') {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
-      if (/iPad|iPhone|iPod|Macintosh/.test(userAgent)) {
-        setAppliedTheme('cupertino')
-      } else if (/Android|Linux/.test(userAgent)) {
-        setAppliedTheme('material')
-      } else {
-        setAppliedTheme('ocean')
-      }
-    } else {
-      setAppliedTheme(configTheme as 'ocean' | 'material' | 'cupertino')
-    }
-  }
-
   useEffect(() => {
-    updateAppliedTheme()
-    window.addEventListener('theme-changed', updateAppliedTheme)
+    const syncAppearance = () => {
+      applyAppearanceToDocument(resolveAppTheme(), resolveColorScheme())
+    }
+    syncAppearance()
+    window.addEventListener('appearance-changed', syncAppearance)
+    const unsubscribeSystem = subscribeToSystemColorScheme(syncAppearance)
     return () => {
-      window.removeEventListener('theme-changed', updateAppliedTheme)
+      window.removeEventListener('appearance-changed', syncAppearance)
+      unsubscribeSystem()
     }
   }, [])
 
@@ -159,7 +153,7 @@ function App() {
 
   if (isViewerMode) {
     return (
-      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      <div style={{ display: 'contents' }}>
         <ReadOnlyViewer token={shareToken} hexKey={shareKey} />
       </div>
     )
@@ -167,7 +161,7 @@ function App() {
 
   if (isAcceptingInvite) {
     return (
-      <div className={`theme-${appliedTheme} auth-screen`}>
+      <div className="auth-screen">
         <InvitationAcceptance
           onAccepted={(logbookId, title) => {
             setIsAuthenticated(true)
@@ -187,7 +181,7 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className={`theme-${appliedTheme} auth-screen`}>
+      <div className="auth-screen">
         <AuthOnboarding onAuthenticated={handleAuthenticated} />
       </div>
     )
@@ -197,7 +191,7 @@ function App() {
 
   if (!activeLogbookId) {
     return (
-      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      <div style={{ display: 'contents' }}>
         {pwaInstallBanner}
         <LogbookDashboard
           onSelectLogbook={handleSelectLogbook}
@@ -208,7 +202,7 @@ function App() {
   }
 
   return (
-    <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+    <div style={{ display: 'contents' }}>
       {pwaInstallBanner}
       {isSyncing && <div className="sync-progress-bar" />}
       <div className="app-layout">
