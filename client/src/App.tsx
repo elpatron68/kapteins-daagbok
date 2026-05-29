@@ -20,6 +20,7 @@ import {
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
+import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -318,6 +319,7 @@ function App() {
 export default function AppWrapper() {
   return (
     <DialogProvider>
+      <PwaUpdatePrompt />
       <App />
       <AppFooter />
     </DialogProvider>

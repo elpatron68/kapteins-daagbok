@@ -2396,6 +2396,114 @@ html.theme-cupertino .events-scroll-container {
   }
 }
 
+/* PWA update prompt */
+.pwa-update-banner {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 16px;
+  right: 16px;
+  z-index: 1300;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 44px 14px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--app-accent-border);
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
+  animation: fadeIn 0.35s ease-out;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.pwa-update-icon {
+  color: var(--app-accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--app-accent-bg);
+  flex-shrink: 0;
+}
+
+.pwa-update-body {
+  min-width: 0;
+}
+
+.pwa-update-title {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text-heading);
+}
+
+.pwa-update-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--app-text-muted);
+}
+
+.pwa-update-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.pwa-update-btn {
+  white-space: nowrap;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.pwa-update-link {
+  background: none;
+  border: none;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.pwa-update-link:hover {
+  color: var(--app-text);
+}
+
+.pwa-update-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.pwa-update-close:hover {
+  color: var(--app-text);
+  background: var(--app-surface-inset);
+}
+
+@media (max-width: 720px) {
+  .pwa-update-banner {
+    grid-template-columns: auto 1fr;
+    padding-right: 40px;
+  }
+
+  .pwa-update-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}
+
 .app-version-footer {
   position: fixed;
   left: 0;

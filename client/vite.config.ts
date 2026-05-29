@@ -38,8 +38,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'logo.png'],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}']
+      },
       manifest: {
         name: 'Kapteins Daagbok',
         short_name: 'Daagbok',
