@@ -83,6 +83,7 @@
       "length_m": "Length (m)",
       "draft_m": "Draft (m)",
       "air_draft_m": "Air draft (m)",
+      "invalid_metric": "Invalid number — please enter meters as a decimal (e.g. 12.5).",
       "port": "Home Port",
       "owner": "Owner",
       "charter": "Charter Company",

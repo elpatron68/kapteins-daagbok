@@ -83,6 +83,7 @@
       "length_m": "Länge (m)",
       "draft_m": "Tiefgang (m)",
       "air_draft_m": "Höhe (m)",
+      "invalid_metric": "Ungültiger Zahlenwert — bitte Meter als Dezimalzahl eingeben (z. B. 12,5).",
       "port": "Heimathafen",
       "owner": "Eigner",
       "charter": "Charterfirma",

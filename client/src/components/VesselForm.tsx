@@ -13,6 +13,23 @@ interface VesselFormProps {
   preloadedData?: any
 }
 
+function metricInputFromStored(value: unknown): string {
+  if (value == null || value === '') return ''
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'string') return value.trim()
+  return ''
+}
+
+function parseOptionalMetricMeters(input: string): number | undefined {
+  const trimmed = input.trim().replace(',', '.')
+  if (!trimmed) return undefined
+  const parsed = Number(trimmed)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error('invalid_metric')
+  }
+  return parsed
+}
+
 export default function VesselForm({ logbookId, readOnly = false, preloadedData }: VesselFormProps) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
@@ -48,9 +65,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
         if (readOnly && preloadedData) {
           setName(preloadedData.name || '')
           setVesselType(preloadedData.vesselType || '')
-          setLengthM(preloadedData.lengthM != null ? String(preloadedData.lengthM) : '')
-          setDraftM(preloadedData.draftM != null ? String(preloadedData.draftM) : '')
-          setAirDraftM(preloadedData.airDraftM != null ? String(preloadedData.airDraftM) : '')
+          setLengthM(metricInputFromStored(preloadedData.lengthM))
+          setDraftM(metricInputFromStored(preloadedData.draftM))
+          setAirDraftM(metricInputFromStored(preloadedData.airDraftM))
           setHomePort(preloadedData.homePort || '')
           setCharterCompany(preloadedData.charterCompany || '')
           setOwner(preloadedData.owner || '')
@@ -73,9 +90,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
           if (decrypted) {
             setName(decrypted.name || '')
             setVesselType(decrypted.vesselType || '')
-            setLengthM(decrypted.lengthM != null ? String(decrypted.lengthM) : '')
-            setDraftM(decrypted.draftM != null ? String(decrypted.draftM) : '')
-            setAirDraftM(decrypted.airDraftM != null ? String(decrypted.airDraftM) : '')
+            setLengthM(metricInputFromStored(decrypted.lengthM))
+            setDraftM(metricInputFromStored(decrypted.draftM))
+            setAirDraftM(metricInputFromStored(decrypted.airDraftM))
             setHomePort(decrypted.homePort || '')
             setCharterCompany(decrypted.charterCompany || '')
             setOwner(decrypted.owner || '')
@@ -180,12 +197,25 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
+      let parsedLengthM: number | undefined
+      let parsedDraftM: number | undefined
+      let parsedAirDraftM: number | undefined
+      try {
+        parsedLengthM = parseOptionalMetricMeters(lengthM)
+        parsedDraftM = parseOptionalMetricMeters(draftM)
+        parsedAirDraftM = parseOptionalMetricMeters(airDraftM)
+      } catch {
+        setError(t('vessel.invalid_metric'))
+        setSaving(false)
+        return
+      }
+
       const yachtData = {
         name: name.trim(),
         vesselType: vesselType || undefined,
-        lengthM: lengthM.trim() || undefined,
-        draftM: draftM.trim() || undefined,
-        airDraftM: airDraftM.trim() || undefined,
+        lengthM: parsedLengthM,
+        draftM: parsedDraftM,
+        airDraftM: parsedAirDraftM,
         homePort: homePort.trim(),
         charterCompany: charterCompany.trim(),
         owner: owner.trim(),
