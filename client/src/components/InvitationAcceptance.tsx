@@ -144,7 +144,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       setIsLoggedIn(false)
       return
     }
-    if (!logbookKey || !logbookId) return
+    if (!logbookKey || !logbookId) {
+      autoAcceptStarted.current = false
+      return
+    }
 
     setAccepting(true)
     setError(null)
