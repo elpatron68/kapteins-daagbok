@@ -29,7 +29,7 @@ app.get('/api/health', async (req, res) => {
       status: 'ok',
       database: 'connected',
       timestamp: new Date().toISOString(),
-      service: 'Kapteins Daagbox Backend'
+      service: 'Kapteins Daagbok Backend'
     })
   } catch (err: any) {
     res.status(500).json({
@@ -37,7 +37,7 @@ app.get('/api/health', async (req, res) => {
       database: 'disconnected',
       error: err.message,
       timestamp: new Date().toISOString(),
-      service: 'Kapteins Daagbox Backend'
+      service: 'Kapteins Daagbok Backend'
     })
   }
 })

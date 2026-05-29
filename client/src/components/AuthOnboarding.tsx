@@ -382,7 +382,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
   return (
     <div className="auth-card glass">
       <div className="auth-brand">
-        <img src="/logo.png" alt="Kapteins Daagbox" className="auth-logo-img" />
+        <img src="/logo.png" alt="Kapteins Daagbok" className="auth-logo-img" />
         <h1>{t('app.name')}</h1>
         <p className="tagline">{t('auth.tagline')}</p>
       </div>

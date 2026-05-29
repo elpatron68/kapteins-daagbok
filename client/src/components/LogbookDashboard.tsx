@@ -5,6 +5,7 @@ import { db } from '../services/db.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, type DecryptedLogbook } from '../services/logbook.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
+import AccountDangerZone from './AccountDangerZone.tsx'
 import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
 
 interface LogbookDashboardProps {
@@ -227,6 +228,10 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           )}
         </section>
       </main>
+
+      <section className="dashboard-account-section" aria-label={t('settings.danger_zone_title')}>
+        <AccountDangerZone />
+      </section>
     </div>
   )
 }

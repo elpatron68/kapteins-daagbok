@@ -166,7 +166,7 @@ export async function shareCsv(logbookId: string, title: string, preloadedData?:
     try {
       await navigator.share({
         files: [file],
-        title: `Kapteins Daagbox - ${title}`,
+        title: `Kapteins Daagbok - ${title}`,
         text: `Logbook export for yacht ${title}`
       });
     } catch (e: any) {

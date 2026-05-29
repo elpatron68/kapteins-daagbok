@@ -5,7 +5,7 @@ COMPOSE_FILE="docker-compose.yml"
 BACKEND_CONTAINER="daagbox-prod-backend"
 
 echo "=================================================="
-echo "   Kapteins Daagbox Docker Environment Manager    "
+echo "   Kapteins Daagbok Docker Environment Manager    "
 echo "=================================================="
 echo "Stopping any existing container stack..."
 docker compose -f $COMPOSE_FILE down

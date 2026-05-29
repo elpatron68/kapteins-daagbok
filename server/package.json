@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "Backend API for Kapteins Daagbox",
+  "description": "Backend API for Kapteins Daagbok",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

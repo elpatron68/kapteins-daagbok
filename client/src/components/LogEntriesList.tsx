@@ -275,7 +275,7 @@ export default function LogEntriesList({
         readOnly={readOnly}
         preloadedEntry={preloadedEntries?.find(entry => (entry.payloadId || entry.id) === selectedEntryId)}
         preloadedPhotos={preloadedPhotos}
-        preloadedGpsTrack={preloadedGpsTracks?.find(track => track.entryId === selectedEntryId)}
+        preloadedTrack={preloadedGpsTracks?.find(track => track.entryId === selectedEntryId)}
       />
     )
   }

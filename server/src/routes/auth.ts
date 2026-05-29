@@ -9,7 +9,7 @@ import { prisma } from '../db.js'
 
 const router = Router()
 
-const rpName = 'Kapteins Daagbox'
+const rpName = 'Kapteins Daagbok'
 const rpID = process.env.RP_ID || 'localhost'
 const origin = process.env.ORIGIN || 'http://localhost:5173'
 

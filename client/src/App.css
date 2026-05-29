@@ -1,4 +1,4 @@
-/* Kapteins Daagbox App styling */
+/* Kapteins Daagbok App styling */
 
 body {
   background: radial-gradient(circle at center, #1b264f 0%, #0b0c10 100%);
@@ -55,7 +55,8 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin: 0 0 8px 0;
+  margin: 0 0 14px 0;
+  line-height: 1.25;
   letter-spacing: -0.5px;
 }
 
@@ -63,7 +64,7 @@ body {
   font-size: 14.5px;
   color: #94a3b8;
   margin: 0;
-  line-height: 140%;
+  line-height: 1.45;
 }
 
 .auth-form {
@@ -447,6 +448,51 @@ body {
     grid-template-columns: 1fr;
     padding: 0 10px;
   }
+}
+
+.dashboard-account-section {
+  width: 100%;
+  max-width: 720px;
+  margin: 40px auto 48px;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.account-danger-zone {
+  border-top: 1px solid rgba(239, 68, 68, 0.2);
+  padding-top: 24px;
+}
+
+.account-danger-zone__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.account-danger-zone__icon {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.account-danger-zone__title {
+  margin: 0;
+  color: #ef4444;
+  font-size: 16px;
+}
+
+.account-danger-zone__desc {
+  font-size: 13.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0 0 16px 0;
+}
+
+.account-danger-zone__actions {
+  justify-content: flex-start;
+}
+
+.account-danger-zone__actions .btn {
+  width: auto;
 }
 
 .create-section {
@@ -1892,16 +1938,6 @@ body:has(.theme-cupertino) {
   font-size: 12px;
   color: #64748b;
   margin-top: 4px;
-}
-
-#openseamap-container {
-  width: 100%;
-  height: 400px;
-  border-radius: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.2);
-  position: relative;
-  z-index: 1;
-  box-sizing: border-box;
 }
 
 .track-info-header {

@@ -38,8 +38,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png'],
       manifest: {
-        name: 'Kapteins Daagbox',
-        short_name: 'Daagbox',
+        name: 'Kapteins Daagbok',
+        short_name: 'Daagbok',
         description: 'Digital maritime ship logbook with E2E encryption and Passkeys',
         theme_color: '#1e293b',
         background_color: '#0f172a',

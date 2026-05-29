@@ -5,7 +5,7 @@ SERVER_PORT=5000
 CLIENT_PORT=5173
 
 echo "========================================"
-echo "   Kapteins Daagbox Dev Environment   "
+echo "   Kapteins Daagbok Dev Environment   "
 echo "========================================"
 echo "Preparing to (re)start services..."
 

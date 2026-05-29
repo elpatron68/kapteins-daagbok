@@ -6,20 +6,17 @@ import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Navigation } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import { useDialog } from './ModalDialog.tsx'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import {
-  getDecryptedGpsTrack,
-  saveUploadedGpsTrack,
-  deleteGpsTrack,
+  getDecryptedTrack,
+  saveUploadedTrack,
+  deleteTrack,
   downloadTrackFile,
   parseTrackFile,
-  type GpsWaypoint,
-  type SavedGpsTrack
-} from '../services/gpsTracker.js'
+  type SavedTrack
+} from '../services/trackUpload.js'
 
 interface LogEntryEditorProps {
   entryId: string
@@ -28,7 +25,7 @@ interface LogEntryEditorProps {
   readOnly?: boolean
   preloadedEntry?: any
   preloadedPhotos?: any[]
-  preloadedGpsTrack?: any
+  preloadedTrack?: any
   preloadedYacht?: any
 }
 
@@ -58,7 +55,7 @@ export default function LogEntryEditor({
   readOnly = false,
   preloadedEntry,
   preloadedPhotos,
-  preloadedGpsTrack,
+  preloadedTrack,
   preloadedYacht
 }: LogEntryEditorProps) {
   const { t, i18n } = useTranslation()
@@ -116,14 +113,11 @@ export default function LogEntryEditor({
   const [error, setError] = useState<string | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
 
-  // GPS Tracking States
-  const [savedTrack, setSavedTrack] = useState<SavedGpsTrack | null>(null)
+  // Track file upload
+  const [savedTrack, setSavedTrack] = useState<SavedTrack | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-
-  const mapContainerRef = useRef<HTMLDivElement | null>(null)
-  const mapInstanceRef = useRef<L.Map | null>(null)
 
   // Auto-calculate Freshwater Consumption
   useEffect(() => {
@@ -236,91 +230,24 @@ export default function LogEntryEditor({
     loadEntry()
   }, [entryId, preloadedEntry])
 
-  // GPS Track Loader
-  const loadGpsTrack = async () => {
-    if (readOnly && preloadedGpsTrack) {
-      setSavedTrack(preloadedGpsTrack)
+  const loadTrack = async () => {
+    if (readOnly && preloadedTrack) {
+      setSavedTrack(preloadedTrack)
       return
     }
     try {
-      const track = await getDecryptedGpsTrack(entryId)
+      const track = await getDecryptedTrack(entryId)
       setSavedTrack(track)
     } catch (e) {
-      console.warn('Failed to load GPS track:', e)
+      console.warn('Failed to load track file:', e)
     }
   }
 
   useEffect(() => {
-    loadGpsTrack()
-  }, [entryId, preloadedGpsTrack])
+    loadTrack()
+  }, [entryId, preloadedTrack])
 
-  // Leaflet Map Initialization and Rendering
-  useEffect(() => {
-    if (!savedTrack || !savedTrack.waypoints || savedTrack.waypoints.length === 0 || !mapContainerRef.current) {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-      return
-    }
-
-    const startWp = savedTrack.waypoints[0]
-    const map = L.map(mapContainerRef.current).setView([startWp.lat, startWp.lng], 13)
-    mapInstanceRef.current = map
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-    }).addTo(map)
-
-    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: 'Map data &copy; <a href="http://openseamap.org">OpenSeaMap</a> contributors'
-    }).addTo(map)
-
-    const latLngs = savedTrack.waypoints.map((wp) => [wp.lat, wp.lng] as [number, number])
-
-    const polyline = L.polyline(latLngs, {
-      color: '#fbbf24',
-      weight: 4,
-      opacity: 0.85
-    }).addTo(map)
-
-    map.fitBounds(polyline.getBounds(), { padding: [20, 20] })
-
-    if (savedTrack.waypoints.length > 0) {
-      L.circleMarker(latLngs[0], {
-        radius: 8,
-        fillColor: '#10b981',
-        fillOpacity: 0.9,
-        color: '#ffffff',
-        weight: 2
-      }).addTo(map).bindPopup('Start Position')
-
-      if (savedTrack.waypoints.length > 1) {
-        L.circleMarker(latLngs[latLngs.length - 1], {
-          radius: 8,
-          fillColor: '#ef4444',
-          fillOpacity: 0.9,
-          color: '#ffffff',
-          weight: 2
-        }).addTo(map).bindPopup('End Position')
-      }
-    }
-
-    setTimeout(() => {
-      map.invalidateSize()
-    }, 100)
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-    }
-  }, [savedTrack])
-
-  // GPX/KML/GeoJSON Upload Handlers
+  // Track file upload handlers
   const handleFileUpload = async (file: File) => {
     if (readOnly) return
     setUploadError(null)
@@ -338,8 +265,8 @@ export default function LogEntryEditor({
           throw new Error('No coordinates found in file. Supported formats: GPX, KML, GeoJSON.')
         }
 
-        await saveUploadedGpsTrack(logbookId, entryId, text, parsedWps, file.name, fileType)
-        await loadGpsTrack()
+        await saveUploadedTrack(logbookId, entryId, text, parsedWps, file.name, fileType)
+        await loadTrack()
       } catch (err: any) {
         console.error('File parsing failed:', err)
         setUploadError(err.message || 'Failed to parse track file.')
@@ -380,36 +307,12 @@ export default function LogEntryEditor({
       return
     }
     try {
-      await deleteGpsTrack(logbookId, entryId)
+      await deleteTrack(logbookId, entryId)
       setSavedTrack(null)
       setUploadError(null)
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete track')
     }
-  }
-
-  const calculateTrackDistance = (wps: GpsWaypoint[]) => {
-    if (wps.length < 2) return 0
-    let totalMeters = 0
-    for (let i = 1; i < wps.length; i++) {
-      const lat1 = wps[i - 1].lat
-      const lon1 = wps[i - 1].lng
-      const lat2 = wps[i].lat
-      const lon2 = wps[i].lng
-      
-      const R = 6371e3
-      const phi1 = (lat1 * Math.PI) / 180
-      const phi2 = (lat2 * Math.PI) / 180
-      const deltaPhi = ((lat2 - lat1) * Math.PI) / 180
-      const deltaLambda = ((lon2 - lon1) * Math.PI) / 180
-
-      const a =
-        Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-        Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-      totalMeters += R * c
-    }
-    return Number((totalMeters / 1852).toFixed(2))
   }
 
   const handleGetGps = () => {
@@ -1234,17 +1137,16 @@ export default function LogEntryEditor({
           )}
         </div>
 
-        {/* GPS Track Upload & Map Visualization */}
+        {/* Track file upload */}
         <div className="form-card">
           <div className="form-header">
-            <Navigation size={20} className="form-icon" />
-            <h3>{t('logs.gps_tracking_title')}</h3>
+            <Upload size={20} className="form-icon" />
+            <h3>{t('logs.track_upload_title')}</h3>
           </div>
 
           {uploadError && <div className="track-error-msg">{uploadError}</div>}
 
           {!savedTrack ? (
-            /* Upload Zone when no track is loaded */
             <div
               className={`track-upload-zone ${dragOver ? 'dragover' : ''}`}
               onDragOver={handleDragOver}
@@ -1260,52 +1162,44 @@ export default function LogEntryEditor({
                 onChange={handleFileChange}
                 disabled={saving}
               />
-              <Download size={36} className="track-upload-icon" />
+              <Upload size={36} className="track-upload-icon" />
               <div className="track-upload-text">{t('logs.gps_track_upload_btn')}</div>
               <div className="track-upload-subtext">{t('logs.gps_track_upload_help')}</div>
             </div>
           ) : (
-            /* Map and Details when track is loaded */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="track-info-header">
-                <div className="track-info-left">
-                  <Navigation size={16} style={{ color: '#fbbf24' }} />
-                  <span className="track-info-name">{savedTrack.filename || 'track'}</span>
-                </div>
-                <div className="track-info-stats">
-                  <span style={{ marginRight: '12px' }}>
-                    {t('logs.gps_tracking_stat_distance')}: <strong>{calculateTrackDistance(savedTrack.waypoints)} sm</strong>
-                  </span>
-                  <span>
-                    {t('logs.gps_tracking_stat_waypoints')}: <strong>{savedTrack.waypoints.length}</strong>
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="track-info-header">
+              <div className="track-info-left">
+                <Upload size={16} style={{ color: '#fbbf24' }} />
+                <span className="track-info-name">{savedTrack.filename || 'track'}</span>
+                <span className="track-info-stats">
+                  {savedTrack.fileType.toUpperCase()}
+                  {savedTrack.waypoints.length > 0 && (
+                    <> · {savedTrack.waypoints.length} {t('logs.track_upload_points')}</>
+                  )}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => downloadTrackFile(savedTrack)}
+                  style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <Download size={14} />
+                  {t('logs.gps_tracking_btn_gpx')}
+                </button>
+                {!readOnly && (
                   <button
                     type="button"
                     className="btn secondary"
-                    onClick={() => downloadTrackFile(savedTrack)}
-                    style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    onClick={handleDeleteTrack}
+                    style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
                   >
-                    <Download size={14} />
-                    {t('logs.gps_tracking_btn_gpx')}
+                    <Trash2 size={14} />
+                    {t('logs.gps_track_delete')}
                   </button>
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      onClick={handleDeleteTrack}
-                      style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
-                    >
-                      <Trash2 size={14} />
-                      {t('logs.gps_track_delete')}
-                    </button>
-                  )}
-                </div>
+                )}
               </div>
-
-              {/* Leaflet Map Div */}
-              <div id="openseamap-container" ref={mapContainerRef} />
             </div>
           )}
         </div>

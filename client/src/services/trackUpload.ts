@@ -4,7 +4,7 @@ import { getLogbookKey } from './logbookKeys.js'
 import { encryptJson, decryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
 
-export interface GpsWaypoint {
+export interface TrackWaypoint {
   timestamp: number
   lat: number
   lng: number
@@ -12,15 +12,14 @@ export interface GpsWaypoint {
   heading?: number
 }
 
-export interface SavedGpsTrack {
-  waypoints: GpsWaypoint[]
-  gpxContent: string // Holds the raw text file content (GPX, KML or GeoJSON)
+export interface SavedTrack {
+  waypoints: TrackWaypoint[]
+  gpxContent: string
   filename: string
-  fileType: string // 'gpx' | 'kml' | 'geojson'
+  fileType: string
 }
 
-// Get the decrypted track data for a journal entry (with legacy array format compatibility)
-export async function getDecryptedGpsTrack(entryId: string): Promise<SavedGpsTrack | null> {
+export async function getDecryptedTrack(entryId: string): Promise<SavedTrack | null> {
   const record = await db.gpsTracks.get(entryId)
   if (!record) return null
 
@@ -33,45 +32,41 @@ export async function getDecryptedGpsTrack(entryId: string): Promise<SavedGpsTra
   try {
     const decrypted = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
     if (Array.isArray(decrypted)) {
-      // Legacy format (just coordinate array)
       return {
         waypoints: decrypted,
-        gpxContent: generateLegacyGpxString(decrypted, 'legacy'),
+        gpxContent: buildLegacyGpx(decrypted, 'legacy'),
         filename: 'track_legacy.gpx',
         fileType: 'gpx'
       }
     }
-    return decrypted
+    return decrypted as SavedTrack
   } catch (err) {
-    console.error('Failed to decrypt GPS track:', err)
+    console.error('Failed to decrypt track file:', err)
     return null
   }
 }
 
-// Encrypt and save uploaded GPS track to local Dexie and remote sync
-export async function saveUploadedGpsTrack(
+export async function saveUploadedTrack(
   logbookId: string,
   entryId: string,
-  gpxContent: string,
-  waypoints: GpsWaypoint[],
+  fileContent: string,
+  waypoints: TrackWaypoint[],
   filename: string,
   fileType: string
 ): Promise<void> {
   const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
   if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
-  const trackData: SavedGpsTrack = {
+  const trackData: SavedTrack = {
     waypoints,
-    gpxContent,
+    gpxContent: fileContent,
     filename,
     fileType
   }
 
-  // Encrypt JSON
   const encrypted = await encryptJson(trackData, masterKey)
   const now = new Date().toISOString()
 
-  // Save to Dexie
   await db.gpsTracks.put({
     entryId,
     logbookId,
@@ -81,7 +76,6 @@ export async function saveUploadedGpsTrack(
     updatedAt: now
   })
 
-  // Add to Sync queue (payloadId is entryId)
   await db.syncQueue.put({
     action: 'create',
     type: 'gpsTrack',
@@ -91,18 +85,14 @@ export async function saveUploadedGpsTrack(
     updatedAt: now
   })
 
-  // Trigger sync
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
 }
 
-// Delete GPS track from local DB and sync queue
-export async function deleteGpsTrack(logbookId: string, entryId: string): Promise<void> {
+export async function deleteTrack(logbookId: string, entryId: string): Promise<void> {
   const now = new Date().toISOString()
 
-  // Delete from Dexie
   await db.gpsTracks.delete(entryId)
 
-  // Add to Sync queue
   await db.syncQueue.put({
     action: 'delete',
     type: 'gpsTrack',
@@ -112,12 +102,10 @@ export async function deleteGpsTrack(logbookId: string, entryId: string): Promis
     updatedAt: now
   })
 
-  // Trigger sync
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
 }
 
-// Download the track file exactly as uploaded
-export function downloadTrackFile(track: SavedGpsTrack): void {
+export function downloadTrackFile(track: SavedTrack): void {
   const blob = new Blob([track.gpxContent], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
 
@@ -130,24 +118,22 @@ export function downloadTrackFile(track: SavedGpsTrack): void {
   URL.revokeObjectURL(url)
 }
 
-// Main parser entry point
-export function parseTrackFile(text: string, filename: string): { waypoints: GpsWaypoint[]; type: string } {
+export function parseTrackFile(text: string, filename: string): { waypoints: TrackWaypoint[]; type: string } {
   const lowerName = filename.toLowerCase()
   if (lowerName.endsWith('.kml') || text.includes('<kml')) {
     return { waypoints: parseKmlFile(text), type: 'kml' }
-  } else if (lowerName.endsWith('.json') || lowerName.endsWith('.geojson') || text.trim().startsWith('{')) {
-    return { waypoints: parseGeoJsonFile(text), type: 'geojson' }
-  } else {
-    return { waypoints: parseGpxFile(text), type: 'gpx' }
   }
+  if (lowerName.endsWith('.json') || lowerName.endsWith('.geojson') || text.trim().startsWith('{')) {
+    return { waypoints: parseGeoJsonFile(text), type: 'geojson' }
+  }
+  return { waypoints: parseGpxFile(text), type: 'gpx' }
 }
 
-// 1. GPX Parser
-export function parseGpxFile(gpxText: string): GpsWaypoint[] {
+function parseGpxFile(gpxText: string): TrackWaypoint[] {
   const parser = new DOMParser()
   const xmlDoc = parser.parseFromString(gpxText, 'text/xml')
   const trackPoints = xmlDoc.getElementsByTagName('trkpt')
-  const waypoints: GpsWaypoint[] = []
+  const waypoints: TrackWaypoint[] = []
 
   for (let i = 0; i < trackPoints.length; i++) {
     const el = trackPoints[i]
@@ -156,13 +142,13 @@ export function parseGpxFile(gpxText: string): GpsWaypoint[] {
     if (isNaN(lat) || isNaN(lon)) continue
 
     const timeEl = el.getElementsByTagName('time')[0]
-    const timestamp = timeEl && timeEl.textContent ? new Date(timeEl.textContent).getTime() : Date.now()
+    const timestamp = timeEl?.textContent ? new Date(timeEl.textContent).getTime() : Date.now()
 
     const speedEl = el.getElementsByTagName('speed')[0]
-    const speedKnots = speedEl && speedEl.textContent ? parseFloat(speedEl.textContent) * 1.94384 : undefined
+    const speedKnots = speedEl?.textContent ? parseFloat(speedEl.textContent) * 1.94384 : undefined
 
     const courseEl = el.getElementsByTagName('course')[0] || el.getElementsByTagName('heading')[0]
-    const heading = courseEl && courseEl.textContent ? parseFloat(courseEl.textContent) : undefined
+    const heading = courseEl?.textContent ? parseFloat(courseEl.textContent) : undefined
 
     waypoints.push({
       timestamp,
@@ -175,18 +161,15 @@ export function parseGpxFile(gpxText: string): GpsWaypoint[] {
   return waypoints
 }
 
-// 2. KML Parser
-export function parseKmlFile(kmlText: string): GpsWaypoint[] {
+function parseKmlFile(kmlText: string): TrackWaypoint[] {
   const parser = new DOMParser()
   const xmlDoc = parser.parseFromString(kmlText, 'text/xml')
-  const waypoints: GpsWaypoint[] = []
+  const waypoints: TrackWaypoint[] = []
 
-  // Check for standard KML <coordinates> tags
   const coordsTags = xmlDoc.getElementsByTagName('coordinates')
   for (let i = 0; i < coordsTags.length; i++) {
     const text = coordsTags[i].textContent || ''
-    const coordStrings = text.trim().split(/\s+/)
-    for (const str of coordStrings) {
+    for (const str of text.trim().split(/\s+/)) {
       const parts = str.split(',')
       if (parts.length >= 2) {
         const lon = parseFloat(parts[0])
@@ -202,22 +185,18 @@ export function parseKmlFile(kmlText: string): GpsWaypoint[] {
     }
   }
 
-  // Check for gx:coord extensions (commonly used in Google Earth tracks)
   const gxCoords = xmlDoc.getElementsByTagName('gx:coord')
-  if (gxCoords.length > 0) {
-    for (let i = 0; i < gxCoords.length; i++) {
-      const text = gxCoords[i].textContent || ''
-      const parts = text.trim().split(/\s+/)
-      if (parts.length >= 2) {
-        const lon = parseFloat(parts[0])
-        const lat = parseFloat(parts[1])
-        if (!isNaN(lat) && !isNaN(lon)) {
-          waypoints.push({
-            timestamp: Date.now(),
-            lat: Number(lat.toFixed(6)),
-            lng: Number(lon.toFixed(6))
-          })
-        }
+  for (let i = 0; i < gxCoords.length; i++) {
+    const parts = (gxCoords[i].textContent || '').trim().split(/\s+/)
+    if (parts.length >= 2) {
+      const lon = parseFloat(parts[0])
+      const lat = parseFloat(parts[1])
+      if (!isNaN(lat) && !isNaN(lon)) {
+        waypoints.push({
+          timestamp: Date.now(),
+          lat: Number(lat.toFixed(6)),
+          lng: Number(lon.toFixed(6))
+        })
       }
     }
   }
@@ -225,9 +204,8 @@ export function parseKmlFile(kmlText: string): GpsWaypoint[] {
   return waypoints
 }
 
-// 3. GeoJSON Parser
-export function parseGeoJsonFile(geoJsonText: string): GpsWaypoint[] {
-  const waypoints: GpsWaypoint[] = []
+function parseGeoJsonFile(geoJsonText: string): TrackWaypoint[] {
+  const waypoints: TrackWaypoint[] = []
   try {
     const data = JSON.parse(geoJsonText)
 
@@ -235,40 +213,22 @@ export function parseGeoJsonFile(geoJsonText: string): GpsWaypoint[] {
       if (!geom) return
       if (geom.type === 'LineString' && Array.isArray(geom.coordinates)) {
         for (const coord of geom.coordinates) {
-          const lon = coord[0]
-          const lat = coord[1]
-          if (typeof lat === 'number' && typeof lon === 'number') {
-            waypoints.push({
-              timestamp: Date.now(),
-              lat: Number(lat.toFixed(6)),
-              lng: Number(lon.toFixed(6))
-            })
-          }
+          pushCoord(waypoints, coord)
         }
       } else if (geom.type === 'MultiLineString' && Array.isArray(geom.coordinates)) {
         for (const line of geom.coordinates) {
           if (Array.isArray(line)) {
             for (const coord of line) {
-              const lon = coord[0]
-              const lat = coord[1]
-              if (typeof lat === 'number' && typeof lon === 'number') {
-                waypoints.push({
-                  timestamp: Date.now(),
-                  lat: Number(lat.toFixed(6)),
-                  lng: Number(lon.toFixed(6))
-                })
-              }
+              pushCoord(waypoints, coord)
             }
           }
         }
       }
-    };
+    }
 
     if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
       for (const feature of data.features) {
-        if (feature && feature.geometry) {
-          processGeometry(feature.geometry)
-        }
+        if (feature?.geometry) processGeometry(feature.geometry)
       }
     } else if (data.type === 'Feature' && data.geometry) {
       processGeometry(data.geometry)
@@ -282,8 +242,19 @@ export function parseGeoJsonFile(geoJsonText: string): GpsWaypoint[] {
   return waypoints
 }
 
-// Generate legacy fallback GPX string
-function generateLegacyGpxString(waypoints: GpsWaypoint[], dateStr: string): string {
+function pushCoord(waypoints: TrackWaypoint[], coord: number[]) {
+  const lon = coord[0]
+  const lat = coord[1]
+  if (typeof lat === 'number' && typeof lon === 'number') {
+    waypoints.push({
+      timestamp: Date.now(),
+      lat: Number(lat.toFixed(6)),
+      lng: Number(lon.toFixed(6))
+    })
+  }
+}
+
+function buildLegacyGpx(waypoints: TrackWaypoint[], dateStr: string): string {
   const trkpts = waypoints
     .map((wp) => {
       const timeISO = new Date(wp.timestamp).toISOString()
@@ -294,7 +265,7 @@ function generateLegacyGpxString(waypoints: GpsWaypoint[], dateStr: string): str
     .join('\n')
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Kapteins Daagbox" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Kapteins Daagbok" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <time>${new Date().toISOString()}</time>
   </metadata>

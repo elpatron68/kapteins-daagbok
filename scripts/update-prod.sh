@@ -21,7 +21,7 @@ VERSION_FILE="$REPO_ROOT/VERSION"
 DEFAULT_VERSION="0.1.0.0"
 
 echo "=================================================="
-echo "    Kapteins Daagbox Prod Environment Update     "
+echo "    Kapteins Daagbok Prod Environment Update     "
 echo "=================================================="
 echo "Target: ${REMOTE_TARGET}:${REMOTE_DIR}"
 echo "=================================================="
