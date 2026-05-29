@@ -47,6 +47,29 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
 // Convert string salt to 32-byte Uint8Array
 const PRF_SALT = new TextEncoder().encode("KapteinsDaagboxPRFSaltForE2EKey_")
 
+function bufferToBase64URL(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  const base64 = window.btoa(binary)
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  while (base64.length % 4) {
+    base64 += '='
+  }
+  const binary = window.atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes.buffer
+}
+
 export interface RegistrationResult {
   verified: boolean
   recoveryPhrase: string
@@ -67,15 +90,11 @@ export async function registerUser(username: string): Promise<RegistrationResult
 
   const options = await optionsRes.json()
 
-  // Request the PRF extension in the browser options
+  // Request the PRF extension in the browser options (empty object is standard for enabling PRF)
   if (!options.extensions) {
     options.extensions = {}
   }
-  options.extensions.prf = {
-    eval: {
-      first: PRF_SALT.buffer
-    }
-  }
+  options.extensions.prf = {}
 
   // 2. Start biometric Passkey creation
   const credentialResponse = await startRegistration({ optionsJSON: options })
@@ -95,7 +114,10 @@ export async function registerUser(username: string): Promise<RegistrationResult
   console.log('Registration PRF extension result:', prfResults)
 
   if (prfResults?.enabled && prfResults.results?.first) {
-    const prfKey = await deriveKeyFromPrf(prfResults.results.first)
+    const firstBuffer = typeof prfResults.results.first === 'string'
+      ? base64urlToBuffer(prfResults.results.first)
+      : prfResults.results.first
+    const prfKey = await deriveKeyFromPrf(firstBuffer)
     const encryptedPrf = await encryptBuffer(masterKey, prfKey)
     encryptedMasterKeyPrf = encryptedPrf.ciphertext
     encryptedMasterKeyPrfIv = encryptedPrf.iv
@@ -151,7 +173,7 @@ export interface LoginResult {
     encryptedMasterKeyRecTag: string
     userId: string
     username: string
-    prfFirst?: ArrayBuffer
+    prfFirst?: string | ArrayBuffer
   }
 }
 
@@ -181,13 +203,13 @@ export async function loginUser(username?: string): Promise<LoginResult> {
 
   const options = await optionsRes.json()
 
-  // Add PRF extension evaluation input
+  // Add PRF extension evaluation input as a Base64URL string for JSON options
   if (!options.extensions) {
     options.extensions = {}
   }
   options.extensions.prf = {
     eval: {
-      first: PRF_SALT.buffer
+      first: bufferToBase64URL(PRF_SALT.buffer)
     }
   }
 
@@ -228,7 +250,10 @@ export async function loginUser(username?: string): Promise<LoginResult> {
 
   if (prfResults?.results?.first && result.encryptedMasterKeyPrf) {
     try {
-      const prfKey = await deriveKeyFromPrf(prfResults.results.first)
+      const firstBuffer = typeof prfResults.results.first === 'string'
+        ? base64urlToBuffer(prfResults.results.first)
+        : prfResults.results.first
+      const prfKey = await deriveKeyFromPrf(firstBuffer)
       const decryptedMaster = await decryptBuffer(
         result.encryptedMasterKeyPrf,
         result.encryptedMasterKeyPrfIv,
@@ -269,7 +294,7 @@ export async function completeLoginWithRecovery(
     encryptedMasterKeyRecIv: string
     encryptedMasterKeyRecTag: string
     userId: string
-    prfFirst?: ArrayBuffer
+    prfFirst?: string | ArrayBuffer
   }
 ): Promise<boolean> {
   try {
@@ -285,7 +310,10 @@ export async function completeLoginWithRecovery(
     if (encryptedPayloads.prfFirst) {
       console.log('Attempting PRF enrollment on recovery login...')
       try {
-        const prfKey = await deriveKeyFromPrf(encryptedPayloads.prfFirst)
+        const firstBuffer = typeof encryptedPayloads.prfFirst === 'string'
+          ? base64urlToBuffer(encryptedPayloads.prfFirst)
+          : encryptedPayloads.prfFirst
+        const prfKey = await deriveKeyFromPrf(firstBuffer)
         const encryptedPrf = await encryptBuffer(decryptedMaster, prfKey)
         console.log('Sending PRF credentials to server...')
         const enrollRes = await fetch(`${API_BASE}/enroll-prf`, {
