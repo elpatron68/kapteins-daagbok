@@ -414,6 +414,19 @@ export async function syncAllLogbooks(): Promise<void> {
     for (const lb of logbooks) {
       await syncLogbook(lb.id)
     }
+
+    // 3. Clean up orphaned queue items for logbooks no longer in db.logbooks.
+    // Re-read logbooks so any logbooks created during step 2 are included.
+    const freshLogbooks = await db.logbooks.toArray()
+    const freshKnownIds = new Set(freshLogbooks.map((l) => l.id))
+    const currentQueue = await db.syncQueue.toArray()
+    const orphanedIds = currentQueue
+      .filter((i) => !freshKnownIds.has(i.logbookId))
+      .map((i) => i.id!)
+      .filter(Boolean)
+    if (orphanedIds.length > 0) {
+      await db.syncQueue.bulkDelete(orphanedIds)
+    }
   } catch (error) {
     console.error('Error synchronizing all logbooks:', error)
   } finally {
