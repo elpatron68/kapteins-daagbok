@@ -9,6 +9,7 @@ import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import SignaturePad from './SignaturePad.tsx'
+import TrackMap from './TrackMap.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { isSignatureImage } from '../utils/signatures.js'
 import {
@@ -1211,49 +1212,55 @@ export default function LogEntryEditor({
               <div className="track-upload-subtext">{t('logs.gps_track_upload_help')}</div>
             </div>
           ) : (
-            <div className="track-info-header">
-              <div className="track-info-left">
-                <Upload size={16} style={{ color: '#fbbf24' }} />
-                <span className="track-info-name">{savedTrack.filename || 'track'}</span>
-                <span className="track-info-stats">
-                  {savedTrack.fileType.toUpperCase()}
-                  {savedTrack.waypoints.length > 0 && (
-                    <> · {savedTrack.waypoints.length} {t('logs.track_upload_points')}</>
-                  )}
-                  {trackDistanceNm && (
-                    <> · {trackDistanceNm} sm</>
-                  )}
-                  {trackSpeedMaxKn && (
-                    <> · max {trackSpeedMaxKn} kn</>
-                  )}
-                  {trackSpeedAvgKn && (
-                    <> · Ø {trackSpeedAvgKn} kn</>
-                  )}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => downloadTrackFile(savedTrack)}
-                  style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <Download size={14} />
-                  {t('logs.gps_tracking_btn_gpx')}
-                </button>
-                {!readOnly && (
+            <>
+              <div className="track-info-header">
+                <div className="track-info-left">
+                  <Upload size={16} style={{ color: '#fbbf24' }} />
+                  <span className="track-info-name">{savedTrack.filename || 'track'}</span>
+                  <span className="track-info-stats">
+                    {savedTrack.fileType.toUpperCase()}
+                    {savedTrack.waypoints.length > 0 && (
+                      <> · {savedTrack.waypoints.length} {t('logs.track_upload_points')}</>
+                    )}
+                    {trackDistanceNm && (
+                      <> · {trackDistanceNm} sm</>
+                    )}
+                    {trackSpeedMaxKn && (
+                      <> · max {trackSpeedMaxKn} kn</>
+                    )}
+                    {trackSpeedAvgKn && (
+                      <> · Ø {trackSpeedAvgKn} kn</>
+                    )}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn secondary"
-                    onClick={handleDeleteTrack}
-                    style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                    onClick={() => downloadTrackFile(savedTrack)}
+                    style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    <Trash2 size={14} />
-                    {t('logs.gps_track_delete')}
+                    <Download size={14} />
+                    {t('logs.gps_tracking_btn_gpx')}
                   </button>
-                )}
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={handleDeleteTrack}
+                      style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                    >
+                      <Trash2 size={14} />
+                      {t('logs.gps_track_delete')}
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {savedTrack.waypoints.length > 0 && (
+                <TrackMap waypoints={savedTrack.waypoints} />
+              )}
+            </>
           )}
 
           {(savedTrack || trackDistanceNm || trackSpeedMaxKn || trackSpeedAvgKn) && (

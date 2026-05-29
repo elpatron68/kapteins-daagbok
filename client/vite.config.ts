@@ -23,6 +23,9 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(readAppVersion())
   },
+  optimizeDeps: {
+    include: ['leaflet']
+  },
   server: {
     port: 5173,
     proxy: {
