@@ -177,4 +177,4 @@ Aktuelle Version: siehe [VERSION](VERSION) (wird im App-Footer und beim Docker-B
 
 ---
 
-© 2026 Markus F.J. Busche · [kapteins-daagbok.eu](https://kapteins-daagbok.eu)
+© 2026 KnorrLabs/Markus F.J. Busche · [kapteins-daagbok.eu](https://kapteins-daagbok.eu)
