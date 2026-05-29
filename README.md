@@ -13,15 +13,17 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 ## Funktionen
 
 - **Passkey-Authentifizierung** (WebAuthn) mit optionaler Recovery-Phrase und lokalem PIN-Fallback
-- **Mehrere Logbücher** pro Benutzerkonto
+- **Mehrere Logbücher** pro Benutzerkonto — eigene Logbücher und per Einladung geteilte Logbücher (Crew-Zugang) klar getrennt
 - **Reisetage** mit Hafen, Wetter, Tankständen, Ereignissen und Tagesnummer
 - **GPS-Tracks** (GPX/KML/GeoJSON-Upload, Karte, Statistiken)
 - **Foto-Anhänge** pro Reisetag
 - **Passkey-Signaturen** für Skipper und Crew (hybride elektronische Signatur)
 - **Schiffsdaten** und **Crew-Profile** (Skipper + Mitglieder)
-- **Kollaboration** — Crew per Einladungslink einladen
+- **Statistik-Dashboard** — Strecken, Verbrauch, Segel/Motor, Hafenkette (pro Logbuch oder accountweit)
+- **Kollaboration** — Crew per Einladungslink einladen (Schreib- oder Lesezugriff)
 - **Read-only-Freigabe** — öffentlicher Lese-Link für Dritte
 - **Export** — PDF pro Reisetag, CSV-Download/-Teilen
+- **Backup & Wiederherstellung** — vollständiges verschlüsseltes Logbuch-Backup (Einträge, Fotos, GPS, Crew, Schiff) als `.daagbok.json`; Restore auf gleichem oder neuem Account
 - **PWA** — installierbar auf iOS/Android, Offline-Modus, Update-Hinweise
 - **Mehrsprachig** — Deutsch und Englisch
 - **Demo-Logbuch & Onboarding-Tour** für neue Nutzer
@@ -45,6 +47,26 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 | Auth | WebAuthn (Passkeys) via `@simplewebauthn` |
 | Krypto | Web Crypto API (AES-GCM), BIP39 Recovery |
 
+### Rollen & Zugriff
+
+| Rolle | Bedeutung |
+|-------|-----------|
+| **Owner** | Logbuch angelegt; voller Zugriff, Einladungen, Backup, Löschen |
+| **Collaborator (WRITE)** | Per Einladung; Einträge bearbeiten und als Crew signieren |
+| **Collaborator (READ)** | Nur Lesen (z. B. öffentlicher Share-Link) |
+
+Skipper- und Crew-Profile im Logbuch sind **Inhaltsdaten** (verschlüsselt), nicht an den Account gebunden. Ein Account kann gleichzeitig Owner eines eigenen und Collaborator in fremden Logbüchern sein.
+
+## Backup & Wiederherstellung
+
+Nur der **Logbuch-Eigner** kann unter **Einstellungen → Backup & Wiederherstellung** ein vollständiges Backup erstellen:
+
+1. Backup-Passphrase wählen (min. 8 Zeichen, getrennt von der Datei aufbewahren)
+2. Download als `.daagbok.json` — enthält alle verschlüsselten Payloads inkl. **Fotos** und GPS-Tracks
+3. **Wiederherstellen** in einem beliebigen Account (nach Registrierung/Login): Datei + Passphrase
+
+Vor dem Löschen eines Logbuchs weist die App auf diese Funktion hin. Crew-Einladungen und Passkey-Signaturen werden nicht mitübertragen — Inhalte bleiben lesbar, Signaturen auf neuem Account ggf. nicht mehr verifizierbar.
+
 ## Projektstruktur
 
 ```
@@ -52,7 +74,7 @@ kapteins-daagbok/
 ├── client/              # React-PWA (Frontend)
 │   ├── src/
 │   │   ├── components/  # UI-Komponenten
-│   │   ├── services/    # Auth, Sync, Krypto, Analytics, …
+│   │   ├── services/    # Auth, Sync, Krypto, Backup, Analytics, …
 │   │   └── i18n/        # DE/EN-Übersetzungen
 │   └── Dockerfile       # Nginx-Produktions-Image
 ├── server/              # Express-API + Prisma
