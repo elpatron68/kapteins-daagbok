@@ -2,12 +2,16 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG APP_VERSION=0.1.0.0-dev
+ENV VITE_APP_VERSION=$APP_VERSION
+
 # Install dependencies
-COPY package*.json ./
+COPY client/package*.json ./
 RUN npm ci
 
-# Copy code and build production bundle
-COPY . .
+# Copy client sources and repo version file
+COPY client/ .
+COPY VERSION ./VERSION
 RUN npm run build
 
 # --- Production Stage ---
@@ -15,7 +19,7 @@ FROM nginx:1.25-alpine
 WORKDIR /usr/share/nginx/html
 
 # Copy custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY client/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets from builder
 COPY --from=builder /app/dist .

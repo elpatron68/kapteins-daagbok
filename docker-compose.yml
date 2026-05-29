@@ -33,8 +33,10 @@ services:
 
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        APP_VERSION: ${APP_VERSION:-0.1.0.0-dev}
     container_name: daagbox-prod-frontend
     restart: always
     ports:

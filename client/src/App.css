@@ -1949,7 +1949,7 @@ body:has(.theme-cupertino) {
   position: fixed;
   left: 16px;
   right: 16px;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   z-index: 1200;
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -2105,6 +2105,50 @@ body:has(.theme-cupertino) {
   .pwa-install-actions {
     grid-column: 1 / -1;
   }
+}
+
+.app-version-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+  background: rgba(11, 12, 16, 0.72);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.app-version-footer a,
+.app-version-footer button {
+  pointer-events: auto;
+}
+
+.app-version-footer__version {
+  font-variant-numeric: tabular-nums;
+  color: #94a3b8;
+}
+
+.app-version-footer__sep {
+  opacity: 0.65;
+}
+
+.app-version-footer__copyright {
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+.app-version-footer__copyright:hover {
+  color: #e2e8f0;
+  text-decoration: underline;
 }
 
 

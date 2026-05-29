@@ -13,6 +13,7 @@ import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
+import AppFooter from './components/AppFooter.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -319,6 +320,7 @@ export default function AppWrapper() {
   return (
     <DialogProvider>
       <App />
+      <AppFooter />
     </DialogProvider>
   )
 }
