@@ -31,7 +31,7 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 ## Architektur
 
 ```
-┌─────────────────┐     HTTPS/API      ┌─────────────────┐
+┌─────────────────┐     HTTPS/API        ┌─────────────────┐
 │  React PWA      │ ◄──────────────────► │  Express API    │
 │  Vite + Dexie   │   (nur ciphertext)   │  Prisma + PG    │
 │  IndexedDB      │                      │  PostgreSQL     │
