@@ -202,7 +202,14 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   const resolvedUsername = result.username
 
   // Try to decrypt master key using biometric PRF results
-  const prfResults = (credentialResponse as any).clientExtensionResults?.prf
+  const clientExtensionResults = credentialResponse.clientExtensionResults || {}
+  console.log('WebAuthn client extension keys:', Object.keys(clientExtensionResults))
+  const prfResults = (clientExtensionResults as any).prf
+  console.log('PRF extension result present:', !!prfResults)
+  if (prfResults) {
+    console.log('PRF extension enabled:', prfResults.enabled)
+    console.log('PRF extension results first present:', !!prfResults.results?.first)
+  }
 
   if (prfResults?.results?.first && result.encryptedMasterKeyPrf) {
     try {
@@ -261,9 +268,11 @@ export async function completeLoginWithRecovery(
 
     // If PRF results are available from the login challenge, enroll them now
     if (encryptedPayloads.prfFirst) {
+      console.log('Attempting PRF enrollment on recovery login...')
       try {
         const prfKey = await deriveKeyFromPrf(encryptedPayloads.prfFirst)
         const encryptedPrf = await encryptBuffer(decryptedMaster, prfKey)
+        console.log('Sending PRF credentials to server...')
         const enrollRes = await fetch(`${API_BASE}/enroll-prf`, {
           method: 'POST',
           headers: {
@@ -276,12 +285,15 @@ export async function completeLoginWithRecovery(
             encryptedMasterKeyPrfTag: encryptedPrf.tag
           })
         })
+        console.log('Enrollment response status:', enrollRes.status)
         if (!enrollRes.ok) {
           console.warn('Server rejected PRF enrollment')
         }
       } catch (err) {
         console.error('Failed to encrypt/enroll master key with PRF key:', err)
       }
+    } else {
+      console.log('No prfFirst present in encryptedPayloads, skipping enrollment.')
     }
 
     setActiveMasterKey(decryptedMaster)
