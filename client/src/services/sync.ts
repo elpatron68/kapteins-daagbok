@@ -32,7 +32,11 @@ function entityKey(item: SyncQueueItem): string {
   return `${item.type}:${item.payloadId}`
 }
 
-// Keep only the latest queue entry per entity; delete wins over create/update.
+function latestQueueItem(items: SyncQueueItem[]): SyncQueueItem {
+  return items.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
+}
+
+// Keep only the latest queue entry per entity (highest auto-increment id = most recent action).
 async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
   const pending = await db.syncQueue.where({ logbookId }).toArray()
   if (pending.length <= 1) return pending
@@ -49,11 +53,7 @@ async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
   const staleIds: number[] = []
 
   for (const group of byEntity.values()) {
-    const deletes = group.filter((item) => item.action === 'delete')
-    const latest =
-      deletes.length > 0
-        ? deletes.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
-        : group.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
+    const latest = latestQueueItem(group)
 
     kept.push(latest)
     for (const item of group) {
