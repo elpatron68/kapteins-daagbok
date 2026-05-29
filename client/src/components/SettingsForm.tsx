@@ -6,6 +6,7 @@ import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { notifyAppearanceChanged } from '../services/appearance.js'
+import ThemedSelect from './ThemedSelect.tsx'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -326,18 +327,18 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
           </p>
 
           <div className="input-group">
-            <select
+            <ThemedSelect
               id="app-theme"
-              className="input-text"
               value={theme}
-              onChange={(e) => handleThemeChange(e.target.value)}
               disabled={saving}
-            >
-              <option value="auto">{t('settings.theme_auto')}</option>
-              <option value="ocean">{t('settings.theme_ocean')}</option>
-              <option value="material">{t('settings.theme_material')}</option>
-              <option value="cupertino">{t('settings.theme_cupertino')}</option>
-            </select>
+              onChange={handleThemeChange}
+              options={[
+                { value: 'auto', label: t('settings.theme_auto') },
+                { value: 'ocean', label: t('settings.theme_ocean') },
+                { value: 'material', label: t('settings.theme_material') },
+                { value: 'cupertino', label: t('settings.theme_cupertino') }
+              ]}
+            />
           </div>
         </div>
 
@@ -350,17 +351,17 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
           </p>
 
           <div className="input-group">
-            <select
+            <ThemedSelect
               id="app-color-scheme"
-              className="input-text"
               value={colorScheme}
-              onChange={(e) => handleColorSchemeChange(e.target.value)}
               disabled={saving}
-            >
-              <option value="auto">{t('settings.color_scheme_auto')}</option>
-              <option value="light">{t('settings.color_scheme_light')}</option>
-              <option value="dark">{t('settings.color_scheme_dark')}</option>
-            </select>
+              onChange={handleColorSchemeChange}
+              options={[
+                { value: 'auto', label: t('settings.color_scheme_auto') },
+                { value: 'light', label: t('settings.color_scheme_light') },
+                { value: 'dark', label: t('settings.color_scheme_dark') }
+              ]}
+            />
           </div>
         </div>
 

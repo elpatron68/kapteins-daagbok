@@ -119,9 +119,103 @@ select.input-text {
   cursor: pointer;
 }
 
-select.input-text option {
-  background-color: var(--app-input-bg);
-  color: var(--app-input-text);
+.themed-select {
+  position: relative;
+  width: 100%;
+}
+
+.themed-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.themed-select-chevron {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: transform 0.2s ease;
+}
+
+.themed-select.is-open .themed-select-chevron {
+  transform: rotate(180deg);
+}
+
+.themed-select-menu {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--app-input-border);
+  border-radius: var(--app-radius-input);
+  box-shadow: var(--app-card-shadow);
+  max-height: 240px;
+  overflow-y: auto;
+  isolation: isolate;
+}
+
+html.scheme-light .themed-select-menu {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html.scheme-dark .themed-select-menu {
+  background: #1c1c1e;
+  color: #f8fafc;
+}
+
+.themed-select-option {
+  padding: 10px 12px;
+  border-radius: calc(var(--app-radius-input) - 2px);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+html.scheme-light .themed-select-option {
+  color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
+}
+
+html.scheme-dark .themed-select-option {
+  color: #f8fafc;
+  -webkit-text-fill-color: #f8fafc;
+}
+
+.themed-select-option:hover {
+  background: var(--app-accent-bg);
+}
+
+html.scheme-light .themed-select-option:hover {
+  color: var(--app-accent);
+  -webkit-text-fill-color: var(--app-accent);
+}
+
+html.scheme-dark .themed-select-option:hover {
+  color: var(--app-accent-light);
+  -webkit-text-fill-color: var(--app-accent-light);
+}
+
+.themed-select-option.is-selected {
+  background: var(--app-accent-bg);
+  font-weight: 600;
+}
+
+html.scheme-light .themed-select-option.is-selected {
+  color: var(--app-accent);
+  -webkit-text-fill-color: var(--app-accent);
+}
+
+html.scheme-dark .themed-select-option.is-selected {
+  color: var(--app-accent-light);
+  -webkit-text-fill-color: var(--app-accent-light);
 }
 
 .input-textarea {
