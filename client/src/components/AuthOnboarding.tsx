@@ -7,9 +7,11 @@ import {
   setLocalPin, 
   hasLocalPin, 
   decryptWithLocalPin, 
-  getActiveMasterKey 
+  getActiveMasterKey,
+  getKnownUsernames,
+  forgetUsername
 } from '../services/auth.js'
-import { KeyRound, ShieldAlert, Languages, HelpCircle } from 'lucide-react'
+import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
 
 interface AuthOnboardingProps {
   onAuthenticated: () => void
@@ -20,6 +22,10 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Accounts that have already authenticated on this device. Used to offer a
+  // one-click login without re-typing the username.
+  const [knownUsers, setKnownUsers] = useState<string[]>(() => getKnownUsernames())
   
   // Registration recovery phrase flow
   const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null)
@@ -57,13 +63,21 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
     }
   }
 
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-
+  const handleLogin = async (explicitUsername?: string) => {
     setLoading(true)
     setError(null)
     try {
-      const result = await loginUser()
+      // Pass the username when available so the server returns a concrete
+      // allowCredentials list. A usernameless (discoverable) assertion fails on
+      // some platform authenticators (e.g. Windows Hello); giving the explicit
+      // credential id makes those work. Priority: an explicitly clicked account
+      // > a typed name > the single remembered account > usernameless discovery.
+      const remembered = getKnownUsernames()
+      const target =
+        explicitUsername ||
+        username.trim() ||
+        (remembered.length === 1 ? remembered[0] : undefined)
+      const result = await loginUser(target)
       if (result.verified) {
         if (result.prfSuccess) {
           // Biometric E2E decryption succeeded
@@ -115,6 +129,10 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
 
   const handleConfirmRecovery = () => {
     setPinSetupUsername(username.trim() || encryptedPayloads?.username || '')
+    // Clear the recovery phrase so the PIN-setup screen can render: the
+    // `recoveryPhrase` branch is evaluated before `showPinSetup`, so leaving it
+    // set would keep the user stuck on the recovery-phrase screen.
+    setRecoveryPhrase(null)
     setShowPinSetup(true)
   }
 
@@ -160,6 +178,11 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleForgetUser = (name: string) => {
+    forgetUsername(name)
+    setKnownUsers(getKnownUsernames())
   }
 
   const toggleLanguage = () => {
@@ -373,8 +396,101 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
           disabled={loading}
           style={{ width: '100%', padding: '16px' }}
         >
-          {loading ? t('auth.processing') : t('auth.login')}
+          {loading
+            ? t('auth.processing')
+            : knownUsers.length === 1
+              ? t('auth.login_as', { name: knownUsers[0] })
+              : t('auth.login')}
         </button>
+
+        {/* Single remembered account: the main button already logs in as them,
+            so just offer a way to forget it (e.g. on a shared device). */}
+        {knownUsers.length === 1 && (
+          <button
+            type="button"
+            onClick={() => handleForgetUser(knownUsers[0])}
+            disabled={loading}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#64748b',
+              cursor: 'pointer',
+              fontSize: '13px',
+              textDecoration: 'underline',
+              alignSelf: 'center',
+              padding: 0
+            }}
+          >
+            {t('auth.not_user', { name: knownUsers[0] })}
+          </button>
+        )}
+
+        {/* Quick-login chips for accounts remembered on this device. Each one
+            logs in with its concrete credential, so no username typing needed. */}
+        {knownUsers.length > 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            <span style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>
+              {t('auth.quick_login')}
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+              {knownUsers.map((name) => (
+                <div
+                  key={name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '999px',
+                    padding: '4px 4px 4px 12px'
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleLogin(name)}
+                    disabled={loading}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#e2e8f0',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      padding: 0
+                    }}
+                  >
+                    <UserRound size={16} />
+                    {name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleForgetUser(name)}
+                    disabled={loading}
+                    title={t('auth.forget_account')}
+                    aria-label={t('auth.forget_account')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '22px',
+                      height: '22px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      borderRadius: '50%'
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Separator */}
         <div style={{ display: 'flex', alignItems: 'center', margin: '10px 0', width: '100%' }}>

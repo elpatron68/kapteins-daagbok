@@ -49,11 +49,57 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
 export async function setLocalPin(pin: string, username: string, masterKey: ArrayBuffer): Promise<void> {
   const pinKey = await deriveKeyFromPin(pin, username)
   const encrypted = await encryptBuffer(masterKey, pinKey)
-  localStorage.setItem(`pin_encrypted_master_key_${username.toLowerCase()}`, JSON.stringify(encrypted))
+  // Persist the userId alongside the PIN blob so a PIN-only unlock can restore
+  // the full session identity (needed for all authenticated API calls).
+  const userId = localStorage.getItem('active_userid') || ''
+  localStorage.setItem(
+    `pin_encrypted_master_key_${username.toLowerCase()}`,
+    JSON.stringify({ ...encrypted, userId })
+  )
 }
 
 export function hasLocalPin(username: string): boolean {
   return !!localStorage.getItem(`pin_encrypted_master_key_${username.toLowerCase()}`)
+}
+
+// Remembered accounts on this device.
+// A login WITH a username (concrete allowCredentials) works across every tested
+// platform authenticator (Google Password Manager, Bitwarden, Windows Hello),
+// whereas a usernameless/discoverable assertion fails on some of them. By
+// remembering the usernames that have authenticated on this device we can offer
+// a one-click login without ever asking the user to type their name again.
+const KNOWN_USERS_KEY = 'daagbox_known_users'
+
+export function getKnownUsernames(): string[] {
+  try {
+    const raw = localStorage.getItem(KNOWN_USERS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((u) => typeof u === 'string' && u.length > 0) : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberUsername(username: string): void {
+  if (!username) return
+  const list = getKnownUsernames()
+  if (list.some((u) => u.toLowerCase() === username.toLowerCase())) return
+  list.push(username)
+  try {
+    localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify(list))
+  } catch (e) {
+    console.error('Failed to persist known username:', e)
+  }
+}
+
+export function forgetUsername(username: string): void {
+  const list = getKnownUsernames().filter((u) => u.toLowerCase() !== username.toLowerCase())
+  try {
+    localStorage.setItem(KNOWN_USERS_KEY, JSON.stringify(list))
+  } catch (e) {
+    console.error('Failed to update known usernames:', e)
+  }
 }
 
 export function removeLocalPin(username: string): void {
@@ -64,12 +110,15 @@ export async function decryptWithLocalPin(pin: string, username: string): Promis
   const stored = localStorage.getItem(`pin_encrypted_master_key_${username.toLowerCase()}`)
   if (!stored) return null
 
-  const { ciphertext, iv, tag } = JSON.parse(stored)
+  const { ciphertext, iv, tag, userId } = JSON.parse(stored)
   const pinKey = await deriveKeyFromPin(pin, username)
   const decrypted = await decryptBuffer(ciphertext, iv, tag, pinKey)
-  
+
   setActiveMasterKey(decrypted)
   localStorage.setItem('active_username', username)
+  if (userId) {
+    localStorage.setItem('active_userid', userId)
+  }
   return decrypted
 }
 
@@ -89,50 +138,10 @@ function base64urlToBuffer(base64url: string): ArrayBuffer {
   return bytes.buffer
 }
 
-function randomChallengeBase64url(): string {
-  const bytes = new Uint8Array(32)
-  window.crypto.getRandomValues(bytes)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
 function extractPrfFirst(clientExtensionResults: any): ArrayBuffer | null {
   const first = clientExtensionResults?.prf?.results?.first
   if (!first) return null
   return typeof first === 'string' ? base64urlToBuffer(first) : first
-}
-
-// Some authenticators (notably on Chrome/Android and other platforms) only
-// expose the PRF output during an assertion (`navigator.credentials.get`),
-// not during credential creation. When that happens we perform a follow-up
-// authentication against the freshly created credential purely to obtain the
-// PRF output. The assertion itself is not sent to the server.
-async function evaluatePrfViaAuthentication(
-  credentialId: string,
-  transports?: string[]
-): Promise<ArrayBuffer | null> {
-  try {
-    const authOptions: any = {
-      challenge: randomChallengeBase64url(),
-      allowCredentials: [
-        {
-          id: credentialId,
-          type: 'public-key',
-          ...(transports && transports.length ? { transports } : {})
-        }
-      ],
-      userVerification: 'preferred',
-      extensions: { prf: { eval: { first: PRF_SALT.buffer } } }
-    }
-    const authResponse = await startAuthentication({ optionsJSON: authOptions })
-    return extractPrfFirst(authResponse.clientExtensionResults)
-  } catch (e) {
-    console.warn('PRF follow-up authentication during registration failed:', e)
-    return null
-  }
 }
 
 export interface RegistrationResult {
@@ -197,17 +206,13 @@ export async function registerUser(username: string): Promise<RegistrationResult
   const prfResults = (clientExtensionResults as any).prf
   console.log('Registration PRF extension result:', prfResults)
 
-  // Obtain the PRF output. Prefer the value returned by create(); if the
-  // authenticator advertised PRF support but did not return a result, fall
-  // back to a follow-up assertion to retrieve it.
-  let prfFirstBuffer: ArrayBuffer | null = extractPrfFirst(clientExtensionResults)
-  if (!prfFirstBuffer && prfResults?.enabled) {
-    console.log('PRF enabled but no result from create(); performing follow-up assertion')
-    prfFirstBuffer = await evaluatePrfViaAuthentication(
-      credentialResponse.id,
-      credentialResponse.response.transports
-    )
-  }
+  // Capture the PRF output if the authenticator already returned it during
+  // create(). We intentionally do NOT trigger a second assertion here: that
+  // produces a confusing second OS prompt during sign-up and fails on some
+  // platforms (e.g. Windows Hello). Authenticators that only expose PRF during
+  // an assertion are handled transparently by the lazy PRF enrollment performed
+  // on the next login (see completeLoginWithRecovery / enroll-prf).
+  const prfFirstBuffer: ArrayBuffer | null = extractPrfFirst(clientExtensionResults)
 
   if (prfFirstBuffer) {
     const prfKey = await deriveKeyFromPrf(prfFirstBuffer)
@@ -248,6 +253,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
     setActiveMasterKey(masterKey)
     localStorage.setItem('active_username', username)
     localStorage.setItem('active_userid', result.userId)
+    rememberUsername(username)
   }
 
   return {
@@ -296,32 +302,61 @@ export async function loginUser(username?: string): Promise<LoginResult> {
 
   const options = await optionsRes.json()
 
-  // Add PRF extension evaluation input
+  // Add PRF extension evaluation input.
+  // When the server returned a concrete allowCredentials list we use
+  // `evalByCredential` (keyed by the base64url credential id), which is the
+  // spec-compliant form for assertions with an allow list. Some platform
+  // authenticators (Windows Hello) reject plain `eval` in that case. For a
+  // usernameless/discoverable assertion (empty allow list) `eval` is required.
   if (!options.extensions) {
     options.extensions = {}
   }
-  options.extensions.prf = {
-    eval: {
-      first: PRF_SALT.buffer
+
+  // Some platform authenticators (notably Windows Hello) verify the user but
+  // then fail the assertion when the PRF extension is requested. Once we have
+  // observed that for a given account we remember it and stop requesting PRF on
+  // subsequent logins, so the user only sees a single OS prompt instead of two.
+  const prfSkipKey = username ? `prf_get_unsupported_${username.toLowerCase()}` : null
+  const skipPrf = prfSkipKey ? localStorage.getItem(prfSkipKey) === '1' : false
+
+  if (!skipPrf) {
+    // When the server returned a concrete allowCredentials list we use
+    // `evalByCredential` (keyed by the base64url credential id), the
+    // spec-compliant form for assertions with an allow list. For a
+    // usernameless/discoverable assertion (empty allow list) `eval` is required.
+    const allowList: any[] = Array.isArray(options.allowCredentials) ? options.allowCredentials : []
+    if (allowList.length > 0) {
+      const evalByCredential: Record<string, { first: ArrayBuffer }> = {}
+      for (const cred of allowList) {
+        if (cred?.id) {
+          evalByCredential[cred.id] = { first: PRF_SALT.buffer }
+        }
+      }
+      options.extensions.prf = { evalByCredential }
+    } else {
+      options.extensions.prf = { eval: { first: PRF_SALT.buffer } }
     }
   }
 
-  // 2. Start biometric Passkey verification
+  // 2. Start biometric Passkey verification.
+  // If the PRF-enabled attempt fails, transparently retry once WITHOUT the PRF
+  // extension so the user can still sign in (and fall back to PIN / recovery
+  // phrase for the E2E key). A successful no-PRF retry is a strong signal that
+  // PRF is the culprit, so we persist that to skip PRF next time.
   let credentialResponse
   const prfRequested = !!options.extensions?.prf
   try {
     credentialResponse = await startAuthentication({ optionsJSON: options })
   } catch (err: any) {
-    const isOptionError = err.name === 'NotSupportedError' || 
-                          err.message?.toLowerCase().includes('options') || 
-                          err.message?.toLowerCase().includes('process') ||
-                          err.message?.toLowerCase().includes('unable to')
-    if (prfRequested && isOptionError) {
-      console.warn('Authentication with PRF extension failed, retrying without PRF:', err)
+    if (prfRequested) {
+      console.warn('Passkey authentication with PRF extension failed, retrying without PRF:', err)
       if (options.extensions) {
         delete options.extensions.prf
       }
       credentialResponse = await startAuthentication({ optionsJSON: options })
+      if (prfSkipKey) {
+        localStorage.setItem(prfSkipKey, '1')
+      }
     } else {
       throw err
     }
@@ -348,6 +383,16 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
 
   const resolvedUsername = result.username
+
+  // The WebAuthn assertion is verified at this point, so persist the identity
+  // immediately. This must happen regardless of how the E2E master key is
+  // ultimately obtained (PRF, PIN or recovery phrase) — otherwise a subsequent
+  // PIN/recovery unlock leaves `active_userid` unset and every API call fails
+  // with "User not authenticated".
+  localStorage.setItem('active_username', resolvedUsername)
+  localStorage.setItem('active_userid', result.userId)
+  // Remember this account so future logins on this device need no typing.
+  rememberUsername(resolvedUsername)
 
   // Try to decrypt master key using biometric PRF results
   const clientExtensionResults = credentialResponse.clientExtensionResults || {}
