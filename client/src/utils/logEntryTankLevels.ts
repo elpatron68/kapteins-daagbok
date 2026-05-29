@@ -41,6 +41,13 @@ export function getClosingTankLevel(tank?: Partial<TankLevels> | null): number {
 export interface LogEntryTankSource {
   freshwater?: Partial<TankLevels>
   fuel?: Partial<TankLevels>
+  destination?: string
+}
+
+export interface CarryOverFromPreviousDay {
+  freshwater: TankLevels
+  fuel: TankLevels
+  departure: string
 }
 
 export function emptyTankLevels(morning = 0): TankLevels {
@@ -61,4 +68,15 @@ export function carryOverTankLevelsFromPreviousDay(previousEntry?: LogEntryTankS
     freshwater: emptyTankLevels(getClosingTankLevel(previousEntry.freshwater)),
     fuel: emptyTankLevels(getClosingTankLevel(previousEntry.fuel))
   }
+}
+
+export function carryOverFromPreviousDay(previousEntry?: LogEntryTankSource | null): CarryOverFromPreviousDay {
+  const { freshwater, fuel } = carryOverTankLevelsFromPreviousDay(previousEntry)
+  const departure = previousEntry?.destination?.trim() || ''
+
+  return { freshwater, fuel, departure }
+}
+
+export function hasCarryOverFromPreviousDay(carryOver: CarryOverFromPreviousDay): boolean {
+  return carryOver.freshwater.morning > 0 || carryOver.fuel.morning > 0 || carryOver.departure.length > 0
 }

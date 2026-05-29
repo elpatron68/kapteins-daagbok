@@ -11,11 +11,12 @@ import LogEntryEditor from './LogEntryEditor.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
 import {
-  carryOverTankLevelsFromPreviousDay,
+  carryOverFromPreviousDay,
   compareTravelDaysChronological,
   emptyTankLevels,
   formatTankLiters,
   getNextTravelDayNumber,
+  hasCarryOverFromPreviousDay,
   type LogEntryTankSource,
   type TravelDaySortable
 } from '../utils/logEntryTankLevels.js'
@@ -228,11 +229,12 @@ export default function LogEntriesList({
 
       decryptedEntries.sort(compareTravelDaysChronological)
       const previousEntry = decryptedEntries.at(-1) ?? null
-      let { freshwater, fuel } = carryOverTankLevelsFromPreviousDay(previousEntry)
+      let { freshwater, fuel, departure } = carryOverFromPreviousDay(previousEntry)
 
-      if (previousEntry && (freshwater.morning > 0 || fuel.morning > 0)) {
+      if (previousEntry && hasCarryOverFromPreviousDay({ freshwater, fuel, departure })) {
         const confirmed = await showConfirm(
           t('logs.carry_over_tanks_confirm', {
+            departure: departure || '—',
             fw: formatTankLiters(freshwater.morning),
             fuel: formatTankLiters(fuel.morning)
           }),
@@ -243,6 +245,7 @@ export default function LogEntriesList({
         if (!confirmed) {
           freshwater = emptyTankLevels()
           fuel = emptyTankLevels()
+          departure = ''
         }
       }
 
@@ -255,7 +258,7 @@ export default function LogEntriesList({
       const initialPayload = {
         date: todayStr,
         dayOfTravel: getNextTravelDayNumber(decryptedEntries),
-        departure: '',
+        departure,
         destination: '',
         freshwater,
         fuel,
