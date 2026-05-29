@@ -34,10 +34,19 @@ router.post('/register-options', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' })
     }
 
+    // NOTE: @simplewebauthn/server v9 places `userID` verbatim into the
+    // emitted `user.id` JSON field. The browser client (v13) however decodes
+    // `user.id` as a base64url string. Passing a raw username therefore either
+    // corrupts the user handle or, for usernames containing characters outside
+    // the base64url alphabet (".", " ", "@", umlauts, ...), makes the browser
+    // throw "Invalid character" before the passkey prompt even appears.
+    // Encoding the username as base64url keeps the value spec-compliant.
+    const userID = Buffer.from(username, 'utf8').toString('base64url')
+
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
-      userID: username,
+      userID,
       userName: username,
       userDisplayName: username,
       attestationType: 'none',

@@ -89,6 +89,52 @@ function base64urlToBuffer(base64url: string): ArrayBuffer {
   return bytes.buffer
 }
 
+function randomChallengeBase64url(): string {
+  const bytes = new Uint8Array(32)
+  window.crypto.getRandomValues(bytes)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function extractPrfFirst(clientExtensionResults: any): ArrayBuffer | null {
+  const first = clientExtensionResults?.prf?.results?.first
+  if (!first) return null
+  return typeof first === 'string' ? base64urlToBuffer(first) : first
+}
+
+// Some authenticators (notably on Chrome/Android and other platforms) only
+// expose the PRF output during an assertion (`navigator.credentials.get`),
+// not during credential creation. When that happens we perform a follow-up
+// authentication against the freshly created credential purely to obtain the
+// PRF output. The assertion itself is not sent to the server.
+async function evaluatePrfViaAuthentication(
+  credentialId: string,
+  transports?: string[]
+): Promise<ArrayBuffer | null> {
+  try {
+    const authOptions: any = {
+      challenge: randomChallengeBase64url(),
+      allowCredentials: [
+        {
+          id: credentialId,
+          type: 'public-key',
+          ...(transports && transports.length ? { transports } : {})
+        }
+      ],
+      userVerification: 'preferred',
+      extensions: { prf: { eval: { first: PRF_SALT.buffer } } }
+    }
+    const authResponse = await startAuthentication({ optionsJSON: authOptions })
+    return extractPrfFirst(authResponse.clientExtensionResults)
+  } catch (e) {
+    console.warn('PRF follow-up authentication during registration failed:', e)
+    return null
+  }
+}
+
 export interface RegistrationResult {
   verified: boolean
   recoveryPhrase: string
@@ -109,11 +155,14 @@ export async function registerUser(username: string): Promise<RegistrationResult
 
   const options = await optionsRes.json()
 
-  // Request the PRF extension in the browser options
+  // Request the PRF extension WITH an evaluation salt. This must match the
+  // salt used during login (PRF_SALT), otherwise the PRF-derived key produced
+  // at login would never match what was stored here and every login would fall
+  // back to the recovery phrase.
   if (!options.extensions) {
     options.extensions = {}
   }
-  options.extensions.prf = {}
+  options.extensions.prf = { eval: { first: PRF_SALT.buffer } }
 
   // 2. Start biometric Passkey creation
   let credentialResponse
@@ -144,17 +193,24 @@ export async function registerUser(username: string): Promise<RegistrationResult
   let encryptedMasterKeyPrfIv = null
   let encryptedMasterKeyPrfTag = null
 
-  console.log('Registration credential response:', credentialResponse)
   const clientExtensionResults = credentialResponse.clientExtensionResults || {}
-  console.log('Registration client extension results:', clientExtensionResults)
   const prfResults = (clientExtensionResults as any).prf
   console.log('Registration PRF extension result:', prfResults)
 
-  if (prfResults?.enabled && prfResults.results?.first) {
-    const firstBuffer = typeof prfResults.results.first === 'string'
-      ? base64urlToBuffer(prfResults.results.first)
-      : prfResults.results.first
-    const prfKey = await deriveKeyFromPrf(firstBuffer)
+  // Obtain the PRF output. Prefer the value returned by create(); if the
+  // authenticator advertised PRF support but did not return a result, fall
+  // back to a follow-up assertion to retrieve it.
+  let prfFirstBuffer: ArrayBuffer | null = extractPrfFirst(clientExtensionResults)
+  if (!prfFirstBuffer && prfResults?.enabled) {
+    console.log('PRF enabled but no result from create(); performing follow-up assertion')
+    prfFirstBuffer = await evaluatePrfViaAuthentication(
+      credentialResponse.id,
+      credentialResponse.response.transports
+    )
+  }
+
+  if (prfFirstBuffer) {
+    const prfKey = await deriveKeyFromPrf(prfFirstBuffer)
     const encryptedPrf = await encryptBuffer(masterKey, prfKey)
     encryptedMasterKeyPrf = encryptedPrf.ciphertext
     encryptedMasterKeyPrfIv = encryptedPrf.iv
