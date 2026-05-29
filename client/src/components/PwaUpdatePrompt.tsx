@@ -14,7 +14,7 @@ export default function PwaUpdatePrompt() {
     setUpdating(true)
     try {
       await updateApp()
-    } catch {
+    } finally {
       setUpdating(false)
     }
   }
