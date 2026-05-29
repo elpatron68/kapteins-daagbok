@@ -143,10 +143,26 @@ APP_VERSION="$6"
 
 cd "$REMOTE_DIR" || { echo "Error: Remote directory '$REMOTE_DIR' not found."; exit 1; }
 
-echo "Pulling latest changes from Git..."
-git pull --tags
+echo "Syncing repository from origin..."
+CURRENT_BRANCH="$(git branch --show-current)"
+if [ -z "$CURRENT_BRANCH" ]; then
+  echo "Error: Could not determine current Git branch."
+  exit 1
+fi
+
+if ! git diff-index --quiet HEAD -- || [ -n "$(git status --porcelain)" ]; then
+  echo "Warning: Local changes on deployment host will be discarded."
+fi
+
+git fetch --tags origin
 if [ $? -ne 0 ]; then
-  echo "Error: Git pull failed."
+  echo "Error: Git fetch failed."
+  exit 1
+fi
+
+git reset --hard "origin/${CURRENT_BRANCH}"
+if [ $? -ne 0 ]; then
+  echo "Error: Git reset to origin/${CURRENT_BRANCH} failed."
   exit 1
 fi
 
