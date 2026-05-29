@@ -236,7 +236,16 @@
       "loading": "Loading logbooks...",
       "status_synced": "Synced",
       "status_local": "Local Cache Only",
-      "delete_btn": "Delete logbook"
+      "delete_btn": "Delete logbook",
+      "section_owned": "My logbooks",
+      "section_shared": "Shared logbooks",
+      "section_shared_hint": "You were invited as crew. Skipper profile and settings belong to the owner.",
+      "role_owner": "Own logbook",
+      "role_owner_hint": "You own this logbook and act as skipper",
+      "role_crew": "Crew access",
+      "role_crew_hint": "Invited logbook — you can collaborate and sign as crew",
+      "role_read": "Read only",
+      "role_read_hint": "Shared logbook — view only, no editing"
     },
     "crew": {
       "title": "Skipper & Crew Profiles",

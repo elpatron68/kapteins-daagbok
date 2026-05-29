@@ -26,7 +26,10 @@ import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
+import LogbookRoleBadge from './components/LogbookRoleBadge.tsx'
 import { db } from './services/db.js'
+import { getLogbookAccess } from './services/logbookAccess.js'
+import type { LogbookAccessRole } from './services/logbook.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages, BarChart2 } from 'lucide-react'
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
@@ -58,6 +61,34 @@ function App() {
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
     [activeLogbookId]
   )
+
+  const activeLogbookRecord = useLiveQuery(
+    () => (activeLogbookId ? db.logbooks.get(activeLogbookId) : undefined),
+    [activeLogbookId]
+  )
+
+  const [activeAccessRole, setActiveAccessRole] = useState<LogbookAccessRole>('OWNER')
+
+  useEffect(() => {
+    if (!activeLogbookId) {
+      setActiveAccessRole('OWNER')
+      return
+    }
+
+    if (activeLogbookRecord?.isShared !== 1) {
+      setActiveAccessRole('OWNER')
+      return
+    }
+
+    const cachedRole = activeLogbookRecord.collaborationRole
+    if (cachedRole) {
+      setActiveAccessRole(cachedRole)
+    }
+
+    getLogbookAccess(activeLogbookId).then((access) => {
+      if (access) setActiveAccessRole(access.role)
+    })
+  }, [activeLogbookId, activeLogbookRecord])
 
   useEffect(() => {
     const syncAppearance = () => {
@@ -267,8 +298,17 @@ function App() {
               {t('nav.dashboard')}
             </button>
             <div className="app-title-area">
-              <h2>{activeLogbookTitle}</h2>
-              <p className="app-subtitle">{t('app.name')} / {activeLogbookId.substring(0, 8)}...</p>
+              <div className="app-title-row">
+                <h2>{activeLogbookTitle}</h2>
+                {activeAccessRole !== 'OWNER' && (
+                  <LogbookRoleBadge role={activeAccessRole} />
+                )}
+              </div>
+              <p className="app-subtitle">
+                {activeAccessRole !== 'OWNER'
+                  ? t('dashboard.section_shared_hint')
+                  : `${t('app.name')} / ${activeLogbookId?.substring(0, 8)}...`}
+              </p>
             </div>
           </div>
 

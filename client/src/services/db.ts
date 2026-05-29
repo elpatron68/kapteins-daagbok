@@ -7,6 +7,7 @@ export interface LocalLogbook {
   isSynced: number // 1 = yes, 0 = pending local modifications
   isShared?: number // 1 = collaborator copy, 0 or unset = owned
   isDemo?: number // 1 = demo logbook seeded at registration
+  collaborationRole?: 'READ' | 'WRITE' // set when isShared = 1
 }
 
 export interface LocalYacht {

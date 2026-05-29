@@ -6,12 +6,15 @@ import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 
 const API_BASE = '/api/logbooks'
 
+export type LogbookAccessRole = 'OWNER' | 'READ' | 'WRITE'
+
 export interface DecryptedLogbook {
   id: string
   title: string
   updatedAt: string
   isSynced: boolean
   isShared: boolean
+  accessRole: LogbookAccessRole
   isDemo?: boolean
 }
 
@@ -101,14 +104,18 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
 
         // Update Dexie database cache
         const localById = new Map(localLogbooksArray.map((lb) => [lb.id, lb]))
-        const localLogbooks: LocalLogbook[] = serverLogbooks.map((lb: any) => ({
-          id: lb.id,
-          encryptedTitle: lb.encryptedTitle,
-          updatedAt: lb.updatedAt || new Date().toISOString(),
-          isSynced: 1,
-          isShared: lb.userId !== userId ? 1 : 0,
-          isDemo: localById.get(lb.id)?.isDemo
-        }))
+        const localLogbooks: LocalLogbook[] = serverLogbooks.map((lb: any) => {
+          const isShared = lb.userId !== userId
+          return {
+            id: lb.id,
+            encryptedTitle: lb.encryptedTitle,
+            updatedAt: lb.updatedAt || new Date().toISOString(),
+            isSynced: 1,
+            isShared: isShared ? 1 : 0,
+            collaborationRole: isShared ? (lb.collaborators?.[0]?.role || 'WRITE') : undefined,
+            isDemo: localById.get(lb.id)?.isDemo
+          }
+        })
 
         // Clear existing cache for this user and insert new ones
         await db.logbooks.bulkPut(localLogbooks)
@@ -131,6 +138,7 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       updatedAt: lb.updatedAt,
       isSynced: lb.isSynced === 1,
       isShared: lb.isShared === 1,
+      accessRole: lb.isShared === 1 ? (lb.collaborationRole || 'WRITE') : 'OWNER',
       isDemo: lb.isDemo === 1
     })
   }
@@ -207,7 +215,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
           title,
           updatedAt: serverLb.updatedAt,
           isSynced: true,
-          isShared: false
+          isShared: false,
+          accessRole: 'OWNER'
         }
       }
     } catch (error) {
@@ -238,7 +247,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     title,
     updatedAt: now,
     isSynced: false,
-    isShared: false
+    isShared: false,
+    accessRole: 'OWNER'
   }
 }
 

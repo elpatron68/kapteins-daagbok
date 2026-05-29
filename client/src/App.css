@@ -839,6 +839,42 @@ html.scheme-dark .themed-select-option.is-selected {
   background: var(--app-surface-hover);
 }
 
+.logbook-card--shared {
+  border-left: 3px solid #38bdf8;
+}
+
+.logbook-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.logbook-section-header h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-text-heading);
+}
+
+.logbook-section-hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--app-text-muted);
+  max-width: 52rem;
+}
+
+.card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title-row h3 {
+  margin: 0;
+}
+
 .card-icon {
   background: var(--app-accent-bg);
   color: var(--app-accent-light);
@@ -997,6 +1033,13 @@ html.scheme-dark .themed-select-option.is-selected {
   font-size: 20px;
   margin: 0;
   color: var(--app-text-heading);
+}
+
+.app-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .app-title-area .app-subtitle {
@@ -2973,6 +3016,36 @@ html.theme-cupertino .events-scroll-container {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.role-badge--owner {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.role-badge--crew {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+.role-badge--read {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .app-tour-root {

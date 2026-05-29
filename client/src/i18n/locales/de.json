@@ -236,7 +236,16 @@
       "loading": "Logbücher werden geladen...",
       "status_synced": "Synchronisiert",
       "status_local": "Nur lokaler Cache",
-      "delete_btn": "Logbuch löschen"
+      "delete_btn": "Logbuch löschen",
+      "section_owned": "Meine Logbücher",
+      "section_shared": "Geteilte Logbücher",
+      "section_shared_hint": "Sie wurden als Crew-Mitglied eingeladen. Skipper-Profil und Einstellungen gehören dem Eigner.",
+      "role_owner": "Eigenes Logbuch",
+      "role_owner_hint": "Sie sind Eigner und Skipper dieses Logbuchs",
+      "role_crew": "Crew-Zugang",
+      "role_crew_hint": "Eingeladenes Logbuch — Sie können als Crew mitarbeiten und signieren",
+      "role_read": "Nur Lesen",
+      "role_read_hint": "Geteiltes Logbuch — nur Ansicht, keine Bearbeitung"
     },
     "crew": {
       "title": "Skipper- & Crew-Profile",

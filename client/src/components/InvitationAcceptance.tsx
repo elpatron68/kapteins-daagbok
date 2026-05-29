@@ -182,6 +182,8 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         throw new Error(serverError.error || (isDe ? 'Beitritt auf dem Server fehlgeschlagen.' : 'Failed to join logbook on the server.'))
       }
 
+      const acceptResult = await res.json()
+
       await saveLogbookKey(logbookId, logbookKey)
 
       if (rawEncryptedTitle) {
@@ -190,7 +192,8 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           encryptedTitle: rawEncryptedTitle,
           updatedAt: new Date().toISOString(),
           isSynced: 1,
-          isShared: 1
+          isShared: 1,
+          collaborationRole: acceptResult.role === 'READ' ? 'READ' : 'WRITE'
         })
       }
 

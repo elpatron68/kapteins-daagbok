@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../services/db.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, type DecryptedLogbook } from '../services/logbook.js'
+import LogbookRoleBadge from './LogbookRoleBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
@@ -106,6 +107,68 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
     i18n.changeLanguage(nextLang)
   }
 
+  const ownedLogbooks = logbooks.filter((lb) => !lb.isShared)
+  const sharedLogbooks = logbooks.filter((lb) => lb.isShared)
+
+  const renderLogbookCard = (lb: DecryptedLogbook) => (
+    <div
+      key={lb.id}
+      className={`logbook-card glass${lb.isShared ? ' logbook-card--shared' : ''}`}
+      onClick={() => onSelectLogbook(lb.id, lb.title)}
+    >
+      <div className="card-icon">
+        <BookOpen size={24} />
+      </div>
+
+      <div className="card-info">
+        <div className="card-title-row">
+          <h3>{lb.title}</h3>
+          <LogbookRoleBadge role={lb.accessRole} />
+        </div>
+        <div className="card-meta">
+          <span className={`sync-badge ${lb.isSynced ? 'synced' : 'local'}`}>
+            {lb.isSynced ? t('dashboard.status_synced') : t('dashboard.status_local')}
+          </span>
+          {lb.isDemo && (
+            <span className="demo-badge">{t('demo.badge')}</span>
+          )}
+          <span className="date-badge">
+            {new Date(lb.updatedAt).toLocaleDateString(i18n.language, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            })}
+          </span>
+        </div>
+      </div>
+
+      <button
+        className="btn-delete"
+        onClick={(e) => handleDelete(lb.id, e)}
+        title={t('dashboard.delete_btn')}
+        style={{ visibility: lb.isShared ? 'hidden' : 'visible' }}
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  )
+
+  const renderLogbookSection = (
+    title: string,
+    items: DecryptedLogbook[],
+    hint?: string
+  ) => (
+    <div className="logbook-section">
+      <div className="logbook-section-header">
+        <h3>{title}</h3>
+        {hint && <p className="logbook-section-hint">{hint}</p>}
+      </div>
+      <div className="logbooks-grid">
+        {items.map(renderLogbookCard)}
+      </div>
+    </div>
+  )
+
   return (
     <div className="dashboard-container">
       {/* Premium Dashboard Header */}
@@ -201,42 +264,16 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           ) : logbooks.length === 0 ? (
             <div className="dashboard-status-msg glass">{t('dashboard.no_logbooks')}</div>
           ) : (
-            <div className="logbooks-grid">
-              {logbooks.map((lb) => (
-                <div key={lb.id} className="logbook-card glass" onClick={() => onSelectLogbook(lb.id, lb.title)}>
-                  <div className="card-icon">
-                    <BookOpen size={24} />
-                  </div>
-                  
-                  <div className="card-info">
-                    <h3>{lb.title}</h3>
-                    <div className="card-meta">
-                      <span className={`sync-badge ${lb.isSynced ? 'synced' : 'local'}`}>
-                        {lb.isSynced ? t('dashboard.status_synced') : t('dashboard.status_local')}
-                      </span>
-                      {lb.isDemo && (
-                        <span className="demo-badge">{t('demo.badge')}</span>
-                      )}
-                      <span className="date-badge">
-                        {new Date(lb.updatedAt).toLocaleDateString(i18n.language, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    className="btn-delete"
-                    onClick={(e) => handleDelete(lb.id, e)}
-                    title={t('dashboard.delete_btn')}
-                    style={{ visibility: lb.isShared ? 'hidden' : 'visible' }}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              ))}
+            <div className="logbook-sections">
+              {ownedLogbooks.length > 0 && renderLogbookSection(
+                sharedLogbooks.length > 0 ? t('dashboard.section_owned') : t('dashboard.title'),
+                ownedLogbooks
+              )}
+              {sharedLogbooks.length > 0 && renderLogbookSection(
+                t('dashboard.section_shared'),
+                sharedLogbooks,
+                t('dashboard.section_shared_hint')
+              )}
             </div>
           )}
         </section>
