@@ -123,6 +123,8 @@
       "sign_passkey_signed": "Signed by {{username}}",
       "sign_passkey_export": "Passkey: {{username}} ({{date}})",
       "sign_passkey_clear": "Remove Passkey signature",
+      "sign_mode_passkey": "Passkey",
+      "sign_mode_classic": "Classic",
       "sign_passkey_failed": "Passkey signing failed",
       "sign_passkey_cancelled": "Passkey signing cancelled",
       "sign_invalid": "Signature invalid — entry content changed",

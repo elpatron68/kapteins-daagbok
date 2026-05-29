@@ -2190,6 +2190,36 @@ body:has(.theme-cupertino) {
   line-height: 1.4;
 }
 
+.signature-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.signature-mode-btn {
+  border: none;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(226, 232, 240, 0.75);
+  background: transparent;
+}
+
+.signature-mode-btn.active {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+.signature-mode-btn:hover:not(.active) {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .passkey-sign-block {
   display: flex;
   flex-direction: column;

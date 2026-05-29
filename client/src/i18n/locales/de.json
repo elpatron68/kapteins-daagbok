@@ -123,6 +123,8 @@
       "sign_passkey_signed": "Freigegeben von {{username}}",
       "sign_passkey_export": "Passkey: {{username}} ({{date}})",
       "sign_passkey_clear": "Passkey-Freigabe entfernen",
+      "sign_mode_passkey": "Passkey",
+      "sign_mode_classic": "Klassisch",
       "sign_passkey_failed": "Passkey-Freigabe fehlgeschlagen",
       "sign_passkey_cancelled": "Passkey-Freigabe abgebrochen",
       "sign_invalid": "Signatur ungültig — Inhalt wurde geändert",

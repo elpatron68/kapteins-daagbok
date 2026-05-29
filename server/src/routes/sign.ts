@@ -150,25 +150,28 @@ router.post('/options', async (req: any, res) => {
 
     const nonce = crypto.randomBytes(16).toString('hex')
     const challengePayload = `${entryId}:${entryHash}:${role}:${nonce}`
-    const derivedChallenge = crypto
+    const challengeBytes = crypto
       .createHash('sha256')
       .update(challengePayload)
-      .digest('base64url')
+      .digest()
 
-    signingChallenges.set(derivedChallenge, {
+    const options = await generateAuthenticationOptions({
+      rpID,
+      challenge: challengeBytes,
+      allowCredentials,
+      userVerification: 'required'
+    })
+
+    // Must key by options.challenge — the base64url value returned to the client.
+    // Passing a string challenge would be UTF-8 re-encoded by simplewebauthn, so the
+    // client challenge would not match a map key derived from our pre-encoded string.
+    signingChallenges.set(options.challenge, {
       userId: req.userId,
       logbookId,
       entryId,
       entryHash,
       role,
       expiresAt: Date.now() + CHALLENGE_TTL_MS
-    })
-
-    const options = await generateAuthenticationOptions({
-      rpID,
-      challenge: derivedChallenge,
-      allowCredentials,
-      userVerification: 'required'
     })
 
     return res.json(options)
