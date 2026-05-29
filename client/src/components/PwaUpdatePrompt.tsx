@@ -5,17 +5,16 @@ import { usePwaUpdate } from '../hooks/usePwaUpdate.js'
 
 export default function PwaUpdatePrompt() {
   const { t } = useTranslation()
-  const { needRefresh, updateApp } = usePwaUpdate()
+  const { needRefresh, updateApp, dismissUpdate } = usePwaUpdate()
   const [updating, setUpdating] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
 
-  if (!needRefresh || dismissed) return null
+  if (!needRefresh) return null
 
   const handleUpdate = async () => {
     setUpdating(true)
     try {
       await updateApp()
-    } finally {
+    } catch {
       setUpdating(false)
     }
   }
@@ -43,7 +42,7 @@ export default function PwaUpdatePrompt() {
         <button
           type="button"
           className="pwa-update-link"
-          onClick={() => setDismissed(true)}
+          onClick={dismissUpdate}
         >
           {t('pwa.later')}
         </button>
@@ -52,7 +51,7 @@ export default function PwaUpdatePrompt() {
       <button
         type="button"
         className="pwa-update-close"
-        onClick={() => setDismissed(true)}
+        onClick={dismissUpdate}
         aria-label={t('pwa.later')}
       >
         <X size={18} />
