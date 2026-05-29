@@ -204,8 +204,6 @@ router.post('/verify', async (req: any, res) => {
       return res.status(400).json({ error: 'Signing context mismatch' })
     }
 
-    signingChallenges.delete(challenge)
-
     const access = await getLogbookWithAccess(logbookId, req.userId)
     if (!access) {
       return res.status(403).json({ error: 'Forbidden: Access denied' })
@@ -249,6 +247,8 @@ router.post('/verify', async (req: any, res) => {
     if (!verification.verified || !verification.authenticationInfo) {
       return res.status(400).json({ error: 'Signature verification failed' })
     }
+
+    signingChallenges.delete(challenge)
 
     await prisma.credential.update({
       where: { id: dbCred.id },

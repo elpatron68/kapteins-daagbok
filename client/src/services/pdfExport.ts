@@ -4,6 +4,12 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 import { isSignatureImage, isPasskeySignature } from '../utils/signatures.js'
+import i18n from '../i18n/index.js'
+
+function formatPasskeySignDate(signedAt: string): string {
+  const locale = i18n.language === 'de' ? 'de-DE' : 'en-GB'
+  return new Date(signedAt).toLocaleString(locale)
+}
 
 export async function generateLogbookPagePdf(logbookId: string, entryId: string, preloadedData?: { yacht: any; entry: any }): Promise<jsPDF> {
   let yachtName = '', homePort = '', registration = '', callsign = '', atis = '', mmsi = '';
@@ -232,7 +238,7 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.text('Skipper Unterschrift:', sigX + 2, sigY + 4.2);
   if (isPasskeySignature(entry.signSkipper)) {
     doc.setFont('Helvetica', 'normal');
-    const skipperDate = new Date(entry.signSkipper.signedAt).toLocaleString('de-DE');
+    const skipperDate = formatPasskeySignDate(entry.signSkipper.signedAt);
     doc.text(`Passkey: ${entry.signSkipper.username}`, sigX + 2, sigY + 9);
     doc.text(skipperDate, sigX + 2, sigY + 13.5);
   } else if (isSignatureImage(entry.signSkipper)) {
@@ -246,7 +252,7 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.text('Crew Unterschrift:', sigX + 80.5, sigY + 4.2);
   if (isPasskeySignature(entry.signCrew)) {
     doc.setFont('Helvetica', 'normal');
-    const crewDate = new Date(entry.signCrew.signedAt).toLocaleString('de-DE');
+    const crewDate = formatPasskeySignDate(entry.signCrew.signedAt);
     doc.text(`Passkey: ${entry.signCrew.username}`, sigX + 80.5, sigY + 9);
     doc.text(crewDate, sigX + 80.5, sigY + 13.5);
   } else if (isSignatureImage(entry.signCrew)) {
