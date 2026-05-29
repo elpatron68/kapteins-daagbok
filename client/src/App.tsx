@@ -166,7 +166,7 @@ function App() {
 
   if (isAcceptingInvite) {
     return (
-      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      <div className={`theme-${appliedTheme} auth-screen`}>
         <InvitationAcceptance
           onAccepted={(logbookId, title) => {
             setIsAuthenticated(true)
@@ -186,7 +186,7 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      <div className={`theme-${appliedTheme} auth-screen`}>
         <AuthOnboarding onAuthenticated={handleAuthenticated} />
       </div>
     )

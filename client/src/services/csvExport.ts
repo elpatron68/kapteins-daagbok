@@ -3,6 +3,7 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 import { formatSignatureForExport } from '../utils/signatures.js'
+import i18n from '../i18n/index.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
   if (val === null || val === undefined) return '';
@@ -89,14 +90,15 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
   ];
 
   const rows: string[][] = [headers];
+  const signaturePlaceholder = i18n.t('logs.sign_export_image');
 
   for (const entry of decryptedEntries) {
     const dateVal = entry.date || '';
     const travelDay = entry.dayOfTravel || '';
     const dep = entry.departure || '';
     const dest = entry.destination || '';
-    const signS = formatSignatureForExport(entry.signSkipper);
-    const signC = formatSignatureForExport(entry.signCrew);
+    const signS = formatSignatureForExport(entry.signSkipper, signaturePlaceholder);
+    const signC = formatSignatureForExport(entry.signCrew, signaturePlaceholder);
     const trackDist = entry.trackDistanceNm ?? '';
     const trackMax = entry.trackSpeedMaxKn ?? '';
     const trackAvg = entry.trackSpeedAvgKn ?? '';

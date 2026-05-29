@@ -117,6 +117,7 @@
       "sign_crew": "Crew-Unterschrift",
       "sign_hint": "Mit Finger, Stift oder Maus unterschreiben",
       "sign_clear": "Löschen",
+      "sign_export_image": "[Unterschrift]",
       "no_entries": "Keine Logbucheinträge für diese Yacht gefunden. Erstellen Sie Ihren ersten Reisetag!",
       "back_to_list": "Zurück zur Journal-Liste",
       "save": "Logbuchseite speichern",

@@ -117,6 +117,7 @@
       "sign_crew": "Crew signature",
       "sign_hint": "Sign with finger, stylus, or mouse",
       "sign_clear": "Clear",
+      "sign_export_image": "[Signature]",
       "no_entries": "No logbook entries found for this yacht. Create your first travel day to begin!",
       "back_to_list": "Back to Journal List",
       "save": "Save Logbook Page",
