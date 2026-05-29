@@ -73,7 +73,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
   }
   options.extensions.prf = {
     eval: {
-      first: PRF_SALT
+      first: PRF_SALT.buffer
     }
   }
 
@@ -180,7 +180,7 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
   options.extensions.prf = {
     eval: {
-      first: PRF_SALT
+      first: PRF_SALT.buffer
     }
   }
 
