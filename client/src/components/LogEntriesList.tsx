@@ -10,6 +10,15 @@ import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
+import {
+  carryOverTankLevelsFromPreviousDay,
+  compareTravelDaysChronological,
+  emptyTankLevels,
+  formatTankLiters,
+  getNextTravelDayNumber,
+  type LogEntryTankSource,
+  type TravelDaySortable
+} from '../utils/logEntryTankLevels.js'
 
 interface LogEntriesListProps {
   logbookId: string
@@ -179,26 +188,52 @@ export default function LogEntriesList({
 
   const handleCreate = async () => {
     if (readOnly) return
-    setLoading(true)
     setError(null)
     try {
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
+      const localEntries = await db.entries.where({ logbookId }).toArray()
+      const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
+
+      for (const entry of localEntries) {
+        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+        if (decrypted) decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+      }
+
+      decryptedEntries.sort(compareTravelDaysChronological)
+      const previousEntry = decryptedEntries.at(-1) ?? null
+      let { freshwater, fuel } = carryOverTankLevelsFromPreviousDay(previousEntry)
+
+      if (previousEntry && (freshwater.morning > 0 || fuel.morning > 0)) {
+        const confirmed = await showConfirm(
+          t('logs.carry_over_tanks_confirm', {
+            fw: formatTankLiters(freshwater.morning),
+            fuel: formatTankLiters(fuel.morning)
+          }),
+          t('logs.carry_over_tanks_title'),
+          t('logs.carry_over_tanks_yes'),
+          t('logs.carry_over_tanks_no')
+        )
+        if (!confirmed) {
+          freshwater = emptyTankLevels()
+          fuel = emptyTankLevels()
+        }
+      }
+
+      setLoading(true)
+
       const localId = window.crypto.randomUUID()
       const nowStr = new Date().toISOString()
       const todayStr = nowStr.substring(0, 10)
 
-      // Calculate next travel day number
-      const nextDayNum = String(entries.length + 1)
-
       const initialPayload = {
         date: todayStr,
-        dayOfTravel: nextDayNum,
+        dayOfTravel: getNextTravelDayNumber(decryptedEntries),
         departure: '',
         destination: '',
-        freshwater: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
-        fuel: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+        freshwater,
+        fuel,
         signSkipper: '',
         signCrew: '',
         events: []

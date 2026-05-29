@@ -1564,6 +1564,7 @@ body:has(.theme-cupertino) {
   color: #e2e8f0;
   line-height: 1.5;
   margin: 0 0 24px 0;
+  white-space: pre-line;
 }
 
 .custom-dialog-actions {
