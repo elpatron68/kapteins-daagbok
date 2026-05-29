@@ -313,6 +313,26 @@
       "tour_desc": "Lassen Sie sich erneut durch die wichtigsten Bereiche der App führen.",
       "tour_restart": "Tour erneut starten"
     },
+    "disclaimer": {
+      "title": "Wichtige Hinweise",
+      "intro": "Bitte lesen Sie die folgenden Hinweise, bevor Sie Kapteins Daagbok nutzen.",
+      "e2e_title": "Ende-zu-Ende-Verschlüsselung",
+      "e2e_body": "Ihre Logbuchdaten werden Ende-zu-Ende verschlüsselt. Nur Sie – bzw. Personen mit Ihrem Schlüssel – können die Inhalte lesen. Auf dem Server werden ausschließlich verschlüsselte Daten gespeichert.",
+      "pwa_title": "Progressive Web App (PWA)",
+      "pwa_body": "Kapteins Daagbok läuft als Progressive Web App in Ihrem Browser und kann auf Ihrem Gerät installiert werden – ähnlich wie eine native App, ohne App-Store.",
+      "storage_title": "Lokale Speicherung & Synchronisation",
+      "storage_body": "Ihre Daten werden lokal auf Ihrem Gerät zwischengespeichert (IndexedDB). Bei aktiver Internetverbindung werden Änderungen mit dem Server synchronisiert. Ohne Verbindung können Sie weiterarbeiten; die Synchronisation erfolgt später.",
+      "free_title": "Kostenlos & werbefrei",
+      "free_body": "Kapteins Daagbok ist kostenlos und enthält keine Werbung.",
+      "liability_title": "Haftungsausschluss",
+      "liability_body": "Die Nutzung erfolgt auf eigene Verantwortung. Es wird keine Haftung für Schäden übernommen, die aus der Nutzung der App entstehen – einschließlich fehlerhafter oder unvollständiger Logbucheinträge, Datenverlust oder technischen Störungen.",
+      "warranty_title": "Keine Gewährleistung",
+      "warranty_body": "Es wird keine Gewährleistung für die Funktion, Richtigkeit oder Verfügbarkeit des Dienstes übernommen. Der Betrieb kann jederzeit unterbrochen, eingeschränkt oder eingestellt werden.",
+      "copyright": "© 2026 KnorrLabs, Markus F.J. Busche",
+      "accept": "Akzeptieren und fortfahren",
+      "close": "Schließen",
+      "button_title": "Hinweise & Haftungsausschluss"
+    },
     "demo": {
       "logbook_title": "Demo-Logbuch Ostsee",
       "badge": "Demo"

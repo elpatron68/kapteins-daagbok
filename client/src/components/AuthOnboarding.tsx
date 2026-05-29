@@ -12,6 +12,7 @@ import {
   forgetUsername
 } from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
+import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
 
 interface AuthOnboardingProps {
   onAuthenticated: () => void
@@ -45,6 +46,23 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
   const [showPinLogin, setShowPinLogin] = useState(false)
   const [pinLoginInput, setPinLoginInput] = useState('')
 
+  const [isNewRegistration, setIsNewRegistration] = useState(false)
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
+
+  const finishAuth = () => {
+    if (isNewRegistration) {
+      setShowDisclaimer(true)
+      return
+    }
+    onAuthenticated()
+  }
+
+  const handleDisclaimerAccept = () => {
+    setIsNewRegistration(false)
+    setShowDisclaimer(false)
+    onAuthenticated()
+  }
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim()) return
@@ -54,6 +72,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
     try {
       const result = await registerUser(username.trim())
       if (result.verified) {
+        setIsNewRegistration(true)
         setRecoveryPhrase(result.recoveryPhrase)
       }
     } catch (err: any) {
@@ -148,7 +167,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
       const activeKey = getActiveMasterKey()
       if (activeKey) {
         await setLocalPin(pinInput.trim(), pinSetupUsername, activeKey)
-        onAuthenticated()
+        finishAuth()
       } else {
         setError('No active master key found')
       }
@@ -196,6 +215,11 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  // Render 0: Registration disclaimer (new accounts only, before app onboarding)
+  if (showDisclaimer) {
+    return <RegistrationDisclaimer variant="accept" onDismiss={handleDisclaimerAccept} />
   }
 
   // Render 1: Display new registration recovery phrase
@@ -266,7 +290,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
             <button
               type="button"
               className="btn secondary"
-              onClick={onAuthenticated}
+              onClick={finishAuth}
               disabled={loading}
             >
               {t('auth.skip_pin')}

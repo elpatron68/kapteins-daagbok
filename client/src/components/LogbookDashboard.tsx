@@ -7,6 +7,7 @@ import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
+import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
@@ -148,6 +149,8 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
             <Languages size={18} />
           </button>
+
+          <DisclaimerHeaderButton />
 
           {/* Logout */}
           <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>

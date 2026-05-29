@@ -26,7 +26,8 @@ import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
+import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages } from 'lucide-react'
+import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
 import {
   getStoredDemoFirstEntryId,
@@ -34,7 +35,7 @@ import {
 } from './services/demoLogbook.js'
 
 function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { registerNavigation, requestStartAfterLogin } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
@@ -194,6 +195,11 @@ function App() {
     localStorage.removeItem('active_logbook_title')
   }
 
+  const toggleLanguage = () => {
+    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
+    i18n.changeLanguage(nextLang)
+  }
+
   if (isViewerMode) {
     return (
       <div style={{ display: 'contents' }}>
@@ -274,6 +280,12 @@ function App() {
               {online ? <Wifi size={18} /> : <WifiOff size={18} />}
               <span>{online ? 'Online' : t('sync.status_offline')}</span>
             </div>
+
+            <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
+              <Languages size={18} />
+            </button>
+
+            <DisclaimerHeaderButton />
 
             <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>
               <LogOut size={18} />

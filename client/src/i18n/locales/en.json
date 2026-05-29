@@ -313,6 +313,26 @@
       "tour_desc": "Take a guided walkthrough of the main areas of the app again.",
       "tour_restart": "Restart tour"
     },
+    "disclaimer": {
+      "title": "Important notice",
+      "intro": "Please read the following information before using Kapteins Daagbok.",
+      "e2e_title": "End-to-end encryption",
+      "e2e_body": "Your logbook data is encrypted end-to-end. Only you – or people with your key – can read the contents. The server stores encrypted data only.",
+      "pwa_title": "Progressive Web App (PWA)",
+      "pwa_body": "Kapteins Daagbok runs as a Progressive Web App in your browser and can be installed on your device – similar to a native app, without an app store.",
+      "storage_title": "Local storage & sync",
+      "storage_body": "Your data is cached locally on your device (IndexedDB). When online, changes are synced to the server. You can keep working offline; sync happens when connectivity returns.",
+      "free_title": "Free & ad-free",
+      "free_body": "Kapteins Daagbok is free to use and contains no advertising.",
+      "liability_title": "Disclaimer of liability",
+      "liability_body": "Use is at your own risk. No liability is accepted for damages arising from use of the app – including incorrect or incomplete log entries, data loss, or technical failures.",
+      "warranty_title": "No warranty",
+      "warranty_body": "No warranty is provided for functionality, accuracy, or availability of the service. Operation may be interrupted, limited, or discontinued at any time.",
+      "copyright": "© 2026 KnorrLabs, Markus F.J. Busche",
+      "accept": "Accept and continue",
+      "close": "Close",
+      "button_title": "Legal notice & disclaimer"
+    },
     "demo": {
       "logbook_title": "Baltic Sea Demo Logbook",
       "badge": "Demo"
