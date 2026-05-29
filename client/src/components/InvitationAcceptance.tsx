@@ -137,6 +137,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     const masterKey = getActiveMasterKey()
     const activeUserId = localStorage.getItem('active_userid')
     if (!masterKey || !activeUserId) {
+      autoAcceptStarted.current = false
       setError(isDe
         ? 'Sitzung unvollständig — bitte erneut anmelden (Benutzer-ID fehlt).'
         : 'Incomplete session — please log in again (user ID missing).')
@@ -184,7 +185,8 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           id: logbookId,
           encryptedTitle: rawEncryptedTitle,
           updatedAt: new Date().toISOString(),
-          isSynced: 1
+          isSynced: 1,
+          isShared: 1
         })
       }
 
@@ -202,7 +204,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
   useEffect(() => {
     if (loading || accepting || autoAcceptStarted.current) return
     if (!isLoggedIn || !logbookId || !logbookKey || !token) return
-    if (!sessionReady()) return
+    if (!sessionReady()) {
+      autoAcceptStarted.current = false
+      return
+    }
 
     autoAcceptStarted.current = true
     void handleAccept()
@@ -240,10 +245,17 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     e.preventDefault()
     if (!recoveryInput.trim() || !encryptedPayloads) return
 
+    const resolvedUser = (username.trim() || encryptedPayloads.username || '').trim()
+    if (!resolvedUser) {
+      setAuthError(isDe
+        ? 'Benutzername konnte nicht ermittelt werden — bitte erneut anmelden.'
+        : 'Could not determine username — please try logging in again.')
+      return
+    }
+
     setLoading(true)
     setAuthError(null)
     try {
-      const resolvedUser = username.trim() || encryptedPayloads.username
       const success = await completeLoginWithRecovery(resolvedUser, recoveryInput.trim(), encryptedPayloads)
       if (success) {
         setShowRecoveryFallback(false)

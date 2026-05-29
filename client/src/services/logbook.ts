@@ -43,8 +43,6 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
     throw new Error('Master key not found. User must log in.')
   }
 
-  const sharedLogbookIds = new Set<string>()
-
   if (navigator.onLine) {
     try {
       const response = await fetch(API_BASE, {
@@ -61,7 +59,6 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
         // Decrypt and save logbook keys locally if they exist
         for (const lb of serverLogbooks) {
           const isShared = lb.userId !== userId
-          if (isShared) sharedLogbookIds.add(lb.id)
 
           const encryptedKeyStr = isShared
             ? lb.collaborators?.[0]?.encryptedLogbookKey
@@ -105,7 +102,8 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
           id: lb.id,
           encryptedTitle: lb.encryptedTitle,
           updatedAt: lb.updatedAt || new Date().toISOString(),
-          isSynced: 1
+          isSynced: 1,
+          isShared: lb.userId !== userId ? 1 : 0
         }))
 
         // Clear existing cache for this user and insert new ones
@@ -128,7 +126,7 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       title,
       updatedAt: lb.updatedAt,
       isSynced: lb.isSynced === 1,
-      isShared: sharedLogbookIds.has(lb.id)
+      isShared: lb.isShared === 1
     })
   }
 
@@ -195,7 +193,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
           id: serverLb.id,
           encryptedTitle: serverLb.encryptedTitle,
           updatedAt: serverLb.updatedAt,
-          isSynced: 1
+          isSynced: 1,
+          isShared: 0
         })
 
         return {
@@ -216,7 +215,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
     id: localId,
     encryptedTitle: encryptedTitleStr,
     updatedAt: now,
-    isSynced: 0
+    isSynced: 0,
+    isShared: 0
   })
 
   await db.syncQueue.put({

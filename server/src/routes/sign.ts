@@ -61,6 +61,7 @@ async function getLogbookWithAccess(logbookId: string, userId: string) {
 }
 
 function hasWriteAccess(access: { isOwner: boolean; collaboration?: { role: string } | null }) {
+  // Intentional (HYBRID-ELECTRONIC-SIGNATURES.md §2.1): owner OR WRITE collaborator may sign entries.
   return access.isOwner || access.collaboration?.role === 'WRITE'
 }
 
@@ -106,6 +107,7 @@ async function isAuthorizedSigner(
   role: 'skipper' | 'crew'
 ): Promise<boolean> {
   if (role === 'skipper') {
+    // Skipper signing: owner or WRITE collaborator (design §2.1), using their own passkey.
     if (signerUserId === ownerUserId) return true
     const collaboration = await prisma.collaboration.findUnique({
       where: {
