@@ -3,6 +3,7 @@ import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
+import { isSignatureImage } from '../utils/signatures.js'
 
 export async function generateLogbookPagePdf(logbookId: string, entryId: string, preloadedData?: { yacht: any; entry: any }): Promise<jsPDF> {
   let yachtName = '', homePort = '', registration = '', callsign = '', atis = '', mmsi = '';
@@ -219,14 +220,22 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.line(sigX, sigY + rowHeight * 1.5, sigX + 157, sigY + rowHeight * 1.5);
   doc.line(sigX + 78.5, sigY, sigX + 78.5, sigY + rowHeight * 3);
 
-  doc.text('Skipper Unterschrift (in Blockschrift):', sigX + 2, sigY + 4.2);
-  doc.setFont('Helvetica', 'normal');
-  doc.text(String(entry.signSkipper || '—').toUpperCase(), sigX + 2, sigY + 11.2);
+  doc.text('Skipper Unterschrift:', sigX + 2, sigY + 4.2);
+  if (isSignatureImage(entry.signSkipper)) {
+    doc.addImage(entry.signSkipper, 'PNG', sigX + 2, sigY + 6, 72, 14)
+  } else {
+    doc.setFont('Helvetica', 'normal');
+    doc.text(String(entry.signSkipper || '—').toUpperCase(), sigX + 2, sigY + 11.2);
+  }
 
   doc.setFont('Helvetica', 'bold');
-  doc.text('Crew Unterschrift (in Blockschrift):', sigX + 80.5, sigY + 4.2);
-  doc.setFont('Helvetica', 'normal');
-  doc.text(String(entry.signCrew || '—').toUpperCase(), sigX + 80.5, sigY + 11.2);
+  doc.text('Crew Unterschrift:', sigX + 80.5, sigY + 4.2);
+  if (isSignatureImage(entry.signCrew)) {
+    doc.addImage(entry.signCrew, 'PNG', sigX + 80.5, sigY + 6, 72, 14)
+  } else {
+    doc.setFont('Helvetica', 'normal');
+    doc.text(String(entry.signCrew || '—').toUpperCase(), sigX + 80.5, sigY + 11.2);
+  }
 
   return doc;
 }

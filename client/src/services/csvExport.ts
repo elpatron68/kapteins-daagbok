@@ -2,6 +2,7 @@ import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
+import { formatSignatureForExport } from '../utils/signatures.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
   if (val === null || val === undefined) return '';
@@ -93,8 +94,8 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     const travelDay = entry.dayOfTravel || '';
     const dep = entry.departure || '';
     const dest = entry.destination || '';
-    const signS = entry.signSkipper || '';
-    const signC = entry.signCrew || '';
+    const signS = formatSignatureForExport(entry.signSkipper);
+    const signC = formatSignatureForExport(entry.signCrew);
     const fwM = entry.freshwater?.morning ?? '';
     const fwR = entry.freshwater?.refilled ?? '';
     const fwE = entry.freshwater?.evening ?? '';

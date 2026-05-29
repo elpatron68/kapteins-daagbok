@@ -1980,6 +1980,98 @@ body:has(.theme-cupertino) {
   margin-bottom: 12px;
 }
 
+.signature-grid {
+  align-items: start;
+}
+
+.signature-pad-group {
+  width: 100%;
+}
+
+.signature-pad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.signature-pad-header label {
+  display: block;
+  font-size: 13.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.signature-pad-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.signature-pad-clear:hover {
+  color: #e2e8f0;
+  text-decoration: underline;
+}
+
+.signature-pad {
+  position: relative;
+  width: 100%;
+  height: 132px;
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  background: rgba(255, 255, 255, 0.96);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.signature-pad.disabled {
+  opacity: 0.65;
+}
+
+.signature-pad-canvas,
+.signature-pad-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.signature-pad-canvas {
+  cursor: crosshair;
+}
+
+.signature-pad-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 13px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.signature-legacy-text {
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* PWA install prompt */
 .pwa-install-banner {
   position: fixed;

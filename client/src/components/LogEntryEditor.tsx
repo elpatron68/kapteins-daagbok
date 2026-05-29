@@ -8,7 +8,9 @@ import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
+import SignaturePad from './SignaturePad.tsx'
 import { useDialog } from './ModalDialog.tsx'
+import { isSignatureImage } from '../utils/signatures.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -566,8 +568,8 @@ export default function LogEntryEditor({
           evening: parseFloat(fuelEvening) || 0,
           consumption: parseFloat(fuelConsumption) || 0
         },
-        signSkipper: signSkipper.trim(),
-        signCrew: signCrew.trim(),
+        signSkipper: isSignatureImage(signSkipper) ? signSkipper : signSkipper.trim(),
+        signCrew: isSignatureImage(signCrew) ? signCrew : signCrew.trim(),
         events
       }
 
@@ -1212,30 +1214,24 @@ export default function LogEntryEditor({
             <Check size={20} className="form-icon" />
             <h3>{t('logs.signatures')}</h3>
           </div>
-          <div className="form-grid">
-            <div className="input-group">
-              <label>{t('logs.sign_skipper')}</label>
-              <input
-                type="text"
-                placeholder="e.g. MARKUS SKIPPER"
-                className="input-text"
-                value={signSkipper}
-                onChange={(e) => setSignSkipper(e.target.value)}
-                disabled={saving || readOnly}
-              />
-            </div>
+          <div className="form-grid signature-grid">
+            <SignaturePad
+              id="sign-skipper"
+              label={t('logs.sign_skipper')}
+              value={signSkipper}
+              onChange={setSignSkipper}
+              disabled={saving}
+              readOnly={readOnly}
+            />
 
-            <div className="input-group">
-              <label>{t('logs.sign_crew')}</label>
-              <input
-                type="text"
-                placeholder="e.g. JAN MATE"
-                className="input-text"
-                value={signCrew}
-                onChange={(e) => setSignCrew(e.target.value)}
-                disabled={saving || readOnly}
-              />
-            </div>
+            <SignaturePad
+              id="sign-crew"
+              label={t('logs.sign_crew')}
+              value={signCrew}
+              onChange={setSignCrew}
+              disabled={saving}
+              readOnly={readOnly}
+            />
           </div>
         </div>
 
