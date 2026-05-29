@@ -10,6 +10,7 @@ import {
 } from '../services/auth.js'
 import { decryptJson, encryptBuffer } from '../services/crypto.js'
 import { saveLogbookKey } from '../services/logbookKeys.js'
+import { parseCollaborationRole } from '../services/logbook.js'
 import { syncLogbook } from '../services/sync.js'
 import { db } from '../services/db.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -183,6 +184,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       }
 
       const acceptResult = await res.json()
+      const collaborationRole = parseCollaborationRole(acceptResult.role, 'invitation accept')
 
       await saveLogbookKey(logbookId, logbookKey)
 
@@ -193,7 +195,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           updatedAt: new Date().toISOString(),
           isSynced: 1,
           isShared: 1,
-          collaborationRole: acceptResult.role === 'READ' ? 'READ' : 'WRITE'
+          collaborationRole
         })
       }
 

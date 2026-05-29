@@ -7,6 +7,22 @@ import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 const API_BASE = '/api/logbooks'
 
 export type LogbookAccessRole = 'OWNER' | 'READ' | 'WRITE'
+export type CollaborationRole = 'READ' | 'WRITE'
+
+/** Validates server/cached collaboration role; warns and falls back to WRITE if missing or invalid. */
+export function parseCollaborationRole(role: unknown, context: string): CollaborationRole {
+  if (role === 'READ' || role === 'WRITE') {
+    return role
+  }
+
+  if (role === undefined || role === null || role === '') {
+    console.warn(`[collaboration] Missing role in ${context}; defaulting to WRITE.`)
+  } else {
+    console.warn(`[collaboration] Unexpected role in ${context}:`, role, '— defaulting to WRITE.')
+  }
+
+  return 'WRITE'
+}
 
 export interface DecryptedLogbook {
   id: string
@@ -112,7 +128,9 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
             updatedAt: lb.updatedAt || new Date().toISOString(),
             isSynced: 1,
             isShared: isShared ? 1 : 0,
-            collaborationRole: isShared ? (lb.collaborators?.[0]?.role || 'WRITE') : undefined,
+            collaborationRole: isShared
+              ? parseCollaborationRole(lb.collaborators?.[0]?.role, `fetch logbook ${lb.id}`)
+              : undefined,
             isDemo: localById.get(lb.id)?.isDemo
           }
         })
@@ -138,7 +156,9 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       updatedAt: lb.updatedAt,
       isSynced: lb.isSynced === 1,
       isShared: lb.isShared === 1,
-      accessRole: lb.isShared === 1 ? (lb.collaborationRole || 'WRITE') : 'OWNER',
+      accessRole: lb.isShared === 1
+        ? parseCollaborationRole(lb.collaborationRole, `cached logbook ${lb.id}`)
+        : 'OWNER',
       isDemo: lb.isDemo === 1
     })
   }
