@@ -308,7 +308,55 @@
       "delete_account_confirm_yes": "Ja, Konto und alle Daten löschen",
       "delete_account_confirm_no": "Abbrechen",
       "delete_account_failed": "Konto konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
-      "deleting_account": "Konto wird gelöscht…"
+      "deleting_account": "Konto wird gelöscht…",
+      "tour_title": "App-Tour",
+      "tour_desc": "Lassen Sie sich erneut durch die wichtigsten Bereiche der App führen.",
+      "tour_restart": "Tour erneut starten"
+    },
+    "demo": {
+      "logbook_title": "Demo-Logbuch Ostsee",
+      "badge": "Demo"
+    },
+    "tour": {
+      "skip": "Tour überspringen",
+      "back": "Zurück",
+      "next": "Weiter",
+      "finish": "Fertig",
+      "progress": "Schritt {{current}} von {{total}}",
+      "steps": {
+        "welcome": {
+          "title": "Willkommen an Bord!",
+          "body": "Wir haben ein Demo-Logbuch mit drei Reisetagen in der Kieler Förde für Sie angelegt. Diese kurze Tour zeigt Ihnen die wichtigsten Funktionen."
+        },
+        "nav_logs": {
+          "title": "Logbucheinträge",
+          "body": "Hier verwalten Sie Ihre Reisetage – Abfahrt, Ziel, Wetter, Tankstände und GPS-Tracks."
+        },
+        "entry_list": {
+          "title": "Ihre Reisetage",
+          "body": "Jede Karte steht für einen Reisetag. Tippen Sie auf einen Eintrag, um Details zu sehen oder zu bearbeiten."
+        },
+        "entry_open": {
+          "title": "Reisetag öffnen",
+          "body": "So sieht ein ausgefüllter Logbucheintrag aus – mit Events, Tankständen und mehr."
+        },
+        "entry_track": {
+          "title": "GPS-Track",
+          "body": "Laden Sie GPX-Dateien hoch oder sehen Sie bereits gespeicherte Routen auf der Karte – inklusive Distanz und Geschwindigkeit."
+        },
+        "nav_vessel": {
+          "title": "Schiffsdaten",
+          "body": "Hinterlegen Sie Name, Maße und technische Daten Ihrer Yacht – einmal ausfüllen, für alle Reisetage verfügbar."
+        },
+        "nav_crew": {
+          "title": "Crew-Liste",
+          "body": "Verwalten Sie Besatzungsmitglieder und weisen Sie sie später Reisetagen zu."
+        },
+        "finish": {
+          "title": "Alles klar!",
+          "body": "Sie können die Tour jederzeit unter Einstellungen erneut starten. Gute Fahrt!"
+        }
+      }
     }
   }
 }

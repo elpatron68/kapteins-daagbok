@@ -1326,7 +1326,7 @@ export default function LogEntryEditor({
         </div>
 
         {/* Track file upload */}
-        <div className="form-card">
+        <div className="form-card" data-tour="entry-track">
           <div className="form-header">
             <Upload size={20} className="form-icon" />
             <h3>{t('logs.track_upload_title')}</h3>

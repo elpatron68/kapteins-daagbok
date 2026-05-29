@@ -308,7 +308,55 @@
       "delete_account_confirm_yes": "Yes, Delete Account and All Data",
       "delete_account_confirm_no": "Cancel",
       "delete_account_failed": "Failed to delete account. Please try again.",
-      "deleting_account": "Deleting account…"
+      "deleting_account": "Deleting account…",
+      "tour_title": "App tour",
+      "tour_desc": "Take a guided walkthrough of the main areas of the app again.",
+      "tour_restart": "Restart tour"
+    },
+    "demo": {
+      "logbook_title": "Baltic Sea Demo Logbook",
+      "badge": "Demo"
+    },
+    "tour": {
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Done",
+      "progress": "Step {{current}} of {{total}}",
+      "steps": {
+        "welcome": {
+          "title": "Welcome aboard!",
+          "body": "We created a demo logbook with three travel days in Kiel Bay. This short tour shows you the key features."
+        },
+        "nav_logs": {
+          "title": "Log entries",
+          "body": "Manage your travel days here – departure, destination, weather, tank levels, and GPS tracks."
+        },
+        "entry_list": {
+          "title": "Your travel days",
+          "body": "Each card represents one travel day. Tap an entry to view or edit the details."
+        },
+        "entry_open": {
+          "title": "Open a travel day",
+          "body": "This is what a filled log entry looks like – with events, tank levels, and more."
+        },
+        "entry_track": {
+          "title": "GPS track",
+          "body": "Upload GPX files or view saved routes on the map – including distance and speed stats."
+        },
+        "nav_vessel": {
+          "title": "Vessel data",
+          "body": "Enter your yacht's name, dimensions, and technical details – fill once, use on every travel day."
+        },
+        "nav_crew": {
+          "title": "Crew list",
+          "body": "Manage crew members and assign them to travel days later."
+        },
+        "finish": {
+          "title": "You're all set!",
+          "body": "You can restart the tour anytime in Settings. Fair winds!"
+        }
+      }
     }
   }
 }

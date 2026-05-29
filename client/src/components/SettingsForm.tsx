@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon } from 'lucide-react'
+import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, Compass } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { notifyAppearanceChanged } from '../services/appearance.js'
 import ThemedSelect from './ThemedSelect.tsx'
+import { useAppTour } from '../context/AppTourContext.tsx'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -30,6 +31,7 @@ const bufferToHex = (buffer: ArrayBuffer): string => {
 export default function SettingsForm({ logbookId }: SettingsFormProps) {
   const { t } = useTranslation()
   const { showConfirm, showAlert } = useDialog()
+  const { restartTour } = useAppTour()
   const [apiKey, setApiKey] = useState(localStorage.getItem('owm_api_key') || '')
   const [theme, setTheme] = useState(localStorage.getItem('active_theme') || 'auto')
   const [colorScheme, setColorScheme] = useState(localStorage.getItem('active_color_scheme') || 'auto')
@@ -363,6 +365,25 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
               ]}
             />
           </div>
+        </div>
+
+        <div className="member-editor-card glass mt-4">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <Compass size={20} style={{ color: 'var(--app-accent-light)' }} />
+            <h3 style={{ margin: 0, color: 'var(--app-accent-light)', fontSize: '16px' }}>
+              {t('settings.tour_title')}
+            </h3>
+          </div>
+          <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 16px 0' }}>
+            {t('settings.tour_desc')}
+          </p>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => restartTour()}
+          >
+            {t('settings.tour_restart')}
+          </button>
         </div>
 
         <div className="form-actions mt-4 mb-6">

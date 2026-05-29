@@ -209,6 +209,9 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
                       <span className={`sync-badge ${lb.isSynced ? 'synced' : 'local'}`}>
                         {lb.isSynced ? t('dashboard.status_synced') : t('dashboard.status_local')}
                       </span>
+                      {lb.isDemo && (
+                        <span className="demo-badge">{t('demo.badge')}</span>
+                      )}
                       <span className="date-badge">
                         {new Date(lb.updatedAt).toLocaleDateString(i18n.language, {
                           year: 'numeric',

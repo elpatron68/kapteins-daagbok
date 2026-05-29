@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
@@ -10,6 +10,8 @@ import CrewForm from './components/CrewForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
 import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
+import AppTourOverlay from './components/AppTourOverlay.tsx'
+import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import {
   applyAppearanceToDocument,
@@ -26,13 +28,20 @@ import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import {
+  getStoredDemoFirstEntryId,
+  seedDemoLogbookIfNeeded
+} from './services/demoLogbook.js'
 
 function App() {
   const { t } = useTranslation()
+  const { registerNavigation, requestStartAfterLogin } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
   const [activeLogbookTitle, setActiveLogbookTitle] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'vessel' | 'crew' | 'logs' | 'settings'>('logs')
+  const [activeTab, setActiveTab] = useState<AppTab>('logs')
+  const [tourSelectedEntryId, setTourSelectedEntryId] = useState<string | null>(null)
+  const [demoHighlightEntryId, setDemoHighlightEntryId] = useState<string | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
@@ -119,8 +128,45 @@ function App() {
     }
   }, [])
 
-  const handleAuthenticated = () => {
+  useEffect(() => {
+    registerNavigation({
+      setActiveTab,
+      setSelectedEntryId: setTourSelectedEntryId
+    })
+  }, [registerNavigation])
+
+  useEffect(() => {
+    if (isAuthenticated && activeLogbookId) {
+      setDemoHighlightEntryId(getStoredDemoFirstEntryId())
+    }
+  }, [isAuthenticated, activeLogbookId])
+
+  const handleSelectLogbook = useCallback((id: string, title: string) => {
+    setActiveLogbookId(id)
+    setActiveLogbookTitle(title)
+    setActiveTab('logs')
+    setTourSelectedEntryId(null)
+    localStorage.setItem('active_logbook_id', id)
+    localStorage.setItem('active_logbook_title', title)
+  }, [])
+
+  const handleAuthenticated = async () => {
     setIsAuthenticated(true)
+
+    try {
+      const demo = await seedDemoLogbookIfNeeded()
+      if (demo) {
+        handleSelectLogbook(demo.logbookId, demo.title)
+        if (demo.firstEntryId) {
+          setDemoHighlightEntryId(demo.firstEntryId)
+        }
+        requestStartAfterLogin()
+        return
+      }
+    } catch (err) {
+      console.error('Failed to seed demo logbook:', err)
+    }
+
     const savedLogbookId = localStorage.getItem('active_logbook_id')
     const savedLogbookTitle = localStorage.getItem('active_logbook_title')
     if (savedLogbookId && savedLogbookTitle) {
@@ -134,20 +180,16 @@ function App() {
     setIsAuthenticated(false)
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
+    setTourSelectedEntryId(null)
+    setDemoHighlightEntryId(null)
     localStorage.removeItem('active_logbook_id')
     localStorage.removeItem('active_logbook_title')
-  }
-
-  const handleSelectLogbook = (id: string, title: string) => {
-    setActiveLogbookId(id)
-    setActiveLogbookTitle(title)
-    localStorage.setItem('active_logbook_id', id)
-    localStorage.setItem('active_logbook_title', title)
   }
 
   const handleBackToDashboard = () => {
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
+    setTourSelectedEntryId(null)
     localStorage.removeItem('active_logbook_id')
     localStorage.removeItem('active_logbook_title')
   }
@@ -246,6 +288,7 @@ function App() {
           <button
             className={`sidebar-btn ${activeTab === 'logs' ? 'active' : ''}`}
             onClick={() => setActiveTab('logs')}
+            data-tour="nav-logs"
           >
             <FileText size={18} />
             {t('nav.logs')}
@@ -254,6 +297,7 @@ function App() {
           <button
             className={`sidebar-btn ${activeTab === 'vessel' ? 'active' : ''}`}
             onClick={() => setActiveTab('vessel')}
+            data-tour="nav-vessel"
           >
             <Ship size={18} />
             {t('nav.vessel')}
@@ -262,6 +306,7 @@ function App() {
           <button
             className={`sidebar-btn ${activeTab === 'crew' ? 'active' : ''}`}
             onClick={() => setActiveTab('crew')}
+            data-tour="nav-crew"
           >
             <Users size={18} />
             {t('nav.crew')}
@@ -289,7 +334,12 @@ function App() {
         {/* Tab Content Panels (Placeholder until Phase 3) */}
         <main className="app-content">
           {activeTab === 'logs' && (
-            <LogEntriesList logbookId={activeLogbookId} />
+            <LogEntriesList
+              logbookId={activeLogbookId}
+              controlledSelectedEntryId={tourSelectedEntryId}
+              onSelectedEntryIdChange={setTourSelectedEntryId}
+              highlightEntryId={demoHighlightEntryId}
+            />
           )}
 
           {activeTab === 'vessel' && (
@@ -319,8 +369,11 @@ function App() {
 export default function AppWrapper() {
   return (
     <DialogProvider>
-      <PwaUpdatePrompt />
-      <App />
+      <AppTourProvider>
+        <PwaUpdatePrompt />
+        <App />
+        <AppTourOverlay />
+      </AppTourProvider>
       <AppFooter />
     </DialogProvider>
   )

@@ -11,6 +11,7 @@ export interface DecryptedLogbook {
   updatedAt: string
   isSynced: boolean
   isShared: boolean
+  isDemo?: boolean
 }
 
 // Helper to decrypt a logbook's title using the active logbook key or master key
@@ -98,12 +99,14 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
         }
 
         // Update Dexie database cache
+        const localById = new Map(localLogbooksArray.map((lb) => [lb.id, lb]))
         const localLogbooks: LocalLogbook[] = serverLogbooks.map((lb: any) => ({
           id: lb.id,
           encryptedTitle: lb.encryptedTitle,
           updatedAt: lb.updatedAt || new Date().toISOString(),
           isSynced: 1,
-          isShared: lb.userId !== userId ? 1 : 0
+          isShared: lb.userId !== userId ? 1 : 0,
+          isDemo: localById.get(lb.id)?.isDemo
         }))
 
         // Clear existing cache for this user and insert new ones
@@ -126,7 +129,8 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       title,
       updatedAt: lb.updatedAt,
       isSynced: lb.isSynced === 1,
-      isShared: lb.isShared === 1
+      isShared: lb.isShared === 1,
+      isDemo: lb.isDemo === 1
     })
   }
 

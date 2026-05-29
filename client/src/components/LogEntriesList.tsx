@@ -27,6 +27,9 @@ interface LogEntriesListProps {
   preloadedEntries?: any[]
   preloadedPhotos?: any[]
   preloadedGpsTracks?: any[]
+  controlledSelectedEntryId?: string | null
+  onSelectedEntryIdChange?: (id: string | null) => void
+  highlightEntryId?: string | null
 }
 
 interface DecryptedEntryItem {
@@ -44,12 +47,26 @@ export default function LogEntriesList({
   preloadedYacht,
   preloadedEntries,
   preloadedPhotos,
-  preloadedGpsTracks
+  preloadedGpsTracks,
+  controlledSelectedEntryId,
+  onSelectedEntryIdChange,
+  highlightEntryId
 }: LogEntriesListProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
   const [entries, setEntries] = useState<DecryptedEntryItem[]>([])
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
+  const [internalSelectedEntryId, setInternalSelectedEntryId] = useState<string | null>(null)
+  const isEntrySelectionControlled = onSelectedEntryIdChange !== undefined
+  const selectedEntryId = isEntrySelectionControlled
+    ? (controlledSelectedEntryId ?? null)
+    : internalSelectedEntryId
+  const setSelectedEntryId = (entryId: string | null) => {
+    if (isEntrySelectionControlled) {
+      onSelectedEntryIdChange?.(entryId)
+    } else {
+      setInternalSelectedEntryId(entryId)
+    }
+  }
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -356,9 +373,14 @@ export default function LogEntriesList({
       {entries.length === 0 ? (
         <div className="dashboard-status-msg">{t('logs.no_entries')}</div>
       ) : (
-        <div className="logbooks-grid">
+        <div className="logbooks-grid" data-tour="entry-list">
           {entries.map((item) => (
-            <div key={item.id} className="logbook-card glass" onClick={() => setSelectedEntryId(item.id)}>
+            <div
+              key={item.id}
+              className="logbook-card glass"
+              data-tour={highlightEntryId === item.id ? 'entry-first' : undefined}
+              onClick={() => setSelectedEntryId(item.id)}
+            >
               <div className="card-icon">
                 <FileText size={24} />
               </div>

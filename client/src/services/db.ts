@@ -6,6 +6,7 @@ export interface LocalLogbook {
   updatedAt: string
   isSynced: number // 1 = yes, 0 = pending local modifications
   isShared?: number // 1 = collaborator copy, 0 or unset = owned
+  isDemo?: number // 1 = demo logbook seeded at registration
 }
 
 export interface LocalYacht {
@@ -123,6 +124,17 @@ class DaagboxDatabase extends Dexie {
     })
     this.version(4).stores({
       logbooks: 'id, encryptedTitle, updatedAt, isSynced, isShared',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt',
+      logbookKeys: 'logbookId'
+    })
+    this.version(5).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced, isShared, isDemo',
       yachts: 'logbookId, updatedAt',
       crews: 'payloadId, logbookId, updatedAt',
       deviations: 'logbookId, updatedAt',

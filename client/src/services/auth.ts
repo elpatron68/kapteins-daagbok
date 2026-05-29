@@ -254,6 +254,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
     localStorage.setItem('active_username', username)
     localStorage.setItem('active_userid', result.userId)
     rememberUsername(username)
+    sessionStorage.setItem('seed_demo_logbook', '1')
   }
 
   return {
