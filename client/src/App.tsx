@@ -12,6 +12,7 @@ import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import { getActiveMasterKey, logoutUser } from './services/auth.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
+import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import { db } from './services/db.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, Compass, FileText, Settings, Wifi, WifiOff } from 'lucide-react'
@@ -190,9 +191,12 @@ function App() {
     )
   }
 
+  const pwaInstallBanner = <PwaInstallPrompt variant="banner" />
+
   if (!activeLogbookId) {
     return (
       <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+        {pwaInstallBanner}
         <LogbookDashboard
           onSelectLogbook={handleSelectLogbook}
           onLogout={handleLogout}
@@ -203,6 +207,7 @@ function App() {
 
   return (
     <div className={`theme-${appliedTheme}`} style={{ display: 'contents' }}>
+      {pwaInstallBanner}
       {isSyncing && <div className="sync-progress-bar" />}
       <div className="app-layout">
         {/* Active Logbook Header */}

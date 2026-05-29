@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, AlertTriangle } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import { useDialog } from './ModalDialog.tsx'
+import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { deleteAccount } from '../services/auth.js'
 
 interface SettingsFormProps {
@@ -299,6 +300,8 @@ export default function SettingsForm({ logbookId }: SettingsFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="vessel-form mt-6">
+        <PwaInstallPrompt variant="inline" />
+
         {/* Weather Integration card */}
         <div className="member-editor-card glass">
           <h3 style={{ marginTop: 0, marginBottom: '12px', color: '#fbbf24', fontSize: '16px' }}>

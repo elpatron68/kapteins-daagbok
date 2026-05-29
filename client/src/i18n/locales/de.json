@@ -53,6 +53,21 @@
       "use_recovery_instead": "Stattdessen Wiederherstellungsschlüssel verwenden",
       "error_incorrect_pin": "Falsche PIN. Entschlüsselung fehlgeschlagen."
     },
+    "pwa": {
+      "title": "App installieren",
+      "generic_benefit": "Installieren Sie Kapteins Daagbox auf Ihrem Gerät für schnelleren Zugriff, Offline-Nutzung und dauerhafte Datenspeicherung.",
+      "ios_instructions": "Auf dem iPad/iPhone: Fügen Sie die App zum Home-Bildschirm hinzu, damit Ihre Logbuchdaten geschützt bleiben und die App wie eine native App startet.",
+      "ios_step_share": "Teilen-Symbol in der Safari-Leiste antippen",
+      "ios_step_add": "„Zum Home-Bildschirm“ wählen",
+      "install_now": "Jetzt installieren",
+      "installing": "Installation…",
+      "later": "Später",
+      "never": "Nicht mehr anzeigen",
+      "platform_ios": "Installation über Safari",
+      "platform_android": "Installation über den Browser",
+      "platform_desktop": "Installation als Desktop-App",
+      "settings_section": "App-Installation"
+    },
     "sync": {
       "status_synced": "Synchronisiert",
       "status_offline": "Offline-Cache",

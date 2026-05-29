@@ -53,6 +53,21 @@
       "use_recovery_instead": "Use recovery phrase instead",
       "error_incorrect_pin": "Incorrect PIN. Decryption failed."
     },
+    "pwa": {
+      "title": "Install app",
+      "generic_benefit": "Install Kapteins Daagbox on your device for faster access, offline use, and persistent data storage.",
+      "ios_instructions": "On iPad/iPhone: Add the app to your Home Screen so your logbook data stays protected and the app launches like a native app.",
+      "ios_step_share": "Tap the Share button in the Safari toolbar",
+      "ios_step_add": "Choose “Add to Home Screen”",
+      "install_now": "Install now",
+      "installing": "Installing…",
+      "later": "Later",
+      "never": "Don't show again",
+      "platform_ios": "Install via Safari",
+      "platform_android": "Install via browser",
+      "platform_desktop": "Install as desktop app",
+      "settings_section": "App installation"
+    },
     "sync": {
       "status_synced": "Synced",
       "status_offline": "Offline Cache",
