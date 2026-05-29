@@ -60,14 +60,18 @@ async function getLogbookWithAccess(logbookId: string, userId: string) {
   return { logbook, isOwner, collaboration }
 }
 
+function hasWriteAccess(access: { isOwner: boolean; collaboration?: { role: string } | null }) {
+  return access.isOwner || access.collaboration?.role === 'WRITE'
+}
+
 async function getAllowCredentialsForRole(
   logbookId: string,
-  ownerUserId: string,
-  role: 'skipper' | 'crew'
+  role: 'skipper' | 'crew',
+  requestingUserId: string
 ) {
   if (role === 'skipper') {
     const credentials = await prisma.credential.findMany({
-      where: { userId: ownerUserId }
+      where: { userId: requestingUserId }
     })
     return credentials.map((cred) => ({
       id: Buffer.from(cred.credentialId, 'base64url'),
@@ -102,7 +106,13 @@ async function isAuthorizedSigner(
   role: 'skipper' | 'crew'
 ): Promise<boolean> {
   if (role === 'skipper') {
-    return signerUserId === ownerUserId
+    if (signerUserId === ownerUserId) return true
+    const collaboration = await prisma.collaboration.findUnique({
+      where: {
+        logbookId_userId: { logbookId, userId: signerUserId }
+      }
+    })
+    return collaboration?.role === 'WRITE'
   }
 
   const collaboration = await prisma.collaboration.findUnique({
@@ -130,21 +140,21 @@ router.post('/options', async (req: any, res) => {
       return res.status(403).json({ error: 'Forbidden: Access denied' })
     }
 
-    if (role === 'skipper' && !access.isOwner) {
-      return res.status(403).json({ error: 'Forbidden: Only the logbook owner can sign as skipper' })
+    if (!hasWriteAccess(access)) {
+      return res.status(403).json({ error: 'Forbidden: WRITE access required to sign entries' })
     }
 
     const allowCredentials = await getAllowCredentialsForRole(
       logbookId,
-      access.logbook.userId,
-      role
+      role,
+      req.userId
     )
 
     if (allowCredentials.length === 0) {
       return res.status(400).json({
         error: role === 'crew'
           ? 'No write collaborators with passkeys found'
-          : 'No passkey credentials found for owner'
+          : 'No passkey credentials found for signer'
       })
     }
 
@@ -209,8 +219,8 @@ router.post('/verify', async (req: any, res) => {
       return res.status(403).json({ error: 'Forbidden: Access denied' })
     }
 
-    if (role === 'skipper' && !access.isOwner) {
-      return res.status(403).json({ error: 'Forbidden: Only the logbook owner can sign as skipper' })
+    if (!hasWriteAccess(access)) {
+      return res.status(403).json({ error: 'Forbidden: WRITE access required to sign entries' })
     }
 
     const dbCred = await prisma.credential.findUnique({

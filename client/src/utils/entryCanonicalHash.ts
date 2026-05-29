@@ -1,10 +1,32 @@
-function sortValue(value: unknown): unknown {
+const SIGNATURE_KEYS = new Set(['signSkipper', 'signCrew'])
+
+function sortEventsByTime(items: unknown[]): unknown[] {
+  return [...items]
+    .sort((a, b) => {
+      const timeA =
+        typeof a === 'object' && a !== null && 'time' in a
+          ? String((a as Record<string, unknown>).time)
+          : ''
+      const timeB =
+        typeof b === 'object' && b !== null && 'time' in b
+          ? String((b as Record<string, unknown>).time)
+          : ''
+      return timeA.localeCompare(timeB)
+    })
+    .map((item) => sortValue(item))
+}
+
+function sortValue(value: unknown, parentKey?: string): unknown {
   if (value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map(sortValue)
+  if (Array.isArray(value)) {
+    if (parentKey === 'events') return sortEventsByTime(value)
+    return value.map((item) => sortValue(item))
+  }
   const obj = value as Record<string, unknown>
   const sorted: Record<string, unknown> = {}
   for (const key of Object.keys(obj).sort()) {
-    sorted[key] = sortValue(obj[key])
+    if (SIGNATURE_KEYS.has(key)) continue
+    sorted[key] = sortValue(obj[key], key)
   }
   return sorted
 }

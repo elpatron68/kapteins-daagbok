@@ -98,7 +98,7 @@ export default function LogEntryEditor({
   // Signatures
   const [signSkipper, setSignSkipper] = useState<SignatureValue | ''>('')
   const [signCrew, setSignCrew] = useState<SignatureValue | ''>('')
-  const [isOwner, setIsOwner] = useState(false)
+  const [canSignSkipper, setCanSignSkipper] = useState(false)
   const [hasWriteCollaborators, setHasWriteCollaborators] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [entryHash, setEntryHash] = useState('')
@@ -211,7 +211,7 @@ export default function LogEntryEditor({
   useEffect(() => {
     getLogbookAccess(logbookId).then((access) => {
       if (!access) return
-      setIsOwner(access.isOwner)
+      setCanSignSkipper(access.isOwner || access.role === 'WRITE')
       setHasWriteCollaborators(access.writeCollaboratorCount > 0)
     })
   }, [logbookId])
@@ -1454,7 +1454,7 @@ export default function LogEntryEditor({
           readOnly={readOnly}
           disabled={saving}
           isOnline={isOnline}
-          isOwner={isOwner}
+          canSignSkipper={canSignSkipper}
           hasWriteCollaborators={hasWriteCollaborators}
           signSkipper={signSkipper}
           signCrew={signCrew}

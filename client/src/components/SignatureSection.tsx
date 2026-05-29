@@ -12,7 +12,7 @@ interface SignatureSectionProps {
   readOnly?: boolean
   disabled?: boolean
   isOnline: boolean
-  isOwner: boolean
+  canSignSkipper: boolean
   hasWriteCollaborators: boolean
   signSkipper: SignatureValue | ''
   signCrew: SignatureValue | ''
@@ -188,7 +188,7 @@ export default function SignatureSection({
   readOnly = false,
   disabled = false,
   isOnline,
-  isOwner,
+  canSignSkipper,
   hasWriteCollaborators,
   signSkipper,
   signCrew,
@@ -202,7 +202,7 @@ export default function SignatureSection({
 }: SignatureSectionProps) {
   const { t } = useTranslation()
 
-  const showSkipperPasskey = isOwner && isOnline
+  const showSkipperPasskey = canSignSkipper && isOnline
   const showCrewPasskey = hasWriteCollaborators && isOnline
   const hasSignature = !!(signSkipper || signCrew)
 
@@ -231,7 +231,7 @@ export default function SignatureSection({
           readOnly={readOnly}
           disabled={disabled}
           classicHint={showSkipperPasskey ? t('logs.sign_classic_or_passkey') : undefined}
-          offlineHint={!isOnline && isOwner ? t('logs.sign_offline_hint') : undefined}
+          offlineHint={!isOnline && canSignSkipper ? t('logs.sign_offline_hint') : undefined}
           onChange={onSignSkipperChange}
           onPasskeySign={onPasskeySignSkipper}
           onBeforeSign={onBeforeSign}
