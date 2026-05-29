@@ -25,7 +25,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Crew Saved | Skipper- oder Crew-Profil gespeichert (`CrewForm.tsx`) | `role`: `skipper` \| `crew`, `action`: `create` \| `update` |
 | Account Deleted | Konto erfolgreich gelöscht (`auth.ts`) | — |
 | Onboarding Tour Completed | Onboarding-Tour bis zum letzten Schritt durchlaufen (`AppTourContext.tsx`) | — |
-| Onboarding Tour Skipped | Tour übersprungen (Skip, Escape, Klick auf Backdrop) | `step`: Tour-Schritt-ID (z.B. `welcome`, `entry_track`) |
+| Onboarding Tour Skipped | Tour vorzeitig beendet (Skip, Escape, Backdrop, `stopTour`) | `step`: Tour-Schritt-ID (z.B. `welcome`, `entry_track`) |
 | Invite Generated | Einladungslink erzeugt (`SettingsForm.tsx`) | — |
 | Invite Accepted | Einladung angenommen und Logbuch beigetreten (`InvitationAcceptance.tsx`) | — |
 | PDF Exported | PDF-Export eines Reisetags (`LogEntryEditor.tsx`, `LogEntriesList.tsx`) | `scope`: `entry` |

@@ -132,7 +132,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const stopTour = useCallback(() => {
-    dismissTour('completed', stepIndex)
+    dismissTour('skipped', stepIndex)
   }, [dismissTour, stepIndex])
 
   const skipTour = useCallback(() => {
