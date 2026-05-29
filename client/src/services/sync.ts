@@ -36,7 +36,44 @@ function latestQueueItem(items: SyncQueueItem[]): SyncQueueItem {
   return items.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
 }
 
-// Keep only the latest queue entry per entity (highest auto-increment id = most recent action).
+async function entityExistsLocally(item: SyncQueueItem): Promise<boolean> {
+  switch (item.type) {
+    case 'logbook':
+      return !!(await db.logbooks.get(item.payloadId))
+    case 'yacht':
+      return !!(await db.yachts.get(item.logbookId))
+    case 'deviation':
+      return !!(await db.deviations.get(item.logbookId))
+    case 'crew':
+      return !!(await db.crews.get(item.payloadId))
+    case 'entry':
+      return !!(await db.entries.get(item.payloadId))
+    case 'photo':
+      return !!(await db.photos.get(item.payloadId))
+    case 'gpsTrack':
+      return !!(await db.gpsTracks.get(item.payloadId))
+    default:
+      return false
+  }
+}
+
+// Pick one queue entry per entity. If the record still exists locally, the latest
+// action wins (supports recreate-after-delete). If it was removed locally, a delete
+// wins over stale upserts with higher IDs; orphaned upserts are dropped entirely.
+async function resolveCoalescedItem(group: SyncQueueItem[]): Promise<SyncQueueItem | null> {
+  const exists = await entityExistsLocally(group[0])
+  if (exists) {
+    return latestQueueItem(group)
+  }
+
+  const deletes = group.filter((item) => item.action === 'delete')
+  if (deletes.length > 0) {
+    return latestQueueItem(deletes)
+  }
+
+  return null
+}
+
 async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
   const pending = await db.syncQueue.where({ logbookId }).toArray()
   if (pending.length <= 1) return pending
@@ -53,12 +90,20 @@ async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
   const staleIds: number[] = []
 
   for (const group of byEntity.values()) {
-    const latest = latestQueueItem(group)
+    const winner = await resolveCoalescedItem(group)
 
-    kept.push(latest)
-    for (const item of group) {
-      if (item.id !== undefined && item.id !== latest.id) {
-        staleIds.push(item.id)
+    if (winner) {
+      kept.push(winner)
+      for (const item of group) {
+        if (item.id !== undefined && item.id !== winner.id) {
+          staleIds.push(item.id)
+        }
+      }
+    } else {
+      for (const item of group) {
+        if (item.id !== undefined) {
+          staleIds.push(item.id)
+        }
       }
     }
   }
