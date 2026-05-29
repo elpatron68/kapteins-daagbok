@@ -147,6 +147,7 @@ export interface LoginResult {
     encryptedMasterKeyRecTag: string
     userId: string
     username: string
+    prfFirst?: ArrayBuffer
   }
 }
 
@@ -231,7 +232,8 @@ export async function loginUser(username?: string): Promise<LoginResult> {
       encryptedMasterKeyRecIv: result.encryptedMasterKeyRecIv,
       encryptedMasterKeyRecTag: result.encryptedMasterKeyRecTag,
       userId: result.userId,
-      username: resolvedUsername
+      username: resolvedUsername,
+      prfFirst: prfResults?.results?.first
     }
   }
 }
@@ -245,6 +247,7 @@ export async function completeLoginWithRecovery(
     encryptedMasterKeyRecIv: string
     encryptedMasterKeyRecTag: string
     userId: string
+    prfFirst?: ArrayBuffer
   }
 ): Promise<boolean> {
   try {
@@ -255,6 +258,32 @@ export async function completeLoginWithRecovery(
       encryptedPayloads.encryptedMasterKeyRecTag,
       recoveryKey
     )
+
+    // If PRF results are available from the login challenge, enroll them now
+    if (encryptedPayloads.prfFirst) {
+      try {
+        const prfKey = await deriveKeyFromPrf(encryptedPayloads.prfFirst)
+        const encryptedPrf = await encryptBuffer(decryptedMaster, prfKey)
+        const enrollRes = await fetch(`${API_BASE}/enroll-prf`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': encryptedPayloads.userId
+          },
+          body: JSON.stringify({
+            encryptedMasterKeyPrf: encryptedPrf.ciphertext,
+            encryptedMasterKeyPrfIv: encryptedPrf.iv,
+            encryptedMasterKeyPrfTag: encryptedPrf.tag
+          })
+        })
+        if (!enrollRes.ok) {
+          console.warn('Server rejected PRF enrollment')
+        }
+      } catch (err) {
+        console.error('Failed to encrypt/enroll master key with PRF key:', err)
+      }
+    }
+
     setActiveMasterKey(decryptedMaster)
     localStorage.setItem('active_username', username)
     localStorage.setItem('active_userid', encryptedPayloads.userId)

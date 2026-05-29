@@ -253,4 +253,41 @@ router.delete('/delete-account', async (req: any, res) => {
   }
 })
 
+// 6. Enroll PRF encrypted master key
+router.post('/enroll-prf', async (req: any, res) => {
+  try {
+    const userId = req.headers['x-user-id']
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
+    }
+
+    const { encryptedMasterKeyPrf, encryptedMasterKeyPrfIv, encryptedMasterKeyPrfTag } = req.body
+    if (!encryptedMasterKeyPrf || !encryptedMasterKeyPrfIv || !encryptedMasterKeyPrfTag) {
+      return res.status(400).json({ error: 'Missing required PRF key fields' })
+    }
+
+    if (
+      typeof encryptedMasterKeyPrf !== 'string' ||
+      typeof encryptedMasterKeyPrfIv !== 'string' ||
+      typeof encryptedMasterKeyPrfTag !== 'string'
+    ) {
+      return res.status(400).json({ error: 'Invalid PRF key fields format' })
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        encryptedMasterKeyPrf,
+        encryptedMasterKeyPrfIv,
+        encryptedMasterKeyPrfTag
+      }
+    })
+
+    return res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error enrolling PRF key:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
 export default router
