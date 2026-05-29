@@ -1,6 +1,14 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { registerUser, loginUser, completeLoginWithRecovery } from '../services/auth.js'
+import { 
+  registerUser, 
+  loginUser, 
+  completeLoginWithRecovery, 
+  setLocalPin, 
+  hasLocalPin, 
+  decryptWithLocalPin, 
+  getActiveMasterKey 
+} from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle } from 'lucide-react'
 
 interface AuthOnboardingProps {
@@ -21,6 +29,15 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
   const [showRecoveryFallback, setShowRecoveryFallback] = useState(false)
   const [recoveryInput, setRecoveryInput] = useState('')
   const [encryptedPayloads, setEncryptedPayloads] = useState<any>(null)
+
+  // PIN setup flow state
+  const [showPinSetup, setShowPinSetup] = useState(false)
+  const [pinInput, setPinInput] = useState('')
+  const [pinSetupUsername, setPinSetupUsername] = useState('')
+
+  // PIN login fallback flow state
+  const [showPinLogin, setShowPinLogin] = useState(false)
+  const [pinLoginInput, setPinLoginInput] = useState('')
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,12 +69,17 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
           // Biometric E2E decryption succeeded
           onAuthenticated()
         } else {
-          // Biometrics succeeded but PRF key wasn't supported/available, fall back to recovery phrase
+          // Biometrics succeeded but PRF key wasn't supported/available, fall back to PIN or recovery phrase
           setEncryptedPayloads(result.encryptedPayloads)
-          if (result.username) {
-            setUsername(result.username)
+          const resolvedUser = result.username || result.encryptedPayloads?.username || ''
+          if (resolvedUser) {
+            setUsername(resolvedUser)
           }
-          setShowRecoveryFallback(true)
+          if (resolvedUser && hasLocalPin(resolvedUser)) {
+            setShowPinLogin(true)
+          } else {
+            setShowRecoveryFallback(true)
+          }
         }
       }
     } catch (err: any) {
@@ -77,12 +99,64 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
       const resolvedUser = username.trim() || encryptedPayloads.username
       const success = await completeLoginWithRecovery(resolvedUser, recoveryInput.trim(), encryptedPayloads)
       if (success) {
-        onAuthenticated()
+        // Offer PIN setup to prevent future recovery phrase entries on this device
+        setPinSetupUsername(resolvedUser)
+        setShowRecoveryFallback(false)
+        setShowPinSetup(true)
       } else {
         setError(t('auth.error_incorrect_recovery'))
       }
     } catch (err: any) {
       setError(t('auth.error_decryption_failed'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmRecovery = () => {
+    setPinSetupUsername(username.trim() || encryptedPayloads?.username || '')
+    setShowPinSetup(true)
+  }
+
+  const handlePinSetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pinInput.trim() || pinInput.length < 4) {
+      setError(t('auth.pin_length_error', 'PIN must be at least 4 digits'))
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const activeKey = getActiveMasterKey()
+      if (activeKey) {
+        await setLocalPin(pinInput.trim(), pinSetupUsername, activeKey)
+        onAuthenticated()
+      } else {
+        setError('No active master key found')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save PIN')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePinLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!pinLoginInput.trim()) return
+
+    setLoading(true)
+    setError(null)
+    try {
+      const resolvedUser = username.trim() || encryptedPayloads?.username
+      const key = await decryptWithLocalPin(pinLoginInput.trim(), resolvedUser)
+      if (key) {
+        onAuthenticated()
+      } else {
+        setError(t('auth.error_incorrect_pin'))
+      }
+    } catch (err: any) {
+      setError(t('auth.error_incorrect_pin'))
     } finally {
       setLoading(false)
     }
@@ -123,10 +197,117 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
           <button className="btn secondary" onClick={copyToClipboard}>
             {copied ? t('auth.copied') : t('auth.copy_phrase')}
           </button>
-          <button className="btn primary" onClick={onAuthenticated}>
+          <button className="btn primary" onClick={handleConfirmRecovery}>
             {t('auth.confirm_recovery')}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  // Render 4: PIN setup screen
+  if (showPinSetup) {
+    return (
+      <div className="auth-card glass">
+        <div className="auth-header">
+          <KeyRound className="auth-icon accent" size={48} />
+          <h2>{t('auth.setup_pin_title')}</h2>
+        </div>
+        <p className="recovery-warning">
+          {t('auth.setup_pin_warning')}
+        </p>
+
+        <form onSubmit={handlePinSetupSubmit} className="auth-form">
+          <div className="input-group">
+            <label className="input-label" style={{ display: 'block', marginBottom: '8px', color: '#94a3b8' }}>
+              {t('auth.pin_label')}
+            </label>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              className="input-text"
+              placeholder={t('auth.pin_placeholder')}
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+              disabled={loading}
+              required
+              style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {error && <div className="auth-error" style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>{error}</div>}
+
+          <div className="auth-actions" style={{ marginTop: '20px' }}>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={onAuthenticated}
+              disabled={loading}
+            >
+              {t('auth.skip_pin')}
+            </button>
+            <button type="submit" className="btn primary" disabled={loading || pinInput.length < 4}>
+              {loading ? t('auth.processing') : t('auth.save_pin')}
+            </button>
+          </div>
+        </form>
+      </div>
+    )
+  }
+
+  // Render 5: PIN login screen
+  if (showPinLogin) {
+    return (
+      <div className="auth-card glass">
+        <div className="auth-header">
+          <KeyRound className="auth-icon accent" size={48} />
+          <h2>{t('auth.enter_pin_title')}</h2>
+        </div>
+        <p className="recovery-warning">
+          {t('auth.enter_pin_warning')}
+        </p>
+
+        <form onSubmit={handlePinLoginSubmit} className="auth-form">
+          <div className="input-group">
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              className="input-text"
+              placeholder={t('auth.enter_pin_placeholder')}
+              value={pinLoginInput}
+              onChange={(e) => setPinLoginInput(e.target.value.replace(/\D/g, ''))}
+              disabled={loading}
+              required
+              style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {error && <div className="auth-error" style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px' }}>{error}</div>}
+
+          <div className="auth-actions" style={{ flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+            <button type="submit" className="btn primary" disabled={loading} style={{ width: '100%' }}>
+              {loading ? t('auth.decrypting') : t('auth.decrypt_with_pin')}
+            </button>
+            
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => {
+                setShowPinLogin(false)
+                setShowRecoveryFallback(true)
+                setError(null)
+              }}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {t('auth.use_recovery_instead')}
+            </button>
+          </div>
+        </form>
       </div>
     )
   }

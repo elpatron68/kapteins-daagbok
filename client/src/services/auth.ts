@@ -3,6 +3,7 @@ import {
   generateMasterKey,
   deriveKeyFromPhrase,
   deriveKeyFromPrf,
+  deriveKeyFromPin,
   encryptBuffer,
   decryptBuffer,
   generateRecoveryPhrase,
@@ -17,9 +18,9 @@ const API_BASE = '/api/auth'
 // Shared in-memory container for the active user's session master key
 let activeMasterKey: ArrayBuffer | null = null
 
-// Restore key from sessionStorage on load if present (survives reload)
+// Restore key from localStorage on load if present (survives reload/restart)
 try {
-  const savedKey = sessionStorage.getItem('active_master_key')
+  const savedKey = localStorage.getItem('active_master_key')
   if (savedKey) {
     activeMasterKey = base64ToBuffer(savedKey)
   }
@@ -35,13 +36,41 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
   activeMasterKey = key
   if (key) {
     try {
-      sessionStorage.setItem('active_master_key', bufferToBase64(key))
+      localStorage.setItem('active_master_key', bufferToBase64(key))
     } catch (e) {
-      console.error('Failed to save master key to sessionStorage:', e)
+      console.error('Failed to save master key to localStorage:', e)
     }
   } else {
-    sessionStorage.removeItem('active_master_key')
+    localStorage.removeItem('active_master_key')
   }
+}
+
+// PIN fallback mechanism functions
+export async function setLocalPin(pin: string, username: string, masterKey: ArrayBuffer): Promise<void> {
+  const pinKey = await deriveKeyFromPin(pin, username)
+  const encrypted = await encryptBuffer(masterKey, pinKey)
+  localStorage.setItem(`pin_encrypted_master_key_${username.toLowerCase()}`, JSON.stringify(encrypted))
+}
+
+export function hasLocalPin(username: string): boolean {
+  return !!localStorage.getItem(`pin_encrypted_master_key_${username.toLowerCase()}`)
+}
+
+export function removeLocalPin(username: string): void {
+  localStorage.removeItem(`pin_encrypted_master_key_${username.toLowerCase()}`)
+}
+
+export async function decryptWithLocalPin(pin: string, username: string): Promise<ArrayBuffer | null> {
+  const stored = localStorage.getItem(`pin_encrypted_master_key_${username.toLowerCase()}`)
+  if (!stored) return null
+
+  const { ciphertext, iv, tag } = JSON.parse(stored)
+  const pinKey = await deriveKeyFromPin(pin, username)
+  const decrypted = await decryptBuffer(ciphertext, iv, tag, pinKey)
+  
+  setActiveMasterKey(decrypted)
+  localStorage.setItem('active_username', username)
+  return decrypted
 }
 
 // Convert string salt to 32-byte Uint8Array
@@ -384,6 +413,7 @@ export function logoutUser() {
 
 export async function deleteAccount(): Promise<boolean> {
   const userId = localStorage.getItem('active_userid')
+  const username = localStorage.getItem('active_username')
   if (!userId) return false
 
   try {
@@ -395,6 +425,9 @@ export async function deleteAccount(): Promise<boolean> {
     })
 
     if (res.ok) {
+      if (username) {
+        removeLocalPin(username)
+      }
       // Clear IndexedDB completely to prevent leaking residual encrypted E2E data on client
       await Promise.all([
         db.logbooks.clear(),

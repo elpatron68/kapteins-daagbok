@@ -35,7 +35,19 @@
       "or_register": "or register",
       "username_placeholder": "Username / Skipper Name",
       "processing": "Processing...",
-      "help": "Help"
+      "help": "Help",
+      "setup_pin_title": "Setup Local PIN (Optional)",
+      "setup_pin_warning": "Since your device does not support hardware passkey key derivation, you would otherwise need to enter your 12-word recovery phrase on every login on this device. Setup a local PIN to avoid this.",
+      "pin_placeholder": "E.g. 123456",
+      "pin_label": "Local PIN Code (4-8 digits)",
+      "save_pin": "Save PIN & Continue",
+      "skip_pin": "Skip & use recovery phrase",
+      "enter_pin_title": "Decrypt with PIN",
+      "enter_pin_warning": "Enter your local PIN to unlock the decryption key on this device.",
+      "enter_pin_placeholder": "Enter your PIN...",
+      "decrypt_with_pin": "Decrypt",
+      "use_recovery_instead": "Use recovery phrase instead",
+      "error_incorrect_pin": "Incorrect PIN. Decryption failed."
     },
     "sync": {
       "status_synced": "Synced",

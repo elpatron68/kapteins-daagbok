@@ -35,7 +35,19 @@
       "or_register": "oder Registrieren",
       "username_placeholder": "Benutzername / Skippername",
       "processing": "Verarbeitung...",
-      "help": "Hilfe"
+      "help": "Hilfe",
+      "setup_pin_title": "Lokale PIN einrichten (Optional)",
+      "setup_pin_warning": "Da Ihr Gerät keine direkte Passkey-Schlüsselableitung unterstützt, müssten Sie andernfalls bei jedem Login auf diesem Gerät Ihren 12-Wörter-Schlüssel eingeben. Richten Sie eine lokale PIN ein, um das zu vermeiden.",
+      "pin_placeholder": "Z.B. 123456",
+      "pin_label": "Lokaler PIN-Code (4-8 Ziffern)",
+      "save_pin": "PIN speichern & Fortfahren",
+      "skip_pin": "Überspringen & recovery verwenden",
+      "enter_pin_title": "Mit PIN entschlüsseln",
+      "enter_pin_warning": "Geben Sie Ihre lokale PIN ein, um den Entschlüsselungsschlüssel auf diesem Gerät freizuschalten.",
+      "enter_pin_placeholder": "Geben Sie Ihre PIN ein...",
+      "decrypt_with_pin": "Entschlüsseln",
+      "use_recovery_instead": "Stattdessen Wiederherstellungsschlüssel verwenden",
+      "error_incorrect_pin": "Falsche PIN. Entschlüsselung fehlgeschlagen."
     },
     "sync": {
       "status_synced": "Synchronisiert",

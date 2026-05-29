@@ -86,6 +86,34 @@ export async function deriveKeyFromPhrase(phrase: string): Promise<CryptoKey> {
   )
 }
 
+// Derive a 256-bit CryptoKey from a PIN (using PBKDF2)
+export async function deriveKeyFromPin(pin: string, username: string): Promise<CryptoKey> {
+  const encoder = new TextEncoder()
+  const pinBytes = encoder.encode(pin.trim())
+  const saltBytes = encoder.encode(`KapteinsDaagboxLocalPinSalt_${username.toLowerCase()}`)
+
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw',
+    pinBytes,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  )
+
+  return window.crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: saltBytes,
+      iterations: 50000,
+      hash: 'SHA-256'
+    },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
 // Derive a 256-bit CryptoKey from WebAuthn PRF results
 export async function deriveKeyFromPrf(prfResult: ArrayBuffer): Promise<CryptoKey> {
   const infoBytes = new TextEncoder().encode('KapteinsDaagboxPRFKeyDerivation')
