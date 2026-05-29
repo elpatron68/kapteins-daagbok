@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Change directory to the repository root relative to the script location
+cd "$(dirname "$0")/.."
+
 # Configuration
 COMPOSE_FILE="docker-compose.yml"
 BACKEND_CONTAINER="daagbox-prod-backend"
