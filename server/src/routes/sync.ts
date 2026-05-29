@@ -103,15 +103,34 @@ router.post('/push', async (req: any, res) => {
           continue
         }
 
-        // Parse Payload parameters
+        if (action === 'delete') {
+          if (type === 'yacht') {
+            await prisma.yachtPayload.deleteMany({ where: { logbookId } })
+          } else if (type === 'deviation') {
+            await prisma.deviationPayload.deleteMany({ where: { logbookId } })
+          } else if (type === 'crew') {
+            await prisma.crewPayload.deleteMany({ where: { logbookId, payloadId } })
+          } else if (type === 'entry') {
+            await prisma.entryPayload.deleteMany({ where: { logbookId, payloadId } })
+          } else if (type === 'photo') {
+            await prisma.photoPayload.deleteMany({ where: { logbookId, payloadId } })
+          } else if (type === 'gpsTrack') {
+            await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
+          } else {
+            results.push({ payloadId, status: 'error', error: `Unsupported delete type: ${type}` })
+            continue
+          }
+          results.push({ payloadId, status: 'success' })
+          continue
+        }
+
+        // Parse payload for create/update operations
         const parsed = JSON.parse(data)
         const encryptedData = parsed.encryptedData || parsed.ciphertext
         const { iv, tag } = parsed
 
         if (type === 'yacht') {
-          if (action === 'delete') {
-            await prisma.yachtPayload.deleteMany({ where: { logbookId } })
-          } else {
+          {
             const existing = await prisma.yachtPayload.findUnique({ where: { logbookId } })
             if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
               results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
@@ -124,9 +143,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'deviation') {
-          if (action === 'delete') {
-            await prisma.deviationPayload.deleteMany({ where: { logbookId } })
-          } else {
+          {
             const existing = await prisma.deviationPayload.findUnique({ where: { logbookId } })
             if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
               results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
@@ -139,9 +156,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'crew') {
-          if (action === 'delete') {
-            await prisma.crewPayload.deleteMany({ where: { logbookId, payloadId } })
-          } else {
+          {
             const existing = await prisma.crewPayload.findUnique({
               where: { logbookId_payloadId: { logbookId, payloadId } }
             })
@@ -156,9 +171,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'entry') {
-          if (action === 'delete') {
-            await prisma.entryPayload.deleteMany({ where: { logbookId, payloadId } })
-          } else {
+          {
             const existing = await prisma.entryPayload.findUnique({
               where: { logbookId_payloadId: { logbookId, payloadId } }
             })
@@ -173,9 +186,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'photo') {
-          if (action === 'delete') {
-            await prisma.photoPayload.deleteMany({ where: { logbookId, payloadId } })
-          } else {
+          {
             const existing = await prisma.photoPayload.findUnique({
               where: { logbookId_payloadId: { logbookId, payloadId } }
             })
@@ -191,9 +202,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'gpsTrack') {
-          if (action === 'delete') {
-            await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
-          } else {
+          {
             const existing = await prisma.gpsTrackPayload.findUnique({
               where: { entryId: payloadId }
             })

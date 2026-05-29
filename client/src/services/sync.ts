@@ -1,8 +1,9 @@
-import { db } from './db.js'
+import { db, type SyncQueueItem } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
+const pendingResync = new Set<string>()
 
 let isSyncing = false
 const listeners = new Set<(syncing: boolean) => void>()
@@ -27,13 +28,63 @@ function isNewer(timeA: string | Date, timeB: string | Date): boolean {
   return new Date(timeA).getTime() > new Date(timeB).getTime()
 }
 
+function entityKey(item: SyncQueueItem): string {
+  return `${item.type}:${item.payloadId}`
+}
+
+// Keep only the latest queue entry per entity; delete wins over create/update.
+async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
+  const pending = await db.syncQueue.where({ logbookId }).toArray()
+  if (pending.length <= 1) return pending
+
+  const byEntity = new Map<string, SyncQueueItem[]>()
+  for (const item of pending) {
+    const key = entityKey(item)
+    const group = byEntity.get(key)
+    if (group) group.push(item)
+    else byEntity.set(key, [item])
+  }
+
+  const kept: SyncQueueItem[] = []
+  const staleIds: number[] = []
+
+  for (const group of byEntity.values()) {
+    const deletes = group.filter((item) => item.action === 'delete')
+    const latest =
+      deletes.length > 0
+        ? deletes.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
+        : group.reduce((a, b) => ((a.id ?? 0) > (b.id ?? 0) ? a : b))
+
+    kept.push(latest)
+    for (const item of group) {
+      if (item.id !== undefined && item.id !== latest.id) {
+        staleIds.push(item.id)
+      }
+    }
+  }
+
+  if (staleIds.length > 0) {
+    await db.syncQueue.bulkDelete(staleIds)
+  }
+
+  return kept.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+}
+
+function scheduleResync(logbookId: string) {
+  if (pendingResync.has(logbookId)) return
+  pendingResync.add(logbookId)
+  queueMicrotask(() => {
+    pendingResync.delete(logbookId)
+    syncLogbook(logbookId).catch((err) => console.warn('Deferred sync failed:', err))
+  })
+}
+
 // Push local sync queue items to the server
 async function pushChanges(logbookId: string): Promise<boolean> {
   const userId = localStorage.getItem('active_userid')
   if (!userId) return false
 
-  // Fetch all pending queue items for this logbook
-  const pending = await db.syncQueue.where({ logbookId }).toArray()
+  const pending = await coalesceSyncQueue(logbookId)
   if (pending.length === 0) return true
 
   try {
@@ -53,13 +104,14 @@ async function pushChanges(logbookId: string): Promise<boolean> {
 
     const { results } = await response.json()
 
-    // Process results
-    for (const res of results) {
+    // Match results by index — payloadId alone is not unique in the queue
+    for (let i = 0; i < results.length; i++) {
+      const res = results[i]
+      const queueItem = pending[i]
+      if (!queueItem) continue
+
       if (res.status === 'success' || res.status === 'conflict') {
-        // Find matching queue item
-        const queueItem = pending.find((item) => item.payloadId === res.payloadId)
-        if (queueItem && queueItem.id !== undefined) {
-          // Delete from sync queue
+        if (queueItem.id !== undefined) {
           await db.syncQueue.delete(queueItem.id)
         }
       } else {
@@ -71,6 +123,21 @@ async function pushChanges(logbookId: string): Promise<boolean> {
     console.error('Error during sync push:', error)
     return false
   }
+}
+
+async function flushPushQueue(logbookId: string): Promise<boolean> {
+  let ok = true
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const before = await db.syncQueue.where({ logbookId }).count()
+    if (before === 0) return ok
+
+    const pushed = await pushChanges(logbookId)
+    ok = ok && pushed
+
+    const after = await db.syncQueue.where({ logbookId }).count()
+    if (after === 0 || after === before) break
+  }
+  return ok
 }
 
 // Pull updates from the server and apply last-write-wins
@@ -266,14 +333,20 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) return false
 
-  if (syncingLogbooks.has(logbookId)) return false
+  if (syncingLogbooks.has(logbookId)) {
+    scheduleResync(logbookId)
+    return false
+  }
+
   syncingLogbooks.add(logbookId)
   setSyncing(true)
 
   try {
-    const pushed = await pushChanges(logbookId)
+    const pushed = await flushPushQueue(logbookId)
     const pulled = await pullChanges(logbookId)
-    return pushed && pulled;
+    // Push again in case pull surfaced nothing but queue grew during pull
+    const pushedAfterPull = await flushPushQueue(logbookId)
+    return pushed && pulled && pushedAfterPull
   } finally {
     syncingLogbooks.delete(logbookId)
     setSyncing(syncingLogbooks.size > 0)
@@ -304,7 +377,7 @@ export async function syncAllLogbooks(): Promise<void> {
 }
 
 // Setup background sync intervals
-let syncIntervalId: any = null
+let syncIntervalId: ReturnType<typeof setInterval> | null = null
 
 export function startBackgroundSync(intervalMs = 30000) {
   if (syncIntervalId) clearInterval(syncIntervalId)
