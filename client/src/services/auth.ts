@@ -78,7 +78,7 @@ export async function registerUser(username: string): Promise<RegistrationResult
   }
 
   // 2. Start biometric Passkey creation
-  const credentialResponse = await startRegistration(options)
+  const credentialResponse = await startRegistration({ optionsJSON: options })
 
   // 3. Cryptographic Key derivation setup
   const masterKey = generateMasterKey()
@@ -152,6 +152,14 @@ export interface LoginResult {
 }
 
 export async function loginUser(username?: string): Promise<LoginResult> {
+  // Log browser supported extensions to diagnose PRF availability
+  console.log(
+    'Browser supported WebAuthn extensions:',
+    window.PublicKeyCredential && (window.PublicKeyCredential as any).getClientExtensionResults
+      ? (window.PublicKeyCredential as any).getClientExtensionResults()
+      : 'none'
+  )
+
   // 1. Get authentication options
   const optionsRes = await fetch(`${API_BASE}/login-options`, {
     method: 'POST',
@@ -177,7 +185,7 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
 
   // 2. Start biometric Passkey verification
-  const credentialResponse = await startAuthentication(options)
+  const credentialResponse = await startAuthentication({ optionsJSON: options })
 
   // 3. Verify assertion on the server
   const verifyRes = await fetch(`${API_BASE}/login-verify`, {
