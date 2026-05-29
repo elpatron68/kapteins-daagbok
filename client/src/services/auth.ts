@@ -90,11 +90,15 @@ export async function registerUser(username: string): Promise<RegistrationResult
 
   const options = await optionsRes.json()
 
-  // Request the PRF extension in the browser options (empty object is standard for enabling PRF)
+  // Request the PRF extension in the browser options
   if (!options.extensions) {
     options.extensions = {}
   }
-  options.extensions.prf = {}
+  options.extensions.prf = {
+    eval: {
+      first: bufferToBase64URL(PRF_SALT.buffer)
+    }
+  }
 
   // 2. Start biometric Passkey creation
   const credentialResponse = await startRegistration({ optionsJSON: options })
