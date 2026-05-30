@@ -414,7 +414,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           </div>
 
           {shareEnabled && shareLink && (
-            <div className="input-group mb-4" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="input-group mb-4 copy-link-row">
               <input
                 type="text"
                 readOnly
@@ -455,7 +455,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
             {t('logs.invite_link_desc')}
           </p>
 
-          <div className="form-actions" style={{ justifyContent: 'flex-start', gap: '12px', marginBottom: '20px' }}>
+          <div className="form-actions form-actions--start" style={{ gap: '12px', marginBottom: '20px' }}>
             <button
               type="button"
               className="btn primary"
@@ -469,7 +469,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           </div>
 
           {inviteLink && (
-            <div className="input-group mb-6" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="input-group mb-6 copy-link-row">
               <input
                 type="text"
                 readOnly

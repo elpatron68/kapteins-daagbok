@@ -372,7 +372,7 @@ export default function LogEntriesList({
           <Calendar size={24} className="form-icon" />
           <h2>{t('logs.title')}</h2>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="section-toolbar">
           <button className="btn secondary" onClick={handleDownloadCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.export_csv')}>
             <Download size={16} />
             <span className="hide-mobile">{exporting ? t('logs.exporting') : t('logs.export_csv')}</span>
@@ -384,9 +384,9 @@ export default function LogEntriesList({
           </button>
 
           {!readOnly && (
-            <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }}>
+            <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.new_entry')}>
               <Plus size={16} />
-              {t('logs.new_entry')}
+              <span className="hide-mobile">{t('logs.new_entry')}</span>
             </button>
           )}
         </div>

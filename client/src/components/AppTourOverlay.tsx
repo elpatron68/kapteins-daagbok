@@ -15,10 +15,31 @@ interface SpotlightRect {
   height: number
 }
 
+const TOOLTIP_EDGE_MARGIN = 16
+const TOOLTIP_ESTIMATED_HEIGHT = 240
+
 function buildCutoutClipPath(rect: SpotlightRect): string {
   const right = rect.left + rect.width
   const bottom = rect.top + rect.height
   return `polygon(evenodd, 0 0, 100vw 0, 100vw 100vh, 0 100vh, 0 0, ${rect.left}px ${rect.top}px, ${right}px ${rect.top}px, ${right}px ${bottom}px, ${rect.left}px ${bottom}px, ${rect.left}px ${rect.top}px)`
+}
+
+function computeTooltipTop(spotlight: SpotlightRect): number {
+  const viewportBottom = window.innerHeight - TOOLTIP_EDGE_MARGIN
+  const below = spotlight.top + spotlight.height + 12
+  if (below + TOOLTIP_ESTIMATED_HEIGHT <= viewportBottom) {
+    return below
+  }
+
+  const above = spotlight.top - 12 - TOOLTIP_ESTIMATED_HEIGHT
+  if (above >= TOOLTIP_EDGE_MARGIN) {
+    return above
+  }
+
+  return Math.max(
+    TOOLTIP_EDGE_MARGIN,
+    Math.min(below, viewportBottom - TOOLTIP_ESTIMATED_HEIGHT)
+  )
 }
 
 export default function AppTourOverlay() {
@@ -111,12 +132,8 @@ export default function AppTourOverlay() {
   const tooltipStyle = centered
     ? undefined
     : spotlight
-      ? {
-          top: Math.min(window.innerHeight - 220, spotlight.top + spotlight.height + 12),
-          left: Math.min(window.innerWidth - 340, Math.max(16, spotlight.left)),
-          maxWidth: '420px'
-        }
-      : { top: '20%', left: '50%', transform: 'translateX(-50%)', maxWidth: '420px' }
+      ? { top: computeTooltipTop(spotlight) }
+      : { top: '20%' }
 
   const backdropStyle = spotlight && !centered
     ? { clipPath: buildCutoutClipPath(spotlight) }

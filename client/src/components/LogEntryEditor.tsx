@@ -992,7 +992,7 @@ export default function LogEntryEditor({
             style={{ width: 'auto', padding: '8px 16px' }}
           >
             <Download size={16} />
-            <span>{exporting ? t('logs.exporting_pdf') : t('logs.export_pdf')}</span>
+            <span className="hide-mobile">{exporting ? t('logs.exporting_pdf') : t('logs.export_pdf')}</span>
           </button>
         </div>
       </div>
@@ -1567,15 +1567,16 @@ export default function LogEntryEditor({
                     )}
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="track-actions">
                   <button
                     type="button"
                     className="btn secondary"
                     onClick={() => downloadTrackFile(savedTrack)}
                     style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    title={t('logs.gps_tracking_btn_gpx')}
                   >
                     <Download size={14} />
-                    {t('logs.gps_tracking_btn_gpx')}
+                    <span className="hide-mobile">{t('logs.gps_tracking_btn_gpx')}</span>
                   </button>
                   {!readOnly && (
                     <button
@@ -1583,9 +1584,10 @@ export default function LogEntryEditor({
                       className="btn secondary"
                       onClick={handleDeleteTrack}
                       style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                      title={t('logs.gps_track_delete')}
                     >
                       <Trash2 size={14} />
-                      {t('logs.gps_track_delete')}
+                      <span className="hide-mobile">{t('logs.gps_track_delete')}</span>
                     </button>
                   )}
                 </div>

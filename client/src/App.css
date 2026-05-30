@@ -905,6 +905,36 @@ html.scheme-dark .themed-select-option.is-selected {
   color: var(--app-text-heading);
 }
 
+.section-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.copy-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.copy-link-row .input-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-actions--start {
+  justify-content: flex-start;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .btn-refresh {
   background: none;
   border: none;
@@ -1645,6 +1675,224 @@ html.scheme-dark .themed-select-option.is-selected {
   .hide-mobile {
     display: none !important;
   }
+
+  .dashboard-header,
+  .app-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .app-header-left {
+    flex: 1 1 100%;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .app-title-area {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .app-title-area h2 {
+    font-size: 17px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .app-title-row {
+    gap: 6px;
+  }
+
+  .app-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-brand h1 {
+    font-size: 20px;
+  }
+
+  .header-actions {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .conn-status > span:not(.pulse-dot) {
+    display: none;
+  }
+
+  .skipper-badge__name {
+    display: none;
+  }
+
+  .btn-back {
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+
+  .section-title-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .section-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .section-toolbar .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .section-toolbar .btn.primary {
+    flex: 1 1 100%;
+  }
+
+  .section-title-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .section-title-left .form-header h2 {
+    font-size: 16px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .logbooks-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .logbook-card {
+    flex-wrap: wrap;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .card-meta {
+    flex-wrap: wrap;
+  }
+
+  .card-info h3 {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .editor-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .crew-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .copy-link-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copy-link-row .btn {
+    width: 100%;
+  }
+
+  .form-actions--start {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions--start .btn {
+    width: 100%;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    min-width: 480px;
+  }
+
+  .custom-dialog-overlay {
+    padding: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+    align-items: flex-end;
+  }
+
+  .custom-dialog-card {
+    width: 100%;
+    max-width: none;
+    padding: 22px 18px;
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .custom-dialog-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .custom-dialog-actions .btn {
+    width: 100%;
+    margin: 0 !important;
+  }
+
+  .disclaimer-modal-overlay {
+    padding: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    align-items: flex-end;
+  }
+
+  .disclaimer-modal-panel,
+  .registration-disclaimer--modal {
+    width: 100%;
+    max-width: none;
+  }
+
+  .auth-card {
+    padding: 28px 20px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .app-layout,
+  .dashboard-container {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .track-info-left {
+    flex-wrap: wrap;
+  }
+
+  .track-actions {
+    width: 100%;
+  }
+
+  .track-actions .btn {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+
+  #openseamap-container,
+  .track-map-container {
+    height: min(360px, 45svh);
+  }
 }
 
 /* ========================================== */
@@ -2265,6 +2513,12 @@ html.theme-cupertino .events-scroll-container {
 .track-info-stats {
   font-size: 12px;
   color: #94a3b8;
+}
+
+.track-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .track-error-msg {
@@ -3352,7 +3606,9 @@ body.app-tour-active .app-tour-target-active {
 .app-tour-tooltip {
   position: fixed;
   z-index: 10002;
+  box-sizing: border-box;
   width: min(420px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   padding: 20px 20px 16px;
   border-radius: 16px;
   background: #1e293b;
@@ -3361,10 +3617,19 @@ body.app-tour-active .app-tour-target-active {
   pointer-events: auto;
 }
 
+.app-tour-tooltip:not(.centered) {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  width: auto;
+  max-width: none;
+}
+
 .app-tour-tooltip.centered {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: calc(100vw - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
 }
 
 .app-tour-close {
@@ -3441,6 +3706,34 @@ body.app-tour-active .app-tour-target-active {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  .app-tour-tooltip {
+    padding: 18px 16px 14px;
+  }
+
+  .app-tour-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .app-tour-nav {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .app-tour-nav-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+}
+
+body.app-tour-active .pwa-install-banner {
+  display: none !important;
 }
 
 body.app-tour-active .disclaimer-modal-overlay.feedback-modal-overlay--tour {

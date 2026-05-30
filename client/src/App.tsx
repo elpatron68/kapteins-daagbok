@@ -421,7 +421,7 @@ function App() {
     )
   }
 
-  const pwaInstallBanner = <PwaInstallPrompt variant="banner" />
+  const pwaInstallBanner = !isActive ? <PwaInstallPrompt variant="banner" /> : null
 
   const logbookReadOnly =
     activeLogbookRecord?.isShared === 1 && activeAccessRole === 'READ'
@@ -446,9 +446,9 @@ function App() {
         {/* Active Logbook Header */}
         <header className="app-header">
           <div className="app-header-left">
-            <button className="btn-back" onClick={handleBackToDashboard}>
+            <button className="btn-back" onClick={handleBackToDashboard} title={t('nav.dashboard')}>
               <ChevronLeft size={16} />
-              {t('nav.dashboard')}
+              <span className="hide-mobile">{t('nav.dashboard')}</span>
             </button>
             <div className="app-title-area">
               <div className="app-title-row">
