@@ -49,7 +49,9 @@ export default defineConfig({
       manifest: {
         name: 'Kapteins Daagbok',
         short_name: 'Daagbok',
-        description: 'Free, ad-free maritime logbook with E2E encryption and Passkeys',
+        lang: 'de',
+        description:
+          'Digitales Yacht-Logbuch — E2E-verschlüsselt, offline-fähig. Digital yacht logbook — E2E encrypted, offline-capable PWA.',
         theme_color: '#1e293b',
         background_color: '#0f172a',
         display: 'standalone',

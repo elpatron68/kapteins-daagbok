@@ -332,6 +332,7 @@
       "color_scheme_dark": "Dunkel",
       "share_title": "Logbuch teilen (Schreibgeschützt)",
       "share_desc": "Aktiviere diese Option, um einen öffentlichen, schreibgeschützten Link zu erstellen. Jeder mit dem Link kann deine Reisen, Yacht-Profile und Besatzung ansehen. Die Verschlüsselungsschlüssel werden niemals an den Server übertragen (sie bleiben im Hash-Teil der URL).",
+      "share_privacy_warning": "Empfehlung: Teile diesen Link nur privat (z. B. per E-Mail oder Messenger), nicht in sozialen Medien.",
       "share_enable": "Öffentlichen Link aktivieren",
       "share_copied": "Link kopiert!",
       "share_copy_btn": "Link kopieren",
@@ -560,6 +561,12 @@
           "body": "Du landest gleich im Statistik-Dashboard. Die Tour kannst du jederzeit unter Einstellungen erneut starten. Gute Fahrt!"
         }
       }
+    },
+    "seo": {
+      "title": "Kapteins Daagbok – Kostenloses digitales Yacht-Logbuch (werbefrei)",
+      "description": "Kostenloses, werbefreies digitales Yacht-Logbuch mit End-to-End-Verschlüsselung und Passkey-Anmeldung. Reisetage, GPS-Tracks, Crew und Schiffsdaten sicher dokumentieren – auch offline als PWA.",
+      "keywords": "Yacht-Logbuch, Schiffstagebuch, Bordlogbuch, Segeln, Passkey, E2E-Verschlüsselung, GPS-Track, maritimes Logbuch, kostenlos, werbefrei, gratis, ohne Werbung",
+      "ogImageAlt": "Kapteins Daagbok Logo"
     }
   }
 }

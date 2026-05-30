@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import enTranslation from './locales/en.json'
 import deTranslation from './locales/de.json'
+import { initSeo } from '../utils/seo.js'
 
 i18n
   .use(LanguageDetector)
@@ -17,9 +18,12 @@ i18n
       escapeValue: false // React already escapes values (prevents XSS)
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['querystring', 'localStorage', 'navigator'],
+      lookupQuerystring: 'lng',
       caches: ['localStorage']
     }
   })
+
+initSeo(i18n)
 
 export default i18n

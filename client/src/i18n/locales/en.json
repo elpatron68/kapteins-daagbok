@@ -332,6 +332,7 @@
       "color_scheme_dark": "Dark",
       "share_title": "Share Logbook (Read-Only)",
       "share_desc": "Enable this to generate a public, read-only link. Anyone with the link can view your travels, yacht profile, and crew members. Decryption keys are never transmitted to the server (they stay in the hash part of the URL).",
+      "share_privacy_warning": "Recommendation: Share this link only privately (e.g. via email or messenger), not on social media.",
       "share_enable": "Enable Public Link",
       "share_copied": "Link copied!",
       "share_copy_btn": "Copy Link",
@@ -560,6 +561,12 @@
           "body": "You'll land on the statistics dashboard next. You can restart the tour anytime in Settings. Fair winds!"
         }
       }
+    },
+    "seo": {
+      "title": "Kapteins Daagbok – Free Digital Yacht Logbook (Ad-Free)",
+      "description": "Free, ad-free digital yacht logbook with end-to-end encryption and Passkey sign-in. Document travel days, GPS tracks, crew and vessel data securely — offline-capable PWA.",
+      "keywords": "yacht logbook, ship logbook, sailing log, maritime logbook, passkey, E2E encryption, GPS track, free, ad-free, offline PWA",
+      "ogImageAlt": "Kapteins Daagbok logo"
     }
   }
 }
