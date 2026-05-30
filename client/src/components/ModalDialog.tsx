@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef } from 'react'
+import React, { createContext, useContext, useState, useRef, useCallback, useMemo } from 'react'
 
 interface DialogContextType {
   showAlert: (message: string, title?: string, confirmText?: string) => Promise<void>
@@ -25,7 +25,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
 
   const resolveRef = useRef<((val: any) => void) | null>(null)
 
-  const showAlert = (msg: string, headerTitle?: string, btnText?: string): Promise<void> => {
+  const showAlert = useCallback((msg: string, headerTitle?: string, btnText?: string): Promise<void> => {
     setMessage(msg)
     setTitle(headerTitle || '')
     setType('alert')
@@ -35,9 +35,14 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     return new Promise<void>((resolve) => {
       resolveRef.current = resolve
     })
-  }
+  }, [])
 
-  const showConfirm = (msg: string, headerTitle?: string, btnConfirm?: string, btnCancel?: string): Promise<boolean> => {
+  const showConfirm = useCallback((
+    msg: string,
+    headerTitle?: string,
+    btnConfirm?: string,
+    btnCancel?: string
+  ): Promise<boolean> => {
     setMessage(msg)
     setTitle(headerTitle || '')
     setType('confirm')
@@ -48,26 +53,31 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     return new Promise<boolean>((resolve) => {
       resolveRef.current = resolve
     })
-  }
+  }, [])
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     setIsOpen(false)
     if (resolveRef.current) {
       resolveRef.current(type === 'confirm' ? true : undefined)
       resolveRef.current = null
     }
-  }
+  }, [type])
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsOpen(false)
     if (resolveRef.current) {
       resolveRef.current(false)
       resolveRef.current = null
     }
-  }
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({ showAlert, showConfirm }),
+    [showAlert, showConfirm]
+  )
 
   return (
-    <DialogContext.Provider value={{ showAlert, showConfirm }}>
+    <DialogContext.Provider value={contextValue}>
       {children}
       {isOpen && (
         <div className="custom-dialog-overlay" onClick={type === 'alert' ? handleConfirm : undefined}>

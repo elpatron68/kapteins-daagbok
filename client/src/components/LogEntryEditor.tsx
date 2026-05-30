@@ -76,6 +76,8 @@ export default function LogEntryEditor({
 }: LogEntryEditorProps) {
   const { t, i18n } = useTranslation()
   const { showAlert, showConfirm } = useDialog()
+  const showAlertRef = useRef(showAlert)
+  showAlertRef.current = showAlert
 
   // General details state
   const [date, setDate] = useState('')
@@ -145,6 +147,7 @@ export default function LogEntryEditor({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const lockedContentHashRef = useRef<string | null>(null)
   const contentReadyRef = useRef(false)
+  const lastSignatureAlertHashRef = useRef<string | null>(null)
 
   const applyTrackStats = (waypoints: SavedTrack['waypoints']) => {
     const stats = computeTrackStats(waypoints)
@@ -252,12 +255,15 @@ export default function LogEntryEditor({
       lockedContentHashRef.current = null
       setSignSkipper('')
       setSignCrew('')
-      void showAlert(
-        t('logs.sign_cleared_re_sign'),
-        t('logs.sign_cleared_re_sign_title')
-      )
+      if (lastSignatureAlertHashRef.current !== entryHash) {
+        lastSignatureAlertHashRef.current = entryHash
+        void showAlertRef.current(
+          t('logs.sign_cleared_re_sign'),
+          t('logs.sign_cleared_re_sign_title')
+        )
+      }
     }
-  }, [entryHash, signSkipper, signCrew, readOnly, showAlert, t])
+  }, [entryHash, signSkipper, signCrew, readOnly, t])
 
   const confirmSignWarning = useCallback(async (): Promise<boolean> => {
     return showConfirm(
@@ -355,6 +361,7 @@ export default function LogEntryEditor({
       setError(null)
       lockedContentHashRef.current = null
       contentReadyRef.current = false
+      lastSignatureAlertHashRef.current = null
       try {
         if (readOnly && preloadedEntry) {
           setDate(preloadedEntry.date || '')
@@ -1330,7 +1337,7 @@ export default function LogEntryEditor({
               style={{ width: 'auto', padding: '10px 20px', marginLeft: 'auto', display: 'flex' }}
             >
               <Plus size={16} />
-              Add Event Entry
+              {t('logs.add_event_btn')}
             </button>
           </div>
           )}
