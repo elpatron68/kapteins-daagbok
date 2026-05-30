@@ -14,6 +14,8 @@ export const PlausibleEvents = {
   ONBOARDING_TOUR_SKIPPED: 'Onboarding Tour Skipped',
   INVITE_GENERATED: 'Invite Generated',
   INVITE_ACCEPTED: 'Invite Accepted',
+  LOGBOOK_SHARED: 'Logbook Shared',
+  PUBLIC_LINK_OPENED: 'Public Link Opened',
   PDF_EXPORTED: 'PDF Exported',
   CSV_EXPORTED: 'CSV Exported',
   CSV_SHARED: 'CSV Shared',

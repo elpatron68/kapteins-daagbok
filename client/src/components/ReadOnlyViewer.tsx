@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { decryptJson } from '../services/crypto.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import VesselForm from './VesselForm.tsx'
 import CrewForm from './CrewForm.tsx'
 import LogEntriesList from './LogEntriesList.tsx'
@@ -124,6 +125,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
         }
       }
       setGpsTracks(decGpsTracks)
+      trackPlausibleEvent(PlausibleEvents.PUBLIC_LINK_OPENED)
 
     } catch (err: any) {
       console.error(err)

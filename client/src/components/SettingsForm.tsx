@@ -111,6 +111,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           const logbookKey = await ensureLogbookKey(logbookId)
           const hexKey = bufferToHex(logbookKey)
           setShareLink(`${window.location.origin}/share?token=${data.token}#key=${hexKey}`)
+          trackPlausibleEvent(PlausibleEvents.LOGBOOK_SHARED)
           showAlert('Public share link enabled!')
         } else {
           setShareEnabled(false)

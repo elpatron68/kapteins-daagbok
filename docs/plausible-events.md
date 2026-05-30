@@ -29,6 +29,8 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Demo Opened | Public-Demo unter `/demo` geöffnet (`DemoViewer.tsx`) | — |
 | Invite Generated | Einladungslink erzeugt (`SettingsForm.tsx`) | — |
 | Invite Accepted | Einladung angenommen und Logbuch beigetreten (`InvitationAcceptance.tsx`) | — |
+| Logbook Shared | Öffentlicher Freigabelink aktiviert (`SettingsForm.tsx`) | — |
+| Public Link Opened | Freigabelink unter `/share` erfolgreich geladen (`ReadOnlyViewer.tsx`) | — |
 | PDF Exported | PDF-Export eines Reisetags (`LogEntryEditor.tsx`, `LogEntriesList.tsx`) | `scope`: `entry` |
 | CSV Exported | CSV-Download aus der Eintragsliste (`LogEntriesList.tsx`) | — |
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
@@ -52,8 +54,9 @@ Empfohlene Goal-Ketten für Auswertung:
 1. **Aktivierung:** Account Created → Logbook Created → Travel Day Created → Travel Day Saved
 2. **Onboarding:** Account Created → Onboarding Tour Completed (vs. Onboarding Tour Skipped)
 3. **Kollaboration:** Invite Generated → Invite Accepted
-4. **Export:** Travel Day Saved → PDF Exported / CSV Exported
-5. **Datensicherung:** Backup Exported → Backup Restored
+4. **Öffentliche Freigabe:** Logbook Shared → Public Link Opened
+5. **Export:** Travel Day Saved → PDF Exported / CSV Exported
+6. **Datensicherung:** Backup Exported → Backup Restored
 
 ## Entwicklung
 
