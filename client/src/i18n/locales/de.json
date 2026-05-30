@@ -416,7 +416,9 @@
       "success": "Vielen Dank! Ihr Feedback wurde gesendet.",
       "error_send": "Feedback konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.",
       "error_invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-      "error_not_configured": "Feedback ist auf diesem Server nicht verfügbar."
+      "error_not_configured": "Feedback ist auf diesem Server nicht verfügbar.",
+      "error_rate_limited": "Zu viele Feedback-Nachrichten in kurzer Zeit. Bitte warten Sie einige Minuten.",
+      "error_spam": "Diese Nachricht konnte nicht gesendet werden. Bitte formulieren Sie sie anders."
     },
     "demo": {
       "logbook_title": "Demo-Logbuch Ostsee",

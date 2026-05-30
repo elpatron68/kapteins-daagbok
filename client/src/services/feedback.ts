@@ -3,11 +3,11 @@ import { apiFetch } from './api.js'
 export type FeedbackCategory = 'bug' | 'feature' | 'general'
 
 export class FeedbackApiError extends Error {
-  code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL'
+  code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL' | 'RATE_LIMITED' | 'SPAM_DETECTED'
 
   constructor(
     message: string,
-    code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL' = 'REQUEST_FAILED'
+    code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL' | 'RATE_LIMITED' | 'SPAM_DETECTED' = 'REQUEST_FAILED'
   ) {
     super(message)
     this.name = 'FeedbackApiError'
@@ -27,6 +27,8 @@ export async function sendFeedback(payload: {
   contactEmail?: string | null
   logbookId?: string | null
   logbookTitle?: string | null
+  openedAt: number
+  website?: string
 }): Promise<void> {
   const contactEmail = payload.contactEmail?.trim()
   if (contactEmail && !isValidFeedbackEmail(contactEmail)) {
@@ -43,7 +45,9 @@ export async function sendFeedback(payload: {
       logbookId: payload.logbookId || undefined,
       logbookTitle: payload.logbookTitle || undefined,
       appVersion: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : undefined,
-      pageUrl: window.location.href
+      pageUrl: window.location.href,
+      openedAt: payload.openedAt,
+      website: payload.website || undefined
     })
   })
 
@@ -51,8 +55,15 @@ export async function sendFeedback(payload: {
     throw new FeedbackApiError('Feedback is not configured on this server', 'NOT_CONFIGURED')
   }
 
+  if (res.status === 429) {
+    throw new FeedbackApiError('Too many feedback submissions', 'RATE_LIMITED')
+  }
+
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new FeedbackApiError(data.error || 'Failed to send feedback')
+    throw new FeedbackApiError(
+      data.error || 'Failed to send feedback',
+      data.code === 'SPAM_DETECTED' ? 'SPAM_DETECTED' : 'REQUEST_FAILED'
+    )
   }
 }

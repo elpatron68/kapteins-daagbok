@@ -416,7 +416,9 @@
       "success": "Thank you! Your feedback has been sent.",
       "error_send": "Could not send feedback. Please try again later.",
       "error_invalid_email": "Please enter a valid email address.",
-      "error_not_configured": "Feedback is not available on this server."
+      "error_not_configured": "Feedback is not available on this server.",
+      "error_rate_limited": "Too many feedback messages in a short time. Please wait a few minutes.",
+      "error_spam": "This message could not be sent. Please rephrase it and try again."
     },
     "demo": {
       "logbook_title": "Baltic Sea Demo Logbook",

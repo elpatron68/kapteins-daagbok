@@ -443,6 +443,16 @@ html.scheme-dark .themed-select-option.is-selected {
   gap: 16px;
 }
 
+.feedback-form__honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .feedback-form__field {
   display: flex;
   flex-direction: column;

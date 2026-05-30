@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { isNtfyConfigured, sendFeedbackViaNtfy } from '../services/ntfyNotify.js'
 import { requireUser } from '../middleware/auth.js'
+import { analyzeFeedbackSpam, feedbackLimiter } from '../middleware/feedbackProtection.js'
 
 const router = Router()
 
@@ -25,14 +26,24 @@ router.get('/status', requireUser, (_req, res) => {
   res.json({ enabled: isNtfyConfigured() })
 })
 
-router.post('/', requireUser, async (req: any, res) => {
+router.post('/', requireUser, feedbackLimiter, async (req: any, res) => {
   try {
     if (!isNtfyConfigured()) {
       return res.status(503).json({ error: 'Feedback is not configured on this server' })
     }
 
-    const { category, message, username, contactEmail, logbookId, logbookTitle, appVersion, pageUrl } =
-      req.body ?? {}
+    const {
+      category,
+      message,
+      username,
+      contactEmail,
+      logbookId,
+      logbookTitle,
+      appVersion,
+      pageUrl,
+      website,
+      openedAt
+    } = req.body ?? {}
 
     if (typeof category !== 'string' || !VALID_CATEGORIES.has(category)) {
       return res.status(400).json({ error: 'Invalid category' })
@@ -53,6 +64,21 @@ router.post('/', requireUser, async (req: any, res) => {
       if (!parsedContactEmail) {
         return res.status(400).json({ error: 'Invalid email address' })
       }
+    }
+
+    const spamVerdict = analyzeFeedbackSpam(req.userId, {
+      message: trimmedMessage,
+      website,
+      openedAt
+    })
+    if (spamVerdict === 'silent_reject') {
+      return res.json({ ok: true })
+    }
+    if (spamVerdict === 'reject') {
+      return res.status(400).json({
+        error: 'This feedback could not be sent. Please change your message and try again.',
+        code: 'SPAM_DETECTED'
+      })
     }
 
     await sendFeedbackViaNtfy({

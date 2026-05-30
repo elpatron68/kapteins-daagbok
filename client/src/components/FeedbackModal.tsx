@@ -26,9 +26,11 @@ export default function FeedbackModal({
   const [category, setCategory] = useState<FeedbackCategory>('general')
   const [contactEmail, setContactEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [website, setWebsite] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const closeTimerRef = useRef<number | null>(null)
+  const openedAtRef = useRef<number>(Date.now())
 
   const isBusy = submitState === 'submitting' || submitState === 'success'
 
@@ -58,9 +60,12 @@ export default function FeedbackModal({
       setCategory('general')
       setContactEmail('')
       setMessage('')
+      setWebsite('')
       setSubmitState('idle')
       setStatusMessage(null)
+      return
     }
+    openedAtRef.current = Date.now()
   }, [open])
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -76,7 +81,9 @@ export default function FeedbackModal({
         message: message.trim(),
         contactEmail: contactEmail.trim() || undefined,
         logbookId,
-        logbookTitle
+        logbookTitle,
+        openedAt: openedAtRef.current,
+        website
       })
       setSubmitState('success')
       setStatusMessage(t('feedback.success'))
@@ -91,7 +98,11 @@ export default function FeedbackModal({
           ? t('feedback.error_not_configured')
           : error instanceof FeedbackApiError && error.code === 'INVALID_EMAIL'
             ? t('feedback.error_invalid_email')
-            : t('feedback.error_send')
+            : error instanceof FeedbackApiError && error.code === 'RATE_LIMITED'
+              ? t('feedback.error_rate_limited')
+              : error instanceof FeedbackApiError && error.code === 'SPAM_DETECTED'
+                ? t('feedback.error_spam')
+                : t('feedback.error_send')
       )
     }
   }
@@ -139,6 +150,18 @@ export default function FeedbackModal({
               )}
 
               <form className="feedback-form" onSubmit={handleSubmit}>
+                <label className="feedback-form__honeypot" aria-hidden="true">
+                  <span>Website</span>
+                  <input
+                    type="text"
+                    name="website"
+                    value={website}
+                    onChange={(event) => setWebsite(event.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+                </label>
+
                 <label className="feedback-form__field">
                   <span>{t('feedback.category_label')}</span>
                   <select
