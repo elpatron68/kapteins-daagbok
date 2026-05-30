@@ -401,6 +401,10 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
             {t('settings.share_desc')}
           </p>
 
+          <p className="signature-lock-notice" style={{ marginBottom: '16px' }}>
+            {t('settings.share_privacy_warning')}
+          </p>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <label className="switch-label" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', color: '#f1f5f9' }}>
               <input
