@@ -206,9 +206,13 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           </div>
 
           {/* Skipper profile */}
-          <div className="skipper-badge">
-            <User size={16} />
-            <span>{username}</span>
+          <div
+            className="skipper-badge"
+            title={t('dashboard.logged_in_as', { name: username })}
+            aria-label={t('dashboard.logged_in_as', { name: username })}
+          >
+            <User size={16} aria-hidden="true" />
+            <span className="skipper-badge__name">{username}</span>
           </div>
 
           {/* Lang toggle */}

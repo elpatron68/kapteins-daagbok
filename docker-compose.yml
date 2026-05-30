@@ -30,6 +30,9 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@kapteins-daagbok.eu}
       OpenWeatherMapAPIKey: ${OpenWeatherMapAPIKey:-}
+      NTFY_SERVER: ${NTFY_SERVER:-https://ntfy.sh}
+      NTFY_TOPIC: ${NTFY_TOPIC:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
     command: sh -c "npx prisma db push && node dist/index.js"
     depends_on:
       db:

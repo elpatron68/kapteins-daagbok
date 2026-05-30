@@ -243,6 +243,7 @@
       "create_btn": "Logbuch erstellen",
       "new_logbook_placeholder": "Name des Logbuchs oder der Yacht",
       "logout": "Abmelden",
+      "logged_in_as": "Angemeldet als {{name}}",
       "delete_confirm": "Sind Sie sicher, dass Sie dieses Logbuch unwiderruflich löschen möchten? Alle lokalen Daten und Server-Kopien werden vernichtet.\n\nTipp: Erstellen Sie vorher unter Einstellungen → Backup & Wiederherstellung eine Sicherungskopie (.daagbok.json), falls Sie die Daten später behalten möchten.",
       "no_logbooks": "Keine Logbücher gefunden. Erstellen Sie Ihr erstes Logbuch, um zu beginnen!",
       "loading": "Logbücher werden geladen...",

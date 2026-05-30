@@ -672,9 +672,18 @@ html.scheme-dark .themed-select-option.is-selected {
   font-size: 13px;
   padding: 6px 12px;
   border-radius: 20px;
-  background: var(--app-btn-secondary-bg);
-  border: 1px solid var(--app-btn-secondary-border);
-  color: var(--app-btn-secondary-text);
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: var(--app-text-muted);
+  cursor: default;
+  user-select: none;
+}
+
+.skipper-badge__name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .btn-icon {

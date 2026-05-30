@@ -3,11 +3,65 @@
 # Configuration
 SERVER_PORT=5000
 CLIENT_PORT=5173
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+resolve_node_toolchain() {
+  # Common install locations when login shell PATH is not loaded
+  if command -v npm >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "$HOME/.nvm/nvm.sh"
+  elif [ -s "/usr/local/nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    . "/usr/local/nvm/nvm.sh"
+  fi
+
+  if [ -d "$HOME/.fnm" ] && command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env)"
+  fi
+
+  for candidate in \
+    /usr/local/bin/npm \
+    /usr/bin/npm \
+    "$HOME/.local/share/fnm/current/bin/npm" \
+    "$HOME/.nvm/versions/node/"*/bin/npm; do
+    if [ -x "$candidate" ]; then
+      export PATH="$(dirname "$candidate"):$PATH"
+      break
+    fi
+  done
+
+  command -v npm >/dev/null 2>&1
+}
+
+require_node_toolchain() {
+  if resolve_node_toolchain; then
+    echo "Using Node $(node -v), npm $(npm -v)"
+    return 0
+  fi
+
+  echo "Error: npm was not found in PATH."
+  echo ""
+  echo "This script starts local Vite/Express dev servers and requires Node.js 20+ with npm."
+  echo "Install Node.js on this machine, or use the Docker-based stack instead:"
+  echo "  ./scripts/start-dev-docker.sh"
+  echo ""
+  echo "On the production host, prefer updating the running stack:"
+  echo "  docker compose -f docker-compose.yml up -d --build"
+  echo "  # or from your workstation: ./scripts/update-prod.sh"
+  exit 1
+}
 
 echo "========================================"
 echo "   Kapteins Daagbok Dev Environment   "
 echo "========================================"
 echo "Preparing to (re)start services..."
+
+require_node_toolchain
 
 # Clean up processes running on ports
 cleanup_port() {
@@ -77,18 +131,40 @@ fi
 
 # Start backend server
 echo "Starting backend API server..."
-cd server
+cd "$REPO_ROOT/server" || exit 1
+if [ ! -d node_modules ]; then
+  echo "Error: server/node_modules missing. Run: cd server && npm ci"
+  exit 1
+fi
 npm run dev &
-cd ..
+BACKEND_PID=$!
+cd "$REPO_ROOT" || exit 1
 
 # Sleep briefly to let server start up
 sleep 1.5
+if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+  echo "Error: Backend dev server exited immediately. Check server logs above."
+  exit 1
+fi
 
 # Start frontend client
 echo "Starting frontend dev server..."
-cd client
+cd "$REPO_ROOT/client" || exit 1
+if [ ! -d node_modules ]; then
+  echo "Error: client/node_modules missing. Run: cd client && npm ci"
+  kill "$BACKEND_PID" 2>/dev/null
+  exit 1
+fi
 npm run dev &
-cd ..
+CLIENT_PID=$!
+cd "$REPO_ROOT" || exit 1
+
+sleep 1.5
+if ! kill -0 "$CLIENT_PID" 2>/dev/null; then
+  echo "Error: Frontend dev server exited immediately. Check client logs above."
+  kill "$BACKEND_PID" 2>/dev/null
+  exit 1
+fi
 
 echo "========================================"
 echo "Dev services are now running:"

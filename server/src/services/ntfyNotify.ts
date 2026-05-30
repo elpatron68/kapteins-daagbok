@@ -30,7 +30,7 @@ export async function sendFeedbackViaNtfy(payload: FeedbackPayload): Promise<voi
   }
 
   const categoryLabel = payload.category.charAt(0).toUpperCase() + payload.category.slice(1)
-  const title = `Kapteins Daagbok – ${categoryLabel}`
+  const title = `Kapteins Daagbok - ${categoryLabel}`
 
   const lines = [
     payload.message,
