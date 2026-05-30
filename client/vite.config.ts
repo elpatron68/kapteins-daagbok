@@ -49,7 +49,7 @@ export default defineConfig({
       manifest: {
         name: 'Kapteins Daagbok',
         short_name: 'Daagbok',
-        description: 'Digital maritime ship logbook with E2E encryption and Passkeys',
+        description: 'Free, ad-free maritime logbook with E2E encryption and Passkeys',
         theme_color: '#1e293b',
         background_color: '#0f172a',
         display: 'standalone',

@@ -1,6 +1,6 @@
 # Kapteins Daagbok
 
-Digitales Yacht-Logbuch als Progressive Web App (PWA) — offline-fähig, End-to-End-verschlüsselt und mit Passkey-Anmeldung.
+Digitales Yacht-Logbuch als Progressive Web App (PWA) — **kostenlos**, **werbefrei**, offline-fähig, End-to-End-verschlüsselt und mit Passkey-Anmeldung.
 
 **Live:** [kapteins-daagbok.eu](https://kapteins-daagbok.eu)
 
