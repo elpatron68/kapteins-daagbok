@@ -20,7 +20,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -483,7 +483,7 @@ export default function LogEntryEditor({
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
           loadTrackStatsFromEntry(preloadedEntry)
-          setEvents(preloadedEntry.events || [])
+          setEvents(sortLogEventsByTime(preloadedEntry.events || []))
           setSavedFingerprint(fingerprintFromStoredEntry(preloadedEntry))
           return
         }
@@ -516,7 +516,7 @@ export default function LogEntryEditor({
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
             loadTrackStatsFromEntry(decrypted)
-            setEvents(decrypted.events || [])
+            setEvents(sortLogEventsByTime(decrypted.events || []))
             setSavedFingerprint(fingerprintFromStoredEntry(decrypted))
           }
         }
@@ -871,7 +871,7 @@ export default function LogEntryEditor({
     if (editingEventIndex !== null) {
       const hadSkipperSignature = !!signSkipper
       markSkipperSignatureClearedForEventChange()
-      nextEvents = events.map((ev, idx) => (idx === editingEventIndex ? eventData : ev))
+      nextEvents = sortLogEventsByTime(events.map((ev, idx) => (idx === editingEventIndex ? eventData : ev)))
       if (hadSkipperSignature) {
         void showAlertRef.current(
           t('logs.sign_cleared_skipper_re_sign'),
@@ -879,7 +879,7 @@ export default function LogEntryEditor({
         )
       }
     } else {
-      nextEvents = [...events, eventData]
+      nextEvents = sortLogEventsByTime([...events, eventData])
     }
 
     setEvents(nextEvents)

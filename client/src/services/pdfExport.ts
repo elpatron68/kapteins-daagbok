@@ -4,6 +4,7 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 import { isSignatureImage, isPasskeySignature } from '../utils/signatures.js'
+import { sortLogEventsByTime } from '../utils/logEntryPayload.js'
 import i18n from '../i18n/index.js'
 
 function formatPasskeySignDate(signedAt: string): string {
@@ -132,7 +133,7 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   // Draw Data Rows
   const events = entry.events || [];
   const maxRows = 16;
-  const sortedEvents = [...events].sort((a: any, b: any) => (a.time || '').localeCompare(b.time || ''));
+  const sortedEvents = sortLogEventsByTime(events);
 
   doc.setFont('Helvetica', 'normal');
 

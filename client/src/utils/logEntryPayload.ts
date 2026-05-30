@@ -17,6 +17,11 @@ export interface LogEventPayload {
   remarks: string
 }
 
+/** Chronological order: earliest time first (HH:MM). */
+export function sortLogEventsByTime<T extends Pick<LogEventPayload, 'time'>>(events: T[]): T[] {
+  return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+}
+
 export interface LogEntryPayloadInput {
   date: string
   dayOfTravel: string
@@ -38,7 +43,7 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
     destination: input.destination.trim(),
     freshwater: { ...input.freshwater },
     fuel: { ...input.fuel },
-    events: input.events.map((e) => ({ ...e }))
+    events: sortLogEventsByTime(input.events.map((e) => ({ ...e })))
   }
 
   if (input.trackDistanceNm !== undefined) payload.trackDistanceNm = input.trackDistanceNm

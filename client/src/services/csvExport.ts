@@ -3,6 +3,7 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
 import { formatSignatureForExport, normalizeSignature } from '../utils/signatures.js'
+import { sortLogEventsByTime } from '../utils/logEntryPayload.js'
 import i18n from '../i18n/index.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
@@ -134,7 +135,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
       ].map(escapeCsvValue));
     } else {
       // Sort events chronologically by time
-      const sortedEvents = [...eventsList].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      const sortedEvents = sortLogEventsByTime(eventsList);
       for (const ev of sortedEvents) {
         rows.push([
           dateVal, travelDay, dep, dest,
