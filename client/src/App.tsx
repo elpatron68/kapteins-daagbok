@@ -85,13 +85,17 @@ function App() {
       return
     }
 
-    if (activeLogbookRecord?.isShared !== 1) {
+    if (!activeLogbookRecord) {
+      setActiveAccessRole(null)
+      return
+    }
+
+    if (activeLogbookRecord.isShared !== 1) {
       setActiveAccessRole('OWNER')
       return
     }
 
     const cachedRole = activeLogbookRecord.collaborationRole
-    // Fail-closed for write UI until role is known: do not assume WRITE
     setActiveAccessRole(
       cachedRole ? parseCollaborationRole(cachedRole, `logbook ${activeLogbookId}`) : null
     )
@@ -418,12 +422,8 @@ function App() {
 
   const pwaInstallBanner = <PwaInstallPrompt variant="banner" />
 
-  const sharedLogbook =
-    activeLogbookRecord === undefined ? null : activeLogbookRecord.isShared === 1
   const logbookReadOnly =
-    activeLogbookId != null &&
-    (sharedLogbook === null || sharedLogbook) &&
-    activeAccessRole !== 'WRITE'
+    activeLogbookRecord?.isShared === 1 && activeAccessRole === 'READ'
 
   if (!activeLogbookId) {
     return (
