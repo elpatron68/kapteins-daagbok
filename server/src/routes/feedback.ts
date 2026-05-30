@@ -5,6 +5,20 @@ const router = Router()
 
 const VALID_CATEGORIES = new Set(['bug', 'feature', 'general'])
 const MAX_MESSAGE_LENGTH = 2000
+const MAX_EMAIL_LENGTH = 254
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function parseOptionalEmail(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string') return undefined
+
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (trimmed.length > MAX_EMAIL_LENGTH) return undefined
+  if (!EMAIL_PATTERN.test(trimmed)) return undefined
+
+  return trimmed
+}
 
 const requireUser = (req: any, res: any, next: any) => {
   const userId = req.headers['x-user-id']
@@ -25,7 +39,8 @@ router.post('/', requireUser, async (req: any, res) => {
       return res.status(503).json({ error: 'Feedback is not configured on this server' })
     }
 
-    const { category, message, username, logbookId, logbookTitle, appVersion, pageUrl } = req.body ?? {}
+    const { category, message, username, contactEmail, logbookId, logbookTitle, appVersion, pageUrl } =
+      req.body ?? {}
 
     if (typeof category !== 'string' || !VALID_CATEGORIES.has(category)) {
       return res.status(400).json({ error: 'Invalid category' })
@@ -40,10 +55,19 @@ router.post('/', requireUser, async (req: any, res) => {
       return res.status(400).json({ error: `Message must be at most ${MAX_MESSAGE_LENGTH} characters` })
     }
 
+    let parsedContactEmail: string | undefined
+    if (contactEmail !== undefined && contactEmail !== null && String(contactEmail).trim()) {
+      parsedContactEmail = parseOptionalEmail(contactEmail)
+      if (!parsedContactEmail) {
+        return res.status(400).json({ error: 'Invalid email address' })
+      }
+    }
+
     await sendFeedbackViaNtfy({
       category,
       message: trimmedMessage,
       username: typeof username === 'string' ? username.trim() : undefined,
+      contactEmail: parsedContactEmail,
       userId: req.userId,
       logbookId: typeof logbookId === 'string' ? logbookId.trim() : undefined,
       logbookTitle: typeof logbookTitle === 'string' ? logbookTitle.trim() : undefined,

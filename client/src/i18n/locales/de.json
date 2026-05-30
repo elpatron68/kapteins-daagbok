@@ -406,6 +406,8 @@
       "category_general": "Allgemein",
       "category_bug": "Fehler melden",
       "category_feature": "Feature-Wunsch",
+      "contact_label": "E-Mail (optional)",
+      "contact_placeholder": "ihre@email.beispiel",
       "message_label": "Nachricht",
       "message_placeholder": "Beschreiben Sie Ihr Feedback…",
       "send": "Senden",
@@ -413,6 +415,7 @@
       "cancel": "Abbrechen",
       "success": "Vielen Dank! Ihr Feedback wurde gesendet.",
       "error_send": "Feedback konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.",
+      "error_invalid_email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       "error_not_configured": "Feedback ist auf diesem Server nicht verfügbar."
     },
     "demo": {

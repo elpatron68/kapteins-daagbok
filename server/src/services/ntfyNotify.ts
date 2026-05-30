@@ -2,6 +2,7 @@ export interface FeedbackPayload {
   category: string
   message: string
   username?: string
+  contactEmail?: string
   userId: string
   logbookId?: string
   logbookTitle?: string
@@ -39,6 +40,10 @@ export async function sendFeedbackViaNtfy(payload: FeedbackPayload): Promise<voi
     `User: ${payload.username || '(unknown)'}`,
     `User ID: ${payload.userId}`
   ]
+
+  if (payload.contactEmail) {
+    lines.push(`Contact: ${payload.contactEmail}`)
+  }
 
   if (payload.logbookTitle || payload.logbookId) {
     lines.push(`Logbook: ${payload.logbookTitle || payload.logbookId}`)

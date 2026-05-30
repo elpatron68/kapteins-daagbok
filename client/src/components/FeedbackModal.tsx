@@ -22,6 +22,7 @@ export default function FeedbackModal({
 }: FeedbackModalProps) {
   const { t } = useTranslation()
   const [category, setCategory] = useState<FeedbackCategory>('general')
+  const [contactEmail, setContactEmail] = useState('')
   const [message, setMessage] = useState('')
   const [submitState, setSubmitState] = useState<SubmitState>('idle')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -53,6 +54,7 @@ export default function FeedbackModal({
     if (!open) {
       clearCloseTimer()
       setCategory('general')
+      setContactEmail('')
       setMessage('')
       setSubmitState('idle')
       setStatusMessage(null)
@@ -70,6 +72,7 @@ export default function FeedbackModal({
       await sendFeedback({
         category,
         message: message.trim(),
+        contactEmail: contactEmail.trim() || undefined,
         logbookId,
         logbookTitle
       })
@@ -84,7 +87,9 @@ export default function FeedbackModal({
       setStatusMessage(
         error instanceof FeedbackApiError && error.code === 'NOT_CONFIGURED'
           ? t('feedback.error_not_configured')
-          : t('feedback.error_send')
+          : error instanceof FeedbackApiError && error.code === 'INVALID_EMAIL'
+            ? t('feedback.error_invalid_email')
+            : t('feedback.error_send')
       )
     }
   }
@@ -137,6 +142,25 @@ export default function FeedbackModal({
                     <option value="bug">{t('feedback.category_bug')}</option>
                     <option value="feature">{t('feedback.category_feature')}</option>
                   </select>
+                </label>
+
+                <label className="feedback-form__field">
+                  <span>{t('feedback.contact_label')}</span>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(event) => {
+                      setContactEmail(event.target.value)
+                      if (submitState === 'error') {
+                        setSubmitState('idle')
+                        setStatusMessage(null)
+                      }
+                    }}
+                    placeholder={t('feedback.contact_placeholder')}
+                    autoComplete="email"
+                    maxLength={254}
+                    disabled={submitState === 'submitting'}
+                  />
                 </label>
 
                 <label className="feedback-form__field">

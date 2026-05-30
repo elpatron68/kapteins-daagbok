@@ -406,6 +406,8 @@
       "category_general": "General",
       "category_bug": "Bug report",
       "category_feature": "Feature request",
+      "contact_label": "Email (optional)",
+      "contact_placeholder": "your@email.example",
       "message_label": "Message",
       "message_placeholder": "Describe your feedback…",
       "send": "Send",
@@ -413,6 +415,7 @@
       "cancel": "Cancel",
       "success": "Thank you! Your feedback has been sent.",
       "error_send": "Could not send feedback. Please try again later.",
+      "error_invalid_email": "Please enter a valid email address.",
       "error_not_configured": "Feedback is not available on this server."
     },
     "demo": {

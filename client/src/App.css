@@ -457,6 +457,7 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .feedback-form__field select,
+.feedback-form__field input,
 .feedback-form__field textarea {
   width: 100%;
   padding: 10px 12px;
@@ -469,6 +470,7 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .feedback-form__field select:focus,
+.feedback-form__field input:focus,
 .feedback-form__field textarea:focus {
   outline: none;
   border-color: var(--app-accent, #38bdf8);

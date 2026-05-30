@@ -1,13 +1,22 @@
 export type FeedbackCategory = 'bug' | 'feature' | 'general'
 
 export class FeedbackApiError extends Error {
-  code: 'NOT_CONFIGURED' | 'REQUEST_FAILED'
+  code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL'
 
-  constructor(message: string, code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' = 'REQUEST_FAILED') {
+  constructor(
+    message: string,
+    code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL' = 'REQUEST_FAILED'
+  ) {
     super(message)
     this.name = 'FeedbackApiError'
     this.code = code
   }
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+export function isValidFeedbackEmail(email: string): boolean {
+  return EMAIL_PATTERN.test(email.trim())
 }
 
 function buildFeedbackHeaders(): Record<string, string> {
@@ -22,15 +31,22 @@ function buildFeedbackHeaders(): Record<string, string> {
 export async function sendFeedback(payload: {
   category: FeedbackCategory
   message: string
+  contactEmail?: string | null
   logbookId?: string | null
   logbookTitle?: string | null
 }): Promise<void> {
+  const contactEmail = payload.contactEmail?.trim()
+  if (contactEmail && !isValidFeedbackEmail(contactEmail)) {
+    throw new FeedbackApiError('Invalid email address', 'INVALID_EMAIL')
+  }
+
   const res = await fetch('/api/feedback', {
     method: 'POST',
     headers: buildFeedbackHeaders(),
     body: JSON.stringify({
       category: payload.category,
       message: payload.message,
+      contactEmail: contactEmail || undefined,
       username: localStorage.getItem('active_username') || undefined,
       logbookId: payload.logbookId || undefined,
       logbookTitle: payload.logbookTitle || undefined,
