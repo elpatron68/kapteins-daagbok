@@ -15,6 +15,7 @@ import pushRouter from './routes/push.js'
 import weatherRouter from './routes/weather.js'
 import feedbackRouter from './routes/feedback.js'
 import { prisma } from './db.js'
+import { buildCorsOptions } from './cors.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -24,22 +25,16 @@ dotenv.config({ path: resolve(__dirname, '../.env') })
 const app = express()
 const PORT = process.env.PORT || 5000
 
-const allowedOrigin = process.env.ORIGIN || 'http://localhost:5173'
-
 app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false
   })
 )
-app.use(
-  cors({
-    origin: allowedOrigin,
-    credentials: true
-  })
-)
+app.use(cors(buildCorsOptions()))
 app.use(cookieParser())
-app.use(express.json({ limit: '10mb' }))
+// Encrypted sync payloads (photos, GPS tracks) can be large — align with nginx client_max_body_size
+app.use(express.json({ limit: '50mb' }))
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

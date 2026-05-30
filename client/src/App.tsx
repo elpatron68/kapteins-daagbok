@@ -40,19 +40,20 @@ import {
   getStoredDemoFirstEntryId,
   seedDemoLogbookIfNeeded
 } from './services/demoLogbook.js'
-import { fetchLogbooks } from './services/logbook.js'
+import { fetchLogbooks, parseCollaborationRole } from './services/logbook.js'
 import { ensurePushSubscriptionIfEnabled } from './services/pushNotifications.js'
 
 const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 
 function App() {
   const { t, i18n } = useTranslation()
-  const { registerNavigation, requestStartAfterLogin } = useAppTour()
+  const { registerNavigation, requestStartAfterLogin, isActive, currentStepId } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
   const [activeLogbookTitle, setActiveLogbookTitle] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<AppTab>('logs')
   const [tourSelectedEntryId, setTourSelectedEntryId] = useState<string | null>(null)
+  const [tourFeedbackOpen, setTourFeedbackOpen] = useState(false)
   const [demoHighlightEntryId, setDemoHighlightEntryId] = useState<string | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -90,9 +91,11 @@ function App() {
     }
 
     const cachedRole = activeLogbookRecord.collaborationRole
-    if (cachedRole) {
-      setActiveAccessRole(cachedRole)
-    }
+    setActiveAccessRole(
+      cachedRole
+        ? parseCollaborationRole(cachedRole, `logbook ${activeLogbookId}`)
+        : 'WRITE'
+    )
 
     getLogbookAccess(activeLogbookId).then((access) => {
       if (access) setActiveAccessRole(access.role)
@@ -503,6 +506,7 @@ function App() {
           <button
             className={`sidebar-btn ${activeTab === 'stats' ? 'active' : ''}`}
             onClick={() => setActiveTab('stats')}
+            data-tour="nav-stats"
           >
             <BarChart2 size={18} />
             {t('nav.stats')}
