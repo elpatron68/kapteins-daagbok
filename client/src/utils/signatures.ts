@@ -68,3 +68,12 @@ export function serializeSignature(value: SignatureValue | '' | undefined): Sign
   const trimmed = value.trim()
   return trimmed || undefined
 }
+
+/** Normalize then serialize — canonical form for persistence and dirty-check fingerprints. */
+export function normalizedSerializedSignature(value: unknown): SignatureValue | undefined {
+  return serializeSignature(normalizeSignature(value) || '')
+}
+
+export function fingerprintSignature(value: unknown): string {
+  return normalizedSerializedSignature(value) ?? ''
+}

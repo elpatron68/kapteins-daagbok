@@ -7,9 +7,10 @@ export default function AppFooter() {
       <span className="app-version-footer__sep" aria-hidden="true">
         ·
       </span>
-      <a className="app-version-footer__copyright" href="mailto:elpatron+kd@mailbox.org">
-        © 2026 Markus F.J. Busche
-      </a>
+      <span className="app-version-footer__copyright">
+        © 2026 KnorrLabs/
+        <a href="mailto:elpatron+kd@mailbox.org">Markus F.J. Busche</a>
+      </span>
     </footer>
   )
 }

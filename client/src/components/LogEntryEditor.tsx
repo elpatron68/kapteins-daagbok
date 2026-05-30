@@ -13,7 +13,8 @@ import TrackMap from './TrackMap.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import {
   normalizeSignature,
-  serializeSignature,
+  fingerprintSignature,
+  normalizedSerializedSignature,
   isPasskeySignature,
   isSignatureValidForEntry,
   hasAnySignature
@@ -79,8 +80,8 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
 
   return JSON.stringify({
     ...payload,
-    signSkipper: serializeSignature(normalizeSignature(decrypted.signSkipper as SignatureValue | '') || '') ?? '',
-    signCrew: serializeSignature(normalizeSignature(decrypted.signCrew as SignatureValue | '') || '') ?? ''
+    signSkipper: fingerprintSignature(decrypted.signSkipper),
+    signCrew: fingerprintSignature(decrypted.signCrew)
   })
 }
 
@@ -241,8 +242,8 @@ export default function LogEntryEditor({
     const payload = buildPayloadForSigning()
     return JSON.stringify({
       ...payload,
-      signSkipper: serializeSignature(signSkipper) ?? '',
-      signCrew: serializeSignature(signCrew) ?? ''
+      signSkipper: fingerprintSignature(signSkipper),
+      signCrew: fingerprintSignature(signCrew)
     })
   }, [buildPayloadForSigning, signSkipper, signCrew])
 
@@ -256,8 +257,8 @@ export default function LogEntryEditor({
 
     const entryData = {
       ...buildPayloadForSigning(eventsOverride),
-      signSkipper: serializeSignature(signSkipper),
-      signCrew: serializeSignature(signCrew)
+      signSkipper: normalizedSerializedSignature(signSkipper),
+      signCrew: normalizedSerializedSignature(signCrew)
     }
 
     const encrypted = await encryptJson(entryData, masterKey)
@@ -285,8 +286,8 @@ export default function LogEntryEditor({
 
     setSavedFingerprint(JSON.stringify({
       ...buildPayloadForSigning(eventsOverride),
-      signSkipper: serializeSignature(signSkipper) ?? '',
-      signCrew: serializeSignature(signCrew) ?? ''
+      signSkipper: fingerprintSignature(signSkipper),
+      signCrew: fingerprintSignature(signCrew)
     }))
   }, [
     readOnly, logbookId, entryId, events, buildPayloadForSigning, signSkipper, signCrew
