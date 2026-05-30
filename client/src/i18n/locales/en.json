@@ -141,7 +141,6 @@
       "sign_passkey_failed": "Passkey signing failed",
       "sign_passkey_cancelled": "Passkey signing cancelled",
       "sign_invalid": "Signature invalid — entry content changed",
-      "sign_badge_skipper": "Skipper",
       "sign_badge_skipper_invalid": "Invalid",
       "sign_badge_skipper_title_valid": "Signed by skipper",
       "sign_badge_skipper_title_invalid": "Skipper signature invalid — entry content changed",
