@@ -44,6 +44,7 @@ if [ "$IS_READY" = true ]; then
   echo "SUCCESS: Services are up and healthy!"
   echo " -> App Frontend (Nginx):  http://localhost"
   echo " -> Backend API Health:    http://localhost/api/health"
+  echo " -> Auth: session cookie (set ORIGIN=http://localhost, SESSION_SECRET in .env)"
   echo "=================================================="
 else
   echo "WARNING: Backend did not transition to healthy in time."

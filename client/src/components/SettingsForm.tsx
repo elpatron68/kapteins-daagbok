@@ -11,6 +11,7 @@ import { notifyAppearanceChanged } from '../services/appearance.js'
 import ThemedSelect from './ThemedSelect.tsx'
 import { useAppTour } from '../context/AppTourContext.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { apiFetch } from '../services/api.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -67,15 +68,10 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
   const loadShareLink = async () => {
     if (!logbookId) return
     setLoadingShareLink(true)
-    const userId = localStorage.getItem('active_userid')
-    if (!userId) return
+    if (!localStorage.getItem('active_userid')) return
 
     try {
-      const res = await fetch(`/api/collaboration/share-link?logbookId=${logbookId}`, {
-        headers: {
-          'X-User-Id': userId
-        }
-      })
+      const res = await apiFetch(`/api/collaboration/share-link?logbookId=${logbookId}`)
 
       if (res.ok) {
         const data = await res.json()
@@ -99,17 +95,12 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
   const handleToggleShare = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!logbookId) return
     const checked = e.target.checked
-    const userId = localStorage.getItem('active_userid')
-    if (!userId) return
+    if (!localStorage.getItem('active_userid')) return
 
     setLoadingShareLink(true)
     try {
-      const res = await fetch('/api/collaboration/share-link', {
+      const res = await apiFetch('/api/collaboration/share-link', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId
-        },
         body: JSON.stringify({ logbookId, enabled: checked })
       })
 
@@ -149,15 +140,10 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
   const loadCollaborators = async () => {
     setLoadingCollabs(true)
     setCollabError(null)
-    const userId = localStorage.getItem('active_userid')
-    if (!userId) return
+    if (!localStorage.getItem('active_userid')) return
 
     try {
-      const res = await fetch(`/api/collaboration/collaborators?logbookId=${logbookId}`, {
-        headers: {
-          'X-User-Id': userId
-        }
-      })
+      const res = await apiFetch(`/api/collaboration/collaborators?logbookId=${logbookId}`)
 
       if (res.status === 403) {
         setIsOwner(false)
@@ -184,20 +170,15 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
     if (!logbookId) return
     setGeneratingInvite(true)
     setInviteLink('')
-    const userId = localStorage.getItem('active_userid')
-    if (!userId) return
+    if (!localStorage.getItem('active_userid')) return
 
     try {
       // 1. Ensure logbook has an E2E key (upgrades legacy logbooks if needed)
       const logbookKey = await ensureLogbookKey(logbookId)
 
       // 2. Create invite token on server
-      const res = await fetch('/api/collaboration/invite', {
+      const res = await apiFetch('/api/collaboration/invite', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId
-        },
         body: JSON.stringify({ logbookId, role: 'WRITE' })
       })
 
@@ -230,16 +211,12 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
   }
 
   const handleRevoke = async (collabId: string, collName: string) => {
-    const userId = localStorage.getItem('active_userid')
-    if (!userId) return
+    if (!localStorage.getItem('active_userid')) return
 
     if (await showConfirm(t('logs.revoke_confirm'), collName, t('logs.confirm_yes'), t('logs.confirm_no'))) {
       try {
-        const res = await fetch(`/api/collaboration/collaborators/${collabId}`, {
-          method: 'DELETE',
-          headers: {
-            'X-User-Id': userId
-          }
+        const res = await apiFetch(`/api/collaboration/collaborators/${collabId}`, {
+          method: 'DELETE'
         })
 
         if (res.ok) {

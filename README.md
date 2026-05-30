@@ -45,7 +45,7 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 | Lokaler Speicher | Dexie.js (IndexedDB), Hintergrund-Sync |
 | Backend | Node.js, Express, Prisma |
 | Datenbank | PostgreSQL 16 |
-| Auth | WebAuthn (Passkeys) via `@simplewebauthn` |
+| Auth | WebAuthn (Passkeys) + signiertes HttpOnly-Session-Cookie (`daagbok_session`) |
 | Krypto | Web Crypto API (AES-GCM), BIP39 Recovery |
 | Push (optional) | Web Push (VAPID), Custom Service Worker (`injectManifest`) |
 
@@ -58,6 +58,18 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 | **Collaborator (READ)** | Nur Lesen (z. B. öffentlicher Share-Link) |
 
 Skipper- und Crew-Profile im Logbuch sind **Inhaltsdaten** (verschlüsselt), nicht an den Account gebunden. Ein Account kann gleichzeitig Owner eines eigenen und Collaborator in fremden Logbüchern sein.
+
+### Authentifizierung & Session
+
+| Schicht | Verhalten |
+|---------|-----------|
+| **Login** | WebAuthn (`/api/auth/login-verify`) — danach HttpOnly-Cookie, 7 Tage gültig |
+| **API-Aufrufe** | Cookie `credentials: 'include'` (Client: `apiFetch`) — kein `X-User-Id` |
+| **Master-Key** | Nur im RAM; nach Reload Entsperren per Passkey oder lokalem PIN |
+| **Step-up** | Konto löschen, PRF-Enrollment: frische Passkey-Bestätigung (`/api/auth/reauth-*`) |
+| **Sync WRITE** | Server lehnt Schreib-Sync für Collaborator mit `READ` ab |
+
+Öffentliche Routen (ohne Session): Registrierung/Login-Optionen, Einladungsdetails, Read-only-Share (`share-pull`), Health-Check, VAPID-Public-Key.
 
 ## Backup & Wiederherstellung
 
@@ -134,20 +146,29 @@ cd client && npm ci && cd ..
 cp .env.example .env
 ```
 
-Für lokale Passkeys: `RP_ID=localhost`, `ORIGIN=http://localhost:5173` (bzw. die tatsächliche Frontend-URL).
+Kopiere `.env.example` nach `.env` und passe mindestens an:
 
-Im `server/`-Verzeichnis eine `.env` mit `DATABASE_URL` anlegen — oder den Key in der **Projekt-`.env`** (`OpenWeatherMapAPIKey=...`); das Backend lädt beide Dateien.
+| Variable | Dev (Vite) | Produktion |
+|----------|------------|------------|
+| `RP_ID` | `localhost` | `kapteins-daagbok.eu` |
+| `ORIGIN` | `http://localhost:5173` | `https://kapteins-daagbok.eu` |
+| `SESSION_SECRET` | empfohlen (≥ 32 Zeichen) | **Pflicht** |
+
+`ORIGIN` muss **exakt** der Frontend-URL entsprechen (CORS + Session-Cookie). Das Backend lädt `.env` aus dem Projektroot und optional `server/.env`.
 
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/daagbox?schema=public"
 OpenWeatherMapAPIKey=          # Fallback für Wetter-Abruf, wenn Nutzer keinen eigenen Key hat
 RP_ID=localhost
 ORIGIN=http://localhost:5173
+SESSION_SECRET=                 # openssl rand -base64 48 (in Prod Pflicht)
 # Optional — Web Push (npx web-push generate-vapid-keys)
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:support@kapteins-daagbok.eu
 ```
+
+`./scripts/start-dev.sh` prüft `ORIGIN` und `SESSION_SECRET` beim Start und gibt Hinweise aus.
 
 ### 3. Datenbank & Schema
 
@@ -179,7 +200,7 @@ Gesamten Stack lokal bauen und starten:
 
 Frontend: http://localhost · API: http://localhost/api/health
 
-Umgebungsvariablen in `.env` setzen — mindestens `RP_ID` und `ORIGIN` für Passkeys. Für Push die VAPID-Variablen an den **Backend**-Container durchreichen (z. B. in `docker-compose.yml` unter `backend.environment` ergänzen).
+Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`) und `SESSION_SECRET`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`).
 
 ## Deployment
 
@@ -191,7 +212,7 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
 Standard-Ziel: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
 
-Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN` und bei Push `VAPID_*` enthalten. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
+Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN`, `SESSION_SECRET` (≥ 32 Zeichen) und bei Push `VAPID_*` enthalten. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
 
 ## Dokumentation
 

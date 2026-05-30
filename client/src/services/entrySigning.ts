@@ -1,5 +1,6 @@
 import { startAuthentication } from '@simplewebauthn/browser'
 import type { PasskeySignature } from '../types/signatures.js'
+import { apiJson } from './api.js'
 
 export async function signLogEntry(params: {
   logbookId: string
@@ -7,32 +8,22 @@ export async function signLogEntry(params: {
   entryHash: string
   role: 'skipper' | 'crew'
 }): Promise<PasskeySignature> {
-  const userId = localStorage.getItem('active_userid')
-  if (!userId) throw new Error('User not authenticated')
+  if (!localStorage.getItem('active_userid')) throw new Error('User not authenticated')
 
-  const optionsRes = await fetch('/api/sign/options', {
+  const options = await apiJson<any>('/api/sign/options', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': userId
-    },
     body: JSON.stringify(params)
   })
 
-  if (!optionsRes.ok) {
-    const err = await optionsRes.json().catch(() => ({}))
-    throw new Error(err.error || 'Failed to start passkey signing')
-  }
-
-  const options = await optionsRes.json()
   const credentialResponse = await startAuthentication({ optionsJSON: options })
 
-  const verifyRes = await fetch('/api/sign/verify', {
+  const result = await apiJson<{
+    userId: string
+    username: string
+    credentialId: string
+    signedAt: string
+  }>('/api/sign/verify', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': userId
-    },
     body: JSON.stringify({
       credentialResponse,
       challenge: options.challenge,
@@ -42,13 +33,6 @@ export async function signLogEntry(params: {
       role: params.role
     })
   })
-
-  if (!verifyRes.ok) {
-    const err = await verifyRes.json().catch(() => ({}))
-    throw new Error(err.error || 'Passkey signature verification failed')
-  }
-
-  const result = await verifyRes.json()
 
   return {
     kind: 'passkey',

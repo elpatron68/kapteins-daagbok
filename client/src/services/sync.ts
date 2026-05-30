@@ -1,5 +1,7 @@
 import { db, type SyncQueueItem } from './db.js'
 import { getActiveMasterKey } from './auth.js'
+import { apiFetch } from './api.js'
+import { getLogbookAccess } from './logbookAccess.js'
 
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
@@ -126,19 +128,17 @@ function scheduleResync(logbookId: string) {
 
 // Push local sync queue items to the server
 async function pushChanges(logbookId: string): Promise<boolean> {
-  const userId = localStorage.getItem('active_userid')
-  if (!userId) return false
+  if (!getActiveMasterKey() || !localStorage.getItem('active_userid')) return false
+
+  const access = await getLogbookAccess(logbookId)
+  if (access && access.role === 'READ') return true
 
   const pending = await coalesceSyncQueue(logbookId)
   if (pending.length === 0) return true
 
   try {
-    const response = await fetch(`${API_BASE}/push`, {
+    const response = await apiFetch(`${API_BASE}/push`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId
-      },
       body: JSON.stringify({ items: pending })
     })
 
@@ -187,15 +187,11 @@ async function flushPushQueue(logbookId: string): Promise<boolean> {
 
 // Pull updates from the server and apply last-write-wins
 async function pullChanges(logbookId: string): Promise<boolean> {
-  const userId = localStorage.getItem('active_userid')
-  if (!userId) return false
+  if (!localStorage.getItem('active_userid')) return false
 
   try {
-    const response = await fetch(`${API_BASE}/pull?logbookId=${logbookId}`, {
-      method: 'GET',
-      headers: {
-        'X-User-Id': userId
-      }
+    const response = await apiFetch(`${API_BASE}/pull?logbookId=${logbookId}`, {
+      method: 'GET'
     })
 
     if (!response.ok) {

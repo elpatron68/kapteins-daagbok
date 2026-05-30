@@ -1,5 +1,8 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
+import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,8 +24,39 @@ dotenv.config({ path: resolve(__dirname, '../.env') })
 const app = express()
 const PORT = process.env.PORT || 5000
 
-app.use(cors())
-app.use(express.json({ limit: '50mb' }))
+const allowedOrigin = process.env.ORIGIN || 'http://localhost:5173'
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  })
+)
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true
+  })
+)
+app.use(cookieParser())
+app.use(express.json({ limit: '10mb' }))
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+app.use('/api/auth', authLimiter)
+app.use('/api', apiLimiter)
 
 // Mount routes
 app.use('/api/auth', authRouter)
@@ -44,11 +78,10 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       service: 'Kapteins Daagbok Backend'
     })
-  } catch (err: any) {
+  } catch {
     res.status(500).json({
       status: 'error',
       database: 'disconnected',
-      error: err.message,
       timestamp: new Date().toISOString(),
       service: 'Kapteins Daagbok Backend'
     })

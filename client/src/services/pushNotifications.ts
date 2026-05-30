@@ -1,8 +1,6 @@
-const API_BASE = '/api/push'
+import { apiFetch, apiJson } from './api.js'
 
-function getUserId(): string | null {
-  return localStorage.getItem('active_userid')
-}
+const API_BASE = '/api/push'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -46,38 +44,24 @@ async function fetchVapidPublicKey(): Promise<string | null> {
 }
 
 export async function fetchPushPrefs(): Promise<{ collaboratorChangesEnabled: boolean }> {
-  const userId = getUserId()
-  if (!userId) return { collaboratorChangesEnabled: false }
-
-  const res = await fetch(`${API_BASE}/prefs`, {
-    headers: { 'X-User-Id': userId }
-  })
-  if (!res.ok) {
-    throw new Error('Failed to load push notification preferences')
+  if (!localStorage.getItem('active_userid')) {
+    return { collaboratorChangesEnabled: false }
   }
-  return res.json()
+
+  return apiJson<{ collaboratorChangesEnabled: boolean }>(`${API_BASE}/prefs`)
 }
 
 export async function savePushPrefs(collaboratorChangesEnabled: boolean): Promise<void> {
-  const userId = getUserId()
-  if (!userId) throw new Error('Not authenticated')
+  if (!localStorage.getItem('active_userid')) throw new Error('Not authenticated')
 
-  const res = await fetch(`${API_BASE}/prefs`, {
+  await apiJson(`${API_BASE}/prefs`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': userId
-    },
     body: JSON.stringify({ collaboratorChangesEnabled })
   })
-  if (!res.ok) {
-    throw new Error('Failed to save push notification preferences')
-  }
 }
 
 async function saveSubscriptionToServer(subscription: PushSubscription): Promise<void> {
-  const userId = getUserId()
-  if (!userId) throw new Error('Not authenticated')
+  if (!localStorage.getItem('active_userid')) throw new Error('Not authenticated')
 
   const json = subscription.toJSON()
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
@@ -86,12 +70,8 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
 
   const locale = document.documentElement.lang?.startsWith('en') ? 'en' : 'de'
 
-  const res = await fetch(`${API_BASE}/subscription`, {
+  await apiJson(`${API_BASE}/subscription`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-User-Id': userId
-    },
     body: JSON.stringify({
       endpoint: json.endpoint,
       keys: json.keys,
@@ -99,9 +79,6 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
       userAgent: navigator.userAgent
     })
   })
-  if (!res.ok) {
-    throw new Error('Failed to register push subscription on server')
-  }
 }
 
 export async function subscribeToPush(): Promise<void> {
@@ -137,7 +114,6 @@ export async function subscribeToPush(): Promise<void> {
 export async function unsubscribeFromPush(): Promise<void> {
   if (!isPushSupported()) return
 
-  const userId = getUserId()
   const registration = await navigator.serviceWorker.ready
   const subscription = await registration.pushManager.getSubscription()
   if (!subscription) return
@@ -145,13 +121,9 @@ export async function unsubscribeFromPush(): Promise<void> {
   const endpoint = subscription.endpoint
   await subscription.unsubscribe()
 
-  if (userId && endpoint) {
-    await fetch(`${API_BASE}/subscription`, {
+  if (localStorage.getItem('active_userid') && endpoint) {
+    await apiFetch(`${API_BASE}/subscription`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId
-      },
       body: JSON.stringify({ endpoint })
     }).catch(() => {})
   }

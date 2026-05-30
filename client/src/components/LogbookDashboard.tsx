@@ -99,7 +99,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
   }
 
   const handleLogout = () => {
-    logoutUser()
+    void logoutUser()
     onLogout()
   }
 

@@ -14,6 +14,7 @@ import { parseCollaborationRole } from '../services/logbook.js'
 import { syncLogbook } from '../services/sync.js'
 import { db } from '../services/db.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { apiJson } from '../services/api.js'
 
 interface InvitationAcceptanceProps {
   onAccepted: (logbookId: string, title: string) => void
@@ -164,12 +165,8 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       )
       const encrypted = await encryptBuffer(logbookKey, aesMasterKey)
 
-      const res = await fetch('/api/collaboration/accept', {
+      const acceptResult = await apiJson<{ role: string; logbookId: string }>('/api/collaboration/accept', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': activeUserId
-        },
         body: JSON.stringify({
           token,
           encryptedLogbookKey: encrypted.ciphertext,
@@ -177,13 +174,6 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           tag: encrypted.tag
         })
       })
-
-      if (!res.ok) {
-        const serverError = await res.json().catch(() => ({}))
-        throw new Error(serverError.error || (isDe ? 'Beitritt auf dem Server fehlgeschlagen.' : 'Failed to join logbook on the server.'))
-      }
-
-      const acceptResult = await res.json()
       const collaborationRole = parseCollaborationRole(acceptResult.role, 'invitation accept')
 
       await saveLogbookKey(logbookId, logbookKey)

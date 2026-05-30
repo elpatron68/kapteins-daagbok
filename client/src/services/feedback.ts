@@ -1,3 +1,5 @@
+import { apiFetch } from './api.js'
+
 export type FeedbackCategory = 'bug' | 'feature' | 'general'
 
 export class FeedbackApiError extends Error {
@@ -19,15 +21,6 @@ export function isValidFeedbackEmail(email: string): boolean {
   return EMAIL_PATTERN.test(email.trim())
 }
 
-function buildFeedbackHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  }
-  const userId = localStorage.getItem('active_userid')
-  if (userId) headers['X-User-Id'] = userId
-  return headers
-}
-
 export async function sendFeedback(payload: {
   category: FeedbackCategory
   message: string
@@ -40,9 +33,8 @@ export async function sendFeedback(payload: {
     throw new FeedbackApiError('Invalid email address', 'INVALID_EMAIL')
   }
 
-  const res = await fetch('/api/feedback', {
+  const res = await apiFetch('/api/feedback', {
     method: 'POST',
-    headers: buildFeedbackHeaders(),
     body: JSON.stringify({
       category: payload.category,
       message: payload.message,

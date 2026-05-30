@@ -38,6 +38,35 @@ resolve_node_toolchain() {
   command -v npm >/dev/null 2>&1
 }
 
+check_dev_env() {
+  local env_file="$REPO_ROOT/.env"
+  if [ ! -f "$env_file" ]; then
+    echo "Warning: $env_file missing — copy from .env.example (RP_ID, ORIGIN, SESSION_SECRET)."
+    return
+  fi
+
+  local origin_line origin_val
+  origin_line=$(grep -E '^ORIGIN=' "$env_file" | tail -1 || true)
+  origin_val="${origin_line#ORIGIN=}"
+  origin_val="${origin_val%\"}"
+  origin_val="${origin_val#\"}"
+  local expected_origin="http://localhost:$CLIENT_PORT"
+  if [ -n "$origin_val" ] && [ "$origin_val" != "$expected_origin" ]; then
+    echo "Warning: ORIGIN=$origin_val — for Vite dev use ORIGIN=$expected_origin (session cookie + CORS)."
+  fi
+
+  local secret_line secret_val
+  secret_line=$(grep -E '^SESSION_SECRET=' "$env_file" | tail -1 || true)
+  secret_val="${secret_line#SESSION_SECRET=}"
+  secret_val="${secret_val%\"}"
+  secret_val="${secret_val#\"}"
+  if [ -z "$secret_val" ]; then
+    echo "Note: SESSION_SECRET is empty — backend uses a dev-only fallback (not for production)."
+  elif [ "${#secret_val}" -lt 32 ]; then
+    echo "Warning: SESSION_SECRET should be at least 32 characters."
+  fi
+}
+
 require_node_toolchain() {
   if resolve_node_toolchain; then
     echo "Using Node $(node -v), npm $(npm -v)"
@@ -62,6 +91,7 @@ echo "========================================"
 echo "Preparing to (re)start services..."
 
 require_node_toolchain
+check_dev_env
 
 # Clean up processes running on ports
 cleanup_port() {
@@ -170,6 +200,8 @@ echo "========================================"
 echo "Dev services are now running:"
 echo " -> Backend:  http://localhost:$SERVER_PORT"
 echo " -> Frontend: http://localhost:$CLIENT_PORT"
+echo " -> API auth: HttpOnly session cookie (after Passkey login)"
+echo " -> Health:   http://localhost:$SERVER_PORT/api/health"
 echo "========================================"
 echo "Press Ctrl+C to terminate both servers."
 echo "========================================"

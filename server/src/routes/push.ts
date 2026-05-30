@@ -1,16 +1,8 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
-
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
-}
 
 function isValidHttpsEndpoint(endpoint: unknown): endpoint is string {
   if (typeof endpoint !== 'string' || endpoint.length > 2048) return false

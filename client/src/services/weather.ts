@@ -1,3 +1,5 @@
+import { apiFetch } from './api.js'
+
 export class WeatherApiError extends Error {
   code: 'NO_KEY' | 'REQUEST_FAILED'
 
@@ -6,17 +8,6 @@ export class WeatherApiError extends Error {
     this.name = 'WeatherApiError'
     this.code = code
   }
-}
-
-function buildWeatherHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {}
-  const userId = localStorage.getItem('active_userid')
-  const userKey = localStorage.getItem('owm_api_key')?.trim()
-
-  if (userId) headers['X-User-Id'] = userId
-  if (userKey) headers['X-OWM-Api-Key'] = userKey
-
-  return headers
 }
 
 export async function fetchOpenWeatherCurrent(params: {
@@ -35,9 +26,11 @@ export async function fetchOpenWeatherCurrent(params: {
     throw new WeatherApiError('lat/lon or location query required')
   }
 
-  const res = await fetch(`/api/weather/current?${searchParams.toString()}`, {
-    headers: buildWeatherHeaders()
-  })
+  const userKey = localStorage.getItem('owm_api_key')?.trim()
+  const headers: Record<string, string> = {}
+  if (userKey) headers['X-OWM-Api-Key'] = userKey
+
+  const res = await apiFetch(`/api/weather/current?${searchParams.toString()}`, { headers })
 
   if (res.status === 503) {
     throw new WeatherApiError('No OpenWeatherMap API key configured', 'NO_KEY')

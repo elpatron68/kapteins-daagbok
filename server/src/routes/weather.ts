@@ -1,15 +1,7 @@
 import { Router } from 'express'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
-
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
-}
 
 function resolveOwmApiKey(userProvidedKey: unknown): string | null {
   if (typeof userProvidedKey === 'string' && userProvidedKey.trim()) {
@@ -21,7 +13,7 @@ function resolveOwmApiKey(userProvidedKey: unknown): string | null {
   return fromEnv || null
 }
 
-router.get('/current', requireUser, async (req: any, res) => {
+router.get('/current', requireUser, async (req, res) => {
   try {
     const { lat, lon, q } = req.query
     const apiKey = resolveOwmApiKey(req.headers['x-owm-api-key'])

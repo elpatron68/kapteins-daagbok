@@ -1,17 +1,8 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
-
-// Middleware to extract user ID from headers (for authenticated routes)
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
-}
 
 // 1. Get invitation details (public route, does not require authentication)
 router.get('/invite-details', async (req: any, res) => {

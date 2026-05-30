@@ -168,7 +168,7 @@ Beim Laden eines Eintrags: `computedHash !== sig.entryHash` → UI-Warnung.
 
 Neuer Router: `server/src/routes/sign.ts` → Mount unter `/api/sign`
 
-Auth wie bestehend: Header `X-User-Id` (siehe `sync.ts`).
+Auth wie bestehend: HttpOnly-Session-Cookie `daagbok_session` nach WebAuthn (`server/src/middleware/auth.ts`, Client `apiFetch` mit `credentials: 'include'`).
 
 ### 4.1 `POST /api/sign/options`
 
@@ -472,7 +472,7 @@ test('isSignatureValidForEntry')
 | WebAuthn Login | `client/src/services/auth.ts`, `server/src/routes/auth.ts` |
 | Collaborators | `server/src/routes/collaboration.ts`, `SettingsForm.tsx` |
 | E2E-Einträge | `EntryPayload` in `server/prisma/schema.prisma` |
-| Auth-Header | `X-User-Id` in `server/src/routes/sync.ts` |
+| API-Auth | Session-Cookie via `requireUser` in `server/src/middleware/auth.ts` |
 
 ---
 

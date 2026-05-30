@@ -1,18 +1,9 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { notifyOwnerOfCollaboratorChanges } from '../services/pushNotify.js'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
-
-// Middleware to extract user ID from headers
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
-}
 
 router.use(requireUser)
 
@@ -99,7 +90,7 @@ router.post('/push', async (req: any, res) => {
         }
 
         const isOwner = logbook.userId === req.userId
-        const isCollaborator = await prisma.collaboration.findUnique({
+        const collaboration = await prisma.collaboration.findUnique({
           where: {
             logbookId_userId: {
               logbookId,
@@ -108,8 +99,13 @@ router.post('/push', async (req: any, res) => {
           }
         })
 
-        if (!isOwner && !isCollaborator) {
+        if (!isOwner && !collaboration) {
           results.push({ payloadId, status: 'error', error: 'Forbidden: Access denied' })
+          continue
+        }
+
+        if (!isOwner && (!collaboration || collaboration.role !== 'WRITE')) {
+          results.push({ payloadId, status: 'error', error: 'Forbidden: WRITE access required' })
           continue
         }
 
@@ -244,7 +240,7 @@ router.post('/push', async (req: any, res) => {
           logbook.userId,
           logbookId,
           isOwner,
-          isCollaborator,
+          collaboration,
           action,
           type
         )
@@ -284,7 +280,7 @@ router.get('/pull', async (req: any, res) => {
     }
 
     const isOwner = logbook.userId === req.userId
-    const isCollaborator = await prisma.collaboration.findUnique({
+    const collaboration = await prisma.collaboration.findUnique({
       where: {
         logbookId_userId: {
           logbookId,
@@ -293,7 +289,7 @@ router.get('/pull', async (req: any, res) => {
       }
     })
 
-    if (!isOwner && !isCollaborator) {
+    if (!isOwner && !collaboration) {
       return res.status(403).json({ error: 'Forbidden: Access denied' })
     }
 

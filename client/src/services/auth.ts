@@ -6,27 +6,22 @@ import {
   deriveKeyFromPin,
   encryptBuffer,
   decryptBuffer,
-  generateRecoveryPhrase,
-  base64ToBuffer,
-  bufferToBase64
+  generateRecoveryPhrase
 } from './crypto.js'
 import { clearLogbookKeysCache } from './logbookKeys.js'
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 import { db } from './db.js'
+import { apiFetch, apiJson } from './api.js'
 
 const API_BASE = '/api/auth'
 
-// Shared in-memory container for the active user's session master key
+// Master key lives in memory only (never localStorage — XSS-resistant).
 let activeMasterKey: ArrayBuffer | null = null
 
-// Restore key from localStorage on load if present (survives reload/restart)
 try {
-  const savedKey = localStorage.getItem('active_master_key')
-  if (savedKey) {
-    activeMasterKey = base64ToBuffer(savedKey)
-  }
-} catch (e) {
-  console.error('Failed to restore active master key:', e)
+  localStorage.removeItem('active_master_key')
+} catch {
+  /* ignore */
 }
 
 export function getActiveMasterKey(): ArrayBuffer | null {
@@ -35,15 +30,32 @@ export function getActiveMasterKey(): ArrayBuffer | null {
 
 export function setActiveMasterKey(key: ArrayBuffer | null) {
   activeMasterKey = key
-  if (key) {
-    try {
-      localStorage.setItem('active_master_key', bufferToBase64(key))
-    } catch (e) {
-      console.error('Failed to save master key to localStorage:', e)
-    }
-  } else {
-    localStorage.removeItem('active_master_key')
+}
+
+export async function checkServerSession(): Promise<{ authenticated: boolean; userId?: string }> {
+  try {
+    return await apiJson<{ authenticated: boolean; userId?: string }>(`${API_BASE}/session`)
+  } catch {
+    return { authenticated: false }
   }
+}
+
+export async function reauthWithPasskey(): Promise<boolean> {
+  const options = await apiJson<any>(`${API_BASE}/reauth-options`, {
+    method: 'POST'
+  })
+
+  const credentialResponse = await startAuthentication({ optionsJSON: options })
+
+  await apiJson(`${API_BASE}/reauth-verify`, {
+    method: 'POST',
+    body: JSON.stringify({
+      credentialResponse,
+      challenge: options.challenge
+    })
+  })
+
+  return true
 }
 
 // PIN fallback mechanism functions
@@ -152,18 +164,10 @@ export interface RegistrationResult {
 
 export async function registerUser(username: string): Promise<RegistrationResult> {
   // 1. Get registration options
-  const optionsRes = await fetch(`${API_BASE}/register-options`, {
+  const options = await apiJson<any>(`${API_BASE}/register-options`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username })
   })
-
-  if (!optionsRes.ok) {
-    const err = await optionsRes.json()
-    throw new Error(err.error || 'Failed to fetch registration options')
-  }
-
-  const options = await optionsRes.json()
 
   // Request the PRF extension WITH an evaluation salt. This must match the
   // salt used during login (PRF_SALT), otherwise the PRF-derived key produced
@@ -229,9 +233,8 @@ export async function registerUser(username: string): Promise<RegistrationResult
   const encryptedRecovery = await encryptBuffer(masterKey, recoveryKey)
 
   // 4. Verify registration on the server
-  const verifyRes = await fetch(`${API_BASE}/register-verify`, {
+  const result = await apiJson<{ verified: boolean; userId: string }>(`${API_BASE}/register-verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username,
       credentialResponse,
@@ -243,13 +246,6 @@ export async function registerUser(username: string): Promise<RegistrationResult
       encryptedMasterKeyRecTag: encryptedRecovery.tag
     })
   })
-
-  if (!verifyRes.ok) {
-    const err = await verifyRes.json()
-    throw new Error(err.error || 'Failed to verify registration response')
-  }
-
-  const result = await verifyRes.json()
   if (result.verified) {
     setActiveMasterKey(masterKey)
     localStorage.setItem('active_username', username)
@@ -292,18 +288,10 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
 
   // 1. Get authentication options
-  const optionsRes = await fetch(`${API_BASE}/login-options`, {
+  const options = await apiJson<any>(`${API_BASE}/login-options`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username })
   })
-
-  if (!optionsRes.ok) {
-    const err = await optionsRes.json()
-    throw new Error(err.error || 'Failed to fetch login options')
-  }
-
-  const options = await optionsRes.json()
 
   // Add PRF extension evaluation input.
   // When the server returned a concrete allowCredentials list we use
@@ -366,21 +354,23 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   }
 
   // 3. Verify assertion on the server
-  const verifyRes = await fetch(`${API_BASE}/login-verify`, {
+  const result = await apiJson<{
+    verified: boolean
+    userId: string
+    username: string
+    encryptedMasterKeyPrf: string | null
+    encryptedMasterKeyPrfIv: string | null
+    encryptedMasterKeyPrfTag: string | null
+    encryptedMasterKeyRec: string
+    encryptedMasterKeyRecIv: string
+    encryptedMasterKeyRecTag: string
+  }>(`${API_BASE}/login-verify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       credentialResponse,
       challenge: options.challenge
     })
   })
-
-  if (!verifyRes.ok) {
-    const err = await verifyRes.json()
-    throw new Error(err.error || 'Failed to verify login response')
-  }
-
-  const result = await verifyRes.json()
   if (!result.verified) {
     return { verified: false, prfSuccess: false }
   }
@@ -407,7 +397,12 @@ export async function loginUser(username?: string): Promise<LoginResult> {
     console.log('PRF extension results first present:', !!prfResults.results?.first)
   }
 
-  if (prfResults?.results?.first && result.encryptedMasterKeyPrf) {
+  if (
+    prfResults?.results?.first &&
+    result.encryptedMasterKeyPrf &&
+    result.encryptedMasterKeyPrfIv &&
+    result.encryptedMasterKeyPrfTag
+  ) {
     try {
       const firstBuffer = typeof prfResults.results.first === 'string'
         ? base64urlToBuffer(prfResults.results.first)
@@ -475,22 +470,14 @@ export async function completeLoginWithRecovery(
         const prfKey = await deriveKeyFromPrf(firstBuffer)
         const encryptedPrf = await encryptBuffer(decryptedMaster, prfKey)
         console.log('Sending PRF credentials to server...')
-        const enrollRes = await fetch(`${API_BASE}/enroll-prf`, {
+        await apiJson(`${API_BASE}/enroll-prf`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Id': encryptedPayloads.userId
-          },
           body: JSON.stringify({
             encryptedMasterKeyPrf: encryptedPrf.ciphertext,
             encryptedMasterKeyPrfIv: encryptedPrf.iv,
             encryptedMasterKeyPrfTag: encryptedPrf.tag
           })
         })
-        console.log('Enrollment response status:', enrollRes.status)
-        if (!enrollRes.ok) {
-          console.warn('Server rejected PRF enrollment')
-        }
       } catch (err) {
         console.error('Failed to encrypt/enroll master key with PRF key:', err)
       }
@@ -508,25 +495,26 @@ export async function completeLoginWithRecovery(
   }
 }
 
-export function logoutUser() {
+export async function logoutUser() {
   setActiveMasterKey(null)
   clearLogbookKeysCache()
   localStorage.removeItem('active_username')
   localStorage.removeItem('active_userid')
+  try {
+    await apiFetch(`${API_BASE}/logout`, { method: 'POST' })
+  } catch {
+    /* ignore network errors on logout */
+  }
 }
 
 export async function deleteAccount(): Promise<boolean> {
-  const userId = localStorage.getItem('active_userid')
   const username = localStorage.getItem('active_username')
-  if (!userId) return false
+  if (!localStorage.getItem('active_userid')) return false
 
   try {
-    const res = await fetch(`${API_BASE}/delete-account`, {
-      method: 'DELETE',
-      headers: {
-        'X-User-Id': userId
-      }
-    })
+    await reauthWithPasskey()
+
+    const res = await apiFetch(`${API_BASE}/delete-account`, { method: 'DELETE' })
 
     if (res.ok) {
       if (username) {
@@ -546,7 +534,7 @@ export async function deleteAccount(): Promise<boolean> {
       ])
 
       // Wipe localStorage and session variables
-      logoutUser()
+      await logoutUser()
       trackPlausibleEvent(PlausibleEvents.ACCOUNT_DELETED)
       return true
     }

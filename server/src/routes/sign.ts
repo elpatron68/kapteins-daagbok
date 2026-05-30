@@ -5,6 +5,7 @@ import {
   verifyAuthenticationResponse
 } from '@simplewebauthn/server'
 import { prisma } from '../db.js'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -29,15 +30,6 @@ function pruneExpiredChallenges() {
   for (const [key, ctx] of signingChallenges) {
     if (ctx.expiresAt <= now) signingChallenges.delete(key)
   }
-}
-
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
 }
 
 router.use(requireUser)

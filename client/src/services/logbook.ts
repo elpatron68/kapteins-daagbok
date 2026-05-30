@@ -3,6 +3,7 @@ import { getActiveMasterKey } from './auth.js'
 import { encryptJson, decryptJson, encryptBuffer, decryptBuffer } from './crypto.js'
 import { getLogbookKey, saveLogbookKey, generateLogbookKey } from './logbookKeys.js'
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
+import { apiFetch } from './api.js'
 
 const API_BASE = '/api/logbooks'
 
@@ -66,13 +67,7 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
 
   if (navigator.onLine) {
     try {
-      const response = await fetch(API_BASE, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId
-        }
-      })
+      const response = await apiFetch(API_BASE, { method: 'GET' })
 
       if (response.ok) {
         const serverLogbooks = await response.json()
@@ -208,12 +203,8 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
 
   if (navigator.onLine) {
     try {
-      const response = await fetch(API_BASE, {
+      const response = await apiFetch(API_BASE, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-Id': userId
-        },
         body: JSON.stringify({
           id: localId,
           ...payloadData
@@ -301,12 +292,7 @@ export async function deleteLogbook(id: string): Promise<void> {
 
   if (navigator.onLine) {
     try {
-      const response = await fetch(`${API_BASE}/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'X-User-Id': userId
-        }
-      })
+      const response = await apiFetch(`${API_BASE}/${id}`, { method: 'DELETE' })
       if (!response.ok) {
         console.warn('Server deletion failed or was rejected')
       }

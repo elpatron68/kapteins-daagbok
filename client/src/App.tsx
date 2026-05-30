@@ -13,7 +13,7 @@ import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
-import { getActiveMasterKey, logoutUser } from './services/auth.js'
+import { getActiveMasterKey, logoutUser, checkServerSession } from './services/auth.js'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
   applyAppearanceToDocument,
@@ -186,17 +186,23 @@ function App() {
       )
     }
 
-    const savedUser = localStorage.getItem('active_username')
-    const key = getActiveMasterKey()
-    if (savedUser && key) {
-      setIsAuthenticated(true)
-      const savedLogbookId = localStorage.getItem('active_logbook_id')
-      const savedLogbookTitle = localStorage.getItem('active_logbook_title')
-      if (savedLogbookId && savedLogbookTitle) {
-        setActiveLogbookId(savedLogbookId)
-        setActiveLogbookTitle(savedLogbookTitle)
+    void (async () => {
+      const session = await checkServerSession()
+      if (session.authenticated && session.userId) {
+        localStorage.setItem('active_userid', session.userId)
       }
-    }
+      const savedUser = localStorage.getItem('active_username')
+      const key = getActiveMasterKey()
+      if (session.authenticated && savedUser && key) {
+        setIsAuthenticated(true)
+        const savedLogbookId = localStorage.getItem('active_logbook_id')
+        const savedLogbookTitle = localStorage.getItem('active_logbook_title')
+        if (savedLogbookId && savedLogbookTitle) {
+          setActiveLogbookId(savedLogbookId)
+          setActiveLogbookTitle(savedLogbookTitle)
+        }
+      }
+    })()
   }, [])
 
   useEffect(() => {
@@ -307,7 +313,7 @@ function App() {
   }
 
   const handleLogout = () => {
-    logoutUser()
+    void logoutUser()
     setIsAuthenticated(false)
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
@@ -381,6 +387,8 @@ function App() {
   }
 
   const pwaInstallBanner = <PwaInstallPrompt variant="banner" />
+
+  const logbookReadOnly = activeAccessRole === 'READ'
 
   if (!activeLogbookId) {
     return (
@@ -514,6 +522,7 @@ function App() {
           {activeTab === 'logs' && (
             <LogEntriesList
               logbookId={activeLogbookId}
+              readOnly={logbookReadOnly}
               controlledSelectedEntryId={tourSelectedEntryId}
               onSelectedEntryIdChange={setTourSelectedEntryId}
               highlightEntryId={demoHighlightEntryId}
@@ -521,11 +530,11 @@ function App() {
           )}
 
           {activeTab === 'vessel' && (
-            <VesselForm logbookId={activeLogbookId} />
+            <VesselForm logbookId={activeLogbookId} readOnly={logbookReadOnly} />
           )}
 
           {activeTab === 'crew' && (
-            <CrewForm logbookId={activeLogbookId} />
+            <CrewForm logbookId={activeLogbookId} readOnly={logbookReadOnly} />
           )}
 
           {activeTab === 'stats' && activeLogbookId && activeLogbookTitle && (

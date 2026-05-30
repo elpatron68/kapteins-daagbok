@@ -2,7 +2,7 @@
 
 **Ziel:** Der Owner eines Logbuchs soll per Web Push informiert werden, wenn ein eingeladenes Crewmitglied (Collaborator mit WRITE) Änderungen synchronisiert — auch wenn die App geschlossen ist.
 
-**Stand Codebase:** Service Worker nur für PWA-Caching/Updates (`vite-plugin-pwa`). Sync läuft per `setInterval` im Tab (~30 s). Kein `web-push`, keine Push-Subscriptions in der DB.
+**Stand Codebase:** Push MVP ist implementiert (`web-push`, Prisma-Modelle, `routes/push.ts`, `pushNotify.ts`, Custom SW `sw.ts`, Settings-UI). API-Auth erfolgt über **HttpOnly-Session-Cookie** (`daagbok_session`) nach WebAuthn-Login — nicht mehr über `X-User-Id`.
 
 ---
 
@@ -48,7 +48,7 @@ sequenceDiagram
   participant SW as Service Worker (Owner)
   participant Owner as Owner-Gerät
 
-  Crew->>API: POST /api/sync/push (X-User-Id: crew)
+  Crew->>API: POST /api/sync/push (Session-Cookie)
   API->>DB: Payloads speichern
   API->>API: collaborator change? → notify owner
   API->>DB: PushSubscriptions (owner)
@@ -129,6 +129,8 @@ npm install web-push --workspace=server
 `.env` (Beispiel):
 
 ```env
+ORIGIN=https://kapteins-daagbok.eu
+SESSION_SECRET=...          # min. 32 Zeichen, Pflicht in Produktion
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:support@kapteins-daagbok.eu
@@ -147,12 +149,12 @@ npx web-push generate-vapid-keys
 | Methode | Pfad | Auth | Beschreibung |
 |---------|------|------|--------------|
 | `GET` | `/vapid-public-key` | nein | Liefert Public Key für `pushManager.subscribe` |
-| `PUT` | `/subscription` | `X-User-Id` | Upsert Subscription (endpoint + keys) |
-| `DELETE` | `/subscription` | `X-User-Id` | Body: `{ endpoint }` — Gerät abmelden |
-| `GET` | `/prefs` | `X-User-Id` | Liest `collaboratorChangesEnabled` |
-| `PUT` | `/prefs` | `X-User-Id` | Body: `{ collaboratorChangesEnabled: boolean }` |
+| `PUT` | `/subscription` | Session-Cookie | Upsert Subscription (endpoint + keys) |
+| `DELETE` | `/subscription` | Session-Cookie | Body: `{ endpoint }` — Gerät abmelden |
+| `GET` | `/prefs` | Session-Cookie | Liest `collaboratorChangesEnabled` |
+| `PUT` | `/prefs` | Session-Cookie | Body: `{ collaboratorChangesEnabled: boolean }` |
 
-`requireUser`-Middleware wie in `sync.ts` / `collaboration.ts` wiederverwenden.
+`requireUser` in `server/src/middleware/auth.ts` — liest und verifiziert `daagbok_session` (HMAC-signiert). Client sendet `credentials: 'include'` (`client/src/services/api.ts`).
 
 ### 5.3 Benachrichtigungs-Service
 
@@ -307,7 +309,7 @@ Sicherstellen, dass Route `/logbook/:logbookId` (oder bestehende Logbuch-Route) 
 
 | Risiko | Maßnahme |
 |--------|----------|
-| Fremde subscriben mit fremder `userId` | Nur authentifizierte Requests (`X-User-Id` wie heute — langfristig Session/JWT erwägen). |
+| Fremde subscriben mit fremder `userId` | Session-Cookie nach WebAuthn; `userId` kommt aus verifiziertem Token, nicht aus Client-Header. |
 | Push an falschen User | `notifyOwner` nur mit `logbook.userId` aus DB, nie aus Client-Body. |
 | Endpoint-Injection | `endpoint` muss HTTPS-URL sein; Länge begrenzen. |
 | Spam durch Crew | Rate-Limit + nur `create`/`update` im MVP. |
@@ -377,7 +379,7 @@ Sicherstellen, dass Route `/logbook/:logbookId` (oder bestehende Logbuch-Route) 
 1. **Nur Owner oder auch andere Collaborators?** — MVP: nur Owner.
 2. **Rate-Limit-Dauer:** 2 min vs. 5 min — Empfehlung: **3 min** pro Logbuch.
 3. **Mehrere Geräte des Owners:** alle Subscriptions benachrichtigen — ja (Standard).
-4. **Auth verbessern:** Push-Routen jetzt mit `X-User-Id` wie Rest der API; Roadmap-Item: echte Session.
+4. ~~**Auth verbessern**~~ — erledigt: HttpOnly-Session-Cookie für alle geschützten Routen inkl. Push.
 
 ---
 
@@ -410,8 +412,13 @@ client/
   src/components/SettingsForm.tsx    # Integration
   src/i18n/locales/de.json, en.json
   .env.example                  # VITE_VAPID_PUBLIC_KEY
+  src/services/api.ts           # apiFetch (credentials: include)
+
+server/
+  src/session.ts                # Session-Cookie signieren/verifizieren
+  src/middleware/auth.ts        # requireUser, requireReauth
 
 docs/
   push-notifications-plan.md    # dieses Dokument
-README.md                       # Feature-Zeile + Env-Hinweis
+README.md                       # Auth/Session, Env-Hinweise
 ```

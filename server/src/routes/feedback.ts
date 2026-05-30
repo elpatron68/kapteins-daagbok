@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { isNtfyConfigured, sendFeedbackViaNtfy } from '../services/ntfyNotify.js'
+import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -18,15 +19,6 @@ function parseOptionalEmail(value: unknown): string | undefined {
   if (!EMAIL_PATTERN.test(trimmed)) return undefined
 
   return trimmed
-}
-
-const requireUser = (req: any, res: any, next: any) => {
-  const userId = req.headers['x-user-id']
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized: X-User-Id header missing' })
-  }
-  req.userId = userId
-  next()
 }
 
 router.get('/status', requireUser, (_req, res) => {
