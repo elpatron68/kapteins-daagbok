@@ -10,6 +10,7 @@ import collaborationRouter from './routes/collaboration.js'
 import signRouter from './routes/sign.js'
 import pushRouter from './routes/push.js'
 import weatherRouter from './routes/weather.js'
+import feedbackRouter from './routes/feedback.js'
 import { prisma } from './db.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -31,6 +32,7 @@ app.use('/api/collaboration', collaborationRouter)
 app.use('/api/sign', signRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/weather', weatherRouter)
+app.use('/api/feedback', feedbackRouter)
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

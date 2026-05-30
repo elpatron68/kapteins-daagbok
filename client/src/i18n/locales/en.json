@@ -397,6 +397,23 @@
       "close": "Close",
       "button_title": "Legal notice & disclaimer"
     },
+    "feedback": {
+      "button_title": "Send feedback",
+      "title": "Feedback",
+      "intro": "Share bugs, ideas or general feedback. Your message is sent to the project team via a secure notification channel.",
+      "category_label": "Category",
+      "category_general": "General",
+      "category_bug": "Bug report",
+      "category_feature": "Feature request",
+      "message_label": "Message",
+      "message_placeholder": "Describe your feedback…",
+      "send": "Send",
+      "sending": "Sending…",
+      "cancel": "Cancel",
+      "success": "Thank you! Your feedback has been sent.",
+      "error_send": "Could not send feedback. Please try again later.",
+      "error_not_configured": "Feedback is not available on this server."
+    },
     "demo": {
       "logbook_title": "Baltic Sea Demo Logbook",
       "badge": "Demo",

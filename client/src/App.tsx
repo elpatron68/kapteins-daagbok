@@ -34,6 +34,7 @@ import type { LogbookAccessRole } from './services/logbook.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages, BarChart2 } from 'lucide-react'
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
+import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
 import {
   getStoredDemoFirstEntryId,
@@ -438,6 +439,11 @@ function App() {
             </button>
 
             <DisclaimerHeaderButton />
+
+            <FeedbackHeaderButton
+              logbookId={activeLogbookId}
+              logbookTitle={activeLogbookTitle}
+            />
 
             <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>
               <LogOut size={18} />
