@@ -126,15 +126,35 @@ function scheduleResync(logbookId: string) {
   })
 }
 
+type LogbookPushAccess = 'OWNER' | 'WRITE' | 'READ' | 'UNKNOWN'
+
+async function resolveLogbookPushAccess(logbookId: string): Promise<LogbookPushAccess> {
+  const access = await getLogbookAccess(logbookId)
+  if (access) {
+    return access.isOwner || access.role === 'OWNER' ? 'OWNER' : access.role
+  }
+
+  const local = await db.logbooks.get(logbookId)
+  if (local?.isShared !== 1) return 'OWNER'
+  if (local.collaborationRole === 'READ') return 'READ'
+  if (local.collaborationRole === 'WRITE') return 'WRITE'
+  return 'UNKNOWN'
+}
+
 // Push local sync queue items to the server
 async function pushChanges(logbookId: string): Promise<boolean> {
   if (!getActiveMasterKey() || !localStorage.getItem('active_userid')) return false
 
-  const access = await getLogbookAccess(logbookId)
-  if (access && access.role === 'READ') return true
-
   const pending = await coalesceSyncQueue(logbookId)
   if (pending.length === 0) return true
+
+  const pushAccess = await resolveLogbookPushAccess(logbookId)
+  if (pushAccess === 'READ' || pushAccess === 'UNKNOWN') {
+    console.warn(
+      `[sync] Skipping push for logbook ${logbookId} (${pushAccess}); ${pending.length} queue item(s) retained`
+    )
+    return false
+  }
 
   try {
     const response = await apiFetch(`${API_BASE}/push`, {
