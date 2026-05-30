@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
@@ -19,7 +19,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, type LogEventPayload } from '../utils/logEntryPayload.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -34,6 +34,56 @@ import {
 } from '../services/trackUpload.js'
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 
+function emptyTankLevels() {
+  return { morning: 0, refilled: 0, evening: 0, consumption: 0 }
+}
+
+function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string {
+  const fw = (decrypted.freshwater as Record<string, number> | undefined) ?? emptyTankLevels()
+  const fuel = (decrypted.fuel as Record<string, number> | undefined) ?? emptyTankLevels()
+  const trackDistance = decrypted.trackDistanceNm
+  const trackSpeedMax = decrypted.trackSpeedMaxKn
+  const trackSpeedAvg = decrypted.trackSpeedAvgKn
+
+  const payload = buildLogEntryPayload({
+    date: String(decrypted.date || ''),
+    dayOfTravel: String(decrypted.dayOfTravel || ''),
+    departure: String(decrypted.departure || ''),
+    destination: String(decrypted.destination || ''),
+    freshwater: {
+      morning: fw.morning || 0,
+      refilled: fw.refilled || 0,
+      evening: fw.evening || 0,
+      consumption: fw.consumption ?? 0
+    },
+    fuel: {
+      morning: fuel.morning || 0,
+      refilled: fuel.refilled || 0,
+      evening: fuel.evening || 0,
+      consumption: fuel.consumption ?? 0
+    },
+    trackDistanceNm:
+      trackDistance != null && trackDistance !== ''
+        ? parseFloat(String(trackDistance))
+        : undefined,
+    trackSpeedMaxKn:
+      trackSpeedMax != null && trackSpeedMax !== ''
+        ? parseFloat(String(trackSpeedMax))
+        : undefined,
+    trackSpeedAvgKn:
+      trackSpeedAvg != null && trackSpeedAvg !== ''
+        ? parseFloat(String(trackSpeedAvg))
+        : undefined,
+    events: (decrypted.events as LogEventPayload[]) || []
+  })
+
+  return JSON.stringify({
+    ...payload,
+    signSkipper: serializeSignature(normalizeSignature(decrypted.signSkipper as SignatureValue | '') || '') ?? '',
+    signCrew: serializeSignature(normalizeSignature(decrypted.signCrew as SignatureValue | '') || '') ?? ''
+  })
+}
+
 interface LogEntryEditorProps {
   entryId: string
   logbookId: string
@@ -45,24 +95,7 @@ interface LogEntryEditorProps {
   preloadedYacht?: any
 }
 
-interface LogEvent {
-  time: string
-  mgk: string
-  rwk: string
-  windPressure: string
-  windDirection: string
-  windStrength: string
-  seaState: string
-  weatherIcon: string
-  current: string
-  heel: string
-  sailsOrMotor: string
-  logReading: string
-  distance: string
-  gpsLat: string
-  gpsLng: string
-  remarks: string
-}
+interface LogEvent extends LogEventPayload {}
 
 export default function LogEntryEditor({
   entryId,
@@ -139,6 +172,7 @@ export default function LogEntryEditor({
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [savedFingerprint, setSavedFingerprint] = useState<string | null>(null)
 
   // Track file upload
   const [savedTrack, setSavedTrack] = useState<SavedTrack | null>(null)
@@ -172,7 +206,7 @@ export default function LogEntryEditor({
     }
   }
 
-  const buildPayloadForSigning = useCallback(() => {
+  const buildPayloadForSigning = useCallback((eventsOverride?: LogEvent[]) => {
     return buildLogEntryPayload({
       date,
       dayOfTravel,
@@ -193,7 +227,7 @@ export default function LogEntryEditor({
       trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
       trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
       trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
-      events
+      events: eventsOverride ?? events
     })
   }, [
     date, dayOfTravel, departure, destination,
@@ -201,6 +235,61 @@ export default function LogEntryEditor({
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn,
     events
+  ])
+
+  const currentFingerprint = useMemo(() => {
+    const payload = buildPayloadForSigning()
+    return JSON.stringify({
+      ...payload,
+      signSkipper: serializeSignature(signSkipper) ?? '',
+      signCrew: serializeSignature(signCrew) ?? ''
+    })
+  }, [buildPayloadForSigning, signSkipper, signCrew])
+
+  const isDirty = savedFingerprint !== null && currentFingerprint !== savedFingerprint
+
+  const persistEntryToDb = useCallback(async (eventsOverride?: LogEvent[]) => {
+    if (readOnly) return
+
+    const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+    if (!masterKey) throw new Error('Encryption key not found. Please log in.')
+
+    const entryData = {
+      ...buildPayloadForSigning(eventsOverride),
+      signSkipper: serializeSignature(signSkipper),
+      signCrew: serializeSignature(signCrew)
+    }
+
+    const encrypted = await encryptJson(entryData, masterKey)
+    const now = new Date().toISOString()
+
+    await db.entries.put({
+      payloadId: entryId,
+      logbookId,
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      updatedAt: now
+    })
+
+    await db.syncQueue.put({
+      action: 'update',
+      type: 'entry',
+      payloadId: entryId,
+      logbookId,
+      data: JSON.stringify(encrypted),
+      updatedAt: now
+    })
+
+    syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+
+    setSavedFingerprint(JSON.stringify({
+      ...buildPayloadForSigning(eventsOverride),
+      signSkipper: serializeSignature(signSkipper) ?? '',
+      signCrew: serializeSignature(signCrew) ?? ''
+    }))
+  }, [
+    readOnly, logbookId, entryId, events, buildPayloadForSigning, signSkipper, signCrew
   ])
 
   useEffect(() => {
@@ -365,6 +454,7 @@ export default function LogEntryEditor({
     async function loadEntry() {
       setLoading(true)
       setError(null)
+      setSavedFingerprint(null)
       lockedContentHashRef.current = null
       contentReadyRef.current = false
       lastSignatureAlertHashRef.current = null
@@ -392,6 +482,7 @@ export default function LogEntryEditor({
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
           loadTrackStatsFromEntry(preloadedEntry)
           setEvents(preloadedEntry.events || [])
+          setSavedFingerprint(fingerprintFromStoredEntry(preloadedEntry))
           return
         }
 
@@ -424,6 +515,7 @@ export default function LogEntryEditor({
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
             loadTrackStatsFromEntry(decrypted)
             setEvents(decrypted.events || [])
+            setSavedFingerprint(fingerprintFromStoredEntry(decrypted))
           }
         }
       } catch (err: any) {
@@ -776,16 +868,17 @@ export default function LogEntryEditor({
     clearEventForm()
   }
 
-  const handleSaveEvent = (e: React.FormEvent) => {
+  const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault()
     if (readOnly || !evTime) return
 
     const eventData = buildEventFromForm()
+    let nextEvents: LogEvent[]
 
     if (editingEventIndex !== null) {
       const hadSkipperSignature = !!signSkipper
       markSkipperSignatureClearedForEventChange()
-      setEvents((prev) => prev.map((ev, idx) => (idx === editingEventIndex ? eventData : ev)))
+      nextEvents = events.map((ev, idx) => (idx === editingEventIndex ? eventData : ev))
       if (hadSkipperSignature) {
         void showAlertRef.current(
           t('logs.sign_cleared_skipper_re_sign'),
@@ -793,17 +886,26 @@ export default function LogEntryEditor({
         )
       }
     } else {
-      setEvents((prev) => [...prev, eventData])
+      nextEvents = [...events, eventData]
     }
 
+    setEvents(nextEvents)
     clearEventForm()
+
+    try {
+      await persistEntryToDb(nextEvents)
+    } catch (err: any) {
+      console.error('Failed to auto-save event:', err)
+      setError(err.message || 'Failed to save event.')
+    }
   }
 
-  const handleDeleteEvent = (index: number) => {
+  const handleDeleteEvent = async (index: number) => {
     if (readOnly) return
     const hadSkipperSignature = !!signSkipper
     markSkipperSignatureClearedForEventChange()
-    setEvents((prev) => prev.filter((_, idx) => idx !== index))
+    const nextEvents = events.filter((_, idx) => idx !== index)
+    setEvents(nextEvents)
     if (hadSkipperSignature) {
       void showAlertRef.current(
         t('logs.sign_cleared_skipper_re_sign'),
@@ -814,6 +916,13 @@ export default function LogEntryEditor({
       clearEventForm()
     } else if (editingEventIndex !== null && index < editingEventIndex) {
       setEditingEventIndex(editingEventIndex - 1)
+    }
+
+    try {
+      await persistEntryToDb(nextEvents)
+    } catch (err: any) {
+      console.error('Failed to auto-save after event delete:', err)
+      setError(err.message || 'Failed to save event deletion.')
     }
   }
 
@@ -833,45 +942,13 @@ export default function LogEntryEditor({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (readOnly) return
+    if (readOnly || !isDirty) return
     setSaving(true)
     setError(null)
     setSuccess(false)
 
     try {
-      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
-
-      const entryPayload = buildPayloadForSigning()
-      const entryData = {
-        ...entryPayload,
-        signSkipper: serializeSignature(signSkipper),
-        signCrew: serializeSignature(signCrew)
-      }
-
-      // E2E encrypt
-      const encrypted = await encryptJson(entryData, masterKey)
-      const now = new Date().toISOString()
-
-      // Save locally
-      await db.entries.put({
-        payloadId: entryId,
-        logbookId,
-        encryptedData: encrypted.ciphertext,
-        iv: encrypted.iv,
-        tag: encrypted.tag,
-        updatedAt: now
-      })
-
-      // Queue for background sync
-      await db.syncQueue.put({
-        action: 'update',
-        type: 'entry',
-        payloadId: entryId,
-        logbookId,
-        data: JSON.stringify(encrypted),
-        updatedAt: now
-      })
+      await persistEntryToDb()
 
       setSuccess(true)
       trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
@@ -879,8 +956,6 @@ export default function LogEntryEditor({
         setSuccess(false)
         onBack()
       }, 1500)
-
-      syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
     } catch (err: any) {
       console.error('Failed to save entry details:', err)
       setError(err.message || 'Failed to save entry details.')
@@ -1600,7 +1675,7 @@ export default function LogEntryEditor({
               </div>
             )}
             
-            <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim()}>
+            <button type="submit" className="btn primary" disabled={saving || !date || !dayOfTravel.trim() || !isDirty}>
               <Save size={18} />
               {saving ? t('logs.saving') : t('logs.save')}
             </button>
