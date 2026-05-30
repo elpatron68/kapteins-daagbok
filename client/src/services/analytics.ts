@@ -22,7 +22,8 @@ export const PlausibleEvents = {
   BACKUP_RESTORED: 'Backup Restored',
   DEMO_OPENED: 'Demo Opened',
   PUSH_ENABLED: 'Push Enabled',
-  PUSH_DISABLED: 'Push Disabled'
+  PUSH_DISABLED: 'Push Disabled',
+  FOOTER_LINK_CLICKED: 'Footer Link Clicked'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
