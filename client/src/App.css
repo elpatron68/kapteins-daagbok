@@ -3401,3 +3401,11 @@ body.app-tour-active .app-tour-target-active {
   gap: 6px;
 }
 
+body.app-tour-active .disclaimer-modal-overlay.feedback-modal-overlay--tour {
+  z-index: 9990;
+  pointer-events: none;
+}
+
+body.app-tour-active .feedback-modal-overlay--tour .disclaimer-modal-panel {
+  pointer-events: none;
+}

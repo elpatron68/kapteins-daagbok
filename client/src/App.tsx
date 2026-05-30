@@ -77,7 +77,7 @@ function App() {
     [activeLogbookId]
   )
 
-  const [activeAccessRole, setActiveAccessRole] = useState<LogbookAccessRole>('OWNER')
+  const [activeAccessRole, setActiveAccessRole] = useState<LogbookAccessRole | null>('OWNER')
 
   useEffect(() => {
     if (!activeLogbookId) {
@@ -91,15 +91,24 @@ function App() {
     }
 
     const cachedRole = activeLogbookRecord.collaborationRole
+    // Fail-closed for write UI until role is known: do not assume WRITE
     setActiveAccessRole(
-      cachedRole
-        ? parseCollaborationRole(cachedRole, `logbook ${activeLogbookId}`)
-        : 'WRITE'
+      cachedRole ? parseCollaborationRole(cachedRole, `logbook ${activeLogbookId}`) : null
     )
 
-    getLogbookAccess(activeLogbookId).then((access) => {
-      if (access) setActiveAccessRole(access.role)
-    })
+    let cancelled = false
+    getLogbookAccess(activeLogbookId)
+      .then((access) => {
+        if (cancelled || !access) return
+        setActiveAccessRole(access.role)
+      })
+      .catch((err) => {
+        console.warn('Failed to resolve logbook access role:', err)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [activeLogbookId, activeLogbookRecord])
 
   useEffect(() => {
@@ -188,24 +197,41 @@ function App() {
         `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`
       )
     }
+  }, [])
 
-    void (async () => {
-      const session = await checkServerSession()
-      if (session.authenticated && session.userId) {
-        localStorage.setItem('active_userid', session.userId)
-      }
-      const savedUser = localStorage.getItem('active_username')
-      const key = getActiveMasterKey()
-      if (session.authenticated && savedUser && key) {
-        setIsAuthenticated(true)
-        const savedLogbookId = localStorage.getItem('active_logbook_id')
-        const savedLogbookTitle = localStorage.getItem('active_logbook_title')
-        if (savedLogbookId && savedLogbookTitle) {
-          setActiveLogbookId(savedLogbookId)
-          setActiveLogbookTitle(savedLogbookTitle)
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const session = await checkServerSession()
+        if (cancelled) return
+
+        if (session.authenticated && session.userId) {
+          localStorage.setItem('active_userid', session.userId)
+        }
+
+        const savedUser = localStorage.getItem('active_username')
+        const key = getActiveMasterKey()
+        if (session.authenticated && savedUser && key) {
+          setIsAuthenticated(true)
+          const savedLogbookId = localStorage.getItem('active_logbook_id')
+          const savedLogbookTitle = localStorage.getItem('active_logbook_title')
+          if (savedLogbookId && savedLogbookTitle) {
+            setActiveLogbookId(savedLogbookId)
+            setActiveLogbookTitle(savedLogbookTitle)
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('Session restore failed:', err)
         }
       }
     })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -224,7 +250,8 @@ function App() {
   useEffect(() => {
     registerNavigation({
       setActiveTab,
-      setSelectedEntryId: setTourSelectedEntryId
+      setSelectedEntryId: setTourSelectedEntryId,
+      setFeedbackOpen: setTourFeedbackOpen
     })
   }, [registerNavigation])
 
@@ -391,7 +418,12 @@ function App() {
 
   const pwaInstallBanner = <PwaInstallPrompt variant="banner" />
 
-  const logbookReadOnly = activeAccessRole === 'READ'
+  const sharedLogbook =
+    activeLogbookRecord === undefined ? null : activeLogbookRecord.isShared === 1
+  const logbookReadOnly =
+    activeLogbookId != null &&
+    (sharedLogbook === null || sharedLogbook) &&
+    activeAccessRole !== 'WRITE'
 
   if (!activeLogbookId) {
     return (
@@ -420,12 +452,12 @@ function App() {
             <div className="app-title-area">
               <div className="app-title-row">
                 <h2>{activeLogbookTitle}</h2>
-                {activeAccessRole !== 'OWNER' && (
+                {activeAccessRole && activeAccessRole !== 'OWNER' && (
                   <LogbookRoleBadge role={activeAccessRole} />
                 )}
               </div>
               <p className="app-subtitle">
-                {activeAccessRole !== 'OWNER'
+                {activeAccessRole && activeAccessRole !== 'OWNER'
                   ? t('dashboard.section_shared_hint')
                   : `${t('app.name')} / ${activeLogbookId?.substring(0, 8)}...`}
               </p>
@@ -454,6 +486,9 @@ function App() {
             <FeedbackHeaderButton
               logbookId={activeLogbookId}
               logbookTitle={activeLogbookTitle}
+              tourOpen={tourFeedbackOpen}
+              onTourOpenChange={setTourFeedbackOpen}
+              tourHighlight={isActive && currentStepId === 'nav_feedback'}
             />
 
             <button className="btn-icon logout" onClick={handleLogout} title={t('dashboard.logout')}>

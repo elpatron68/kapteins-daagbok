@@ -27,11 +27,14 @@ export type TourStepId =
   | 'entry_track'
   | 'nav_vessel'
   | 'nav_crew'
+  | 'nav_stats'
+  | 'nav_feedback'
   | 'finish'
 
 interface TourNavigation {
   setActiveTab: (tab: AppTab) => void
   setSelectedEntryId: (entryId: string | null) => void
+  setFeedbackOpen: (open: boolean) => void
 }
 
 interface DemoTourContext {
@@ -55,7 +58,7 @@ interface AppTourContextValue {
   requestStartAfterLogin: () => void
 }
 
-const STEP_ORDER: TourStepId[] = [
+const FULL_STEP_ORDER: TourStepId[] = [
   'welcome',
   'nav_logs',
   'entry_list',
@@ -63,8 +66,18 @@ const STEP_ORDER: TourStepId[] = [
   'entry_track',
   'nav_vessel',
   'nav_crew',
+  'nav_stats',
+  'nav_feedback',
   'finish'
 ]
+
+/** Public demo has no stats/feedback UI — skip those steps. */
+const DEMO_EXCLUDED_STEPS: TourStepId[] = ['nav_stats', 'nav_feedback']
+const DEMO_STEP_ORDER: TourStepId[] = FULL_STEP_ORDER.filter((id) => !DEMO_EXCLUDED_STEPS.includes(id))
+
+function getStepOrder(demoMode: boolean): TourStepId[] {
+  return demoMode ? DEMO_STEP_ORDER : FULL_STEP_ORDER
+}
 
 const TARGET_BY_STEP: Partial<Record<TourStepId, string>> = {
   nav_logs: '[data-tour="nav-logs"]',
@@ -72,7 +85,9 @@ const TARGET_BY_STEP: Partial<Record<TourStepId, string>> = {
   entry_open: '[data-tour="entry-first"]',
   entry_track: '[data-tour="entry-track"]',
   nav_vessel: '[data-tour="nav-vessel"]',
-  nav_crew: '[data-tour="nav-crew"]'
+  nav_crew: '[data-tour="nav-crew"]',
+  nav_stats: '[data-tour="stats-dashboard"]',
+  nav_feedback: '[data-tour="feedback-form"]'
 }
 
 const AppTourContext = createContext<AppTourContextValue | null>(null)
@@ -86,7 +101,8 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
   const demoContextRef = useRef<DemoTourContext | null>(null)
   const tourModeRef = useRef<{ demoMode: boolean }>({ demoMode: false })
 
-  const currentStepId = isActive ? STEP_ORDER[stepIndex] ?? null : null
+  const stepOrder = getStepOrder(isDemoTour)
+  const currentStepId = isActive ? stepOrder[stepIndex] ?? null : null
 
   const resolveFirstEntryId = useCallback((): string | null => {
     return demoContextRef.current?.firstEntryId ?? getStoredDemoFirstEntryId()
@@ -111,16 +127,29 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       nav.setSelectedEntryId(null)
       nav.setActiveTab('crew')
     }
+    if (stepId === 'nav_stats') {
+      nav.setSelectedEntryId(null)
+      nav.setActiveTab('stats')
+    }
+    if (stepId === 'nav_feedback') {
+      nav.setSelectedEntryId(null)
+      nav.setFeedbackOpen(true)
+    } else {
+      nav.setFeedbackOpen(false)
+    }
   }, [resolveFirstEntryId])
 
   const scrollToCurrentTarget = useCallback((stepId: TourStepId | null) => {
     if (!stepId) return
     const selector = TARGET_BY_STEP[stepId]
     if (!selector) return
-    window.requestAnimationFrame(() => {
-      const el = document.querySelector(selector)
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-    })
+    const delayMs = stepId === 'nav_feedback' ? 180 : 0
+    window.setTimeout(() => {
+      window.requestAnimationFrame(() => {
+        const el = document.querySelector(selector)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+      })
+    }, delayMs)
   }, [])
 
   const startTour = useCallback((options?: { force?: boolean; demoMode?: boolean }) => {
@@ -142,12 +171,18 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     const tourProps = tourModeRef.current.demoMode ? { mode: 'demo' } : undefined
     if (outcome === 'completed') {
       trackPlausibleEvent(PlausibleEvents.ONBOARDING_TOUR_COMPLETED, tourProps)
+      const nav = navigationRef.current
+      if (nav && !tourModeRef.current.demoMode) {
+        nav.setSelectedEntryId(null)
+        nav.setActiveTab('stats')
+      }
     } else {
-      const step = STEP_ORDER[stepIndexAtDismiss] ?? 'welcome'
+      const step = getStepOrder(tourModeRef.current.demoMode)[stepIndexAtDismiss] ?? 'welcome'
       trackPlausibleEvent(PlausibleEvents.ONBOARDING_TOUR_SKIPPED, { step, ...tourProps })
     }
 
     tourModeRef.current = { demoMode: false }
+    navigationRef.current?.setFeedbackOpen(false)
     setIsDemoTour(false)
     setIsActive(false)
     setStepIndex(0)
@@ -162,12 +197,13 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
   }, [dismissTour, stepIndex])
 
   const nextStep = useCallback(() => {
-    if (stepIndex + 1 >= STEP_ORDER.length) {
+    const order = getStepOrder(isDemoTour)
+    if (stepIndex + 1 >= order.length) {
       dismissTour('completed', stepIndex)
       return
     }
     setStepIndex(stepIndex + 1)
-  }, [dismissTour, stepIndex])
+  }, [dismissTour, isDemoTour, stepIndex])
 
   const prevStep = useCallback(() => {
     setStepIndex((current) => Math.max(0, current - 1))
@@ -175,11 +211,11 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isActive) return
-    const stepId = STEP_ORDER[stepIndex]
+    const stepId = getStepOrder(isDemoTour)[stepIndex]
     if (!stepId) return
     applyStepSideEffects(stepId)
     scrollToCurrentTarget(stepId)
-  }, [isActive, stepIndex, applyStepSideEffects, scrollToCurrentTarget])
+  }, [isActive, isDemoTour, stepIndex, applyStepSideEffects, scrollToCurrentTarget])
 
   const restartTour = useCallback(() => {
     const userId = localStorage.getItem('active_userid')
@@ -220,7 +256,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       isDemoTour,
       currentStepId,
       currentStepIndex: stepIndex,
-      totalSteps: STEP_ORDER.length,
+      totalSteps: stepOrder.length,
       startTour,
       stopTour,
       restartTour,
@@ -244,6 +280,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       skipTour,
       startTour,
       stepIndex,
+      stepOrder.length,
       stopTour
     ]
   )

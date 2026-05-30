@@ -310,7 +310,7 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
   }, [accountStats])
 
   return (
-    <div className="form-card">
+    <div className="form-card" data-tour="stats-dashboard">
       <div className="form-header">
         <BarChart2 size={24} className="form-icon" />
         <div>

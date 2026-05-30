@@ -30,7 +30,8 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
   useEffect(() => {
     registerNavigation({
       setActiveTab,
-      setSelectedEntryId: setTourSelectedEntryId
+      setSelectedEntryId: setTourSelectedEntryId,
+      setFeedbackOpen: () => {}
     })
     registerDemoTourContext({ firstEntryId: fixture.firstEntryId })
 

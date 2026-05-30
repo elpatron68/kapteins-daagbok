@@ -10,6 +10,7 @@ interface FeedbackModalProps {
   onClose: () => void
   logbookId?: string | null
   logbookTitle?: string | null
+  tourMode?: boolean
 }
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
@@ -18,7 +19,8 @@ export default function FeedbackModal({
   open,
   onClose,
   logbookId,
-  logbookTitle
+  logbookTitle,
+  tourMode = false
 }: FeedbackModalProps) {
   const { t } = useTranslation()
   const [category, setCategory] = useState<FeedbackCategory>('general')
@@ -97,14 +99,20 @@ export default function FeedbackModal({
   if (!open) return null
 
   return (
-    <div className="disclaimer-modal-overlay" onClick={isBusy ? undefined : onClose}>
+    <div
+      className={`disclaimer-modal-overlay${tourMode ? ' feedback-modal-overlay--tour' : ''}`}
+      onClick={isBusy || tourMode ? undefined : onClose}
+    >
       <div className="disclaimer-modal-panel" onClick={(event) => event.stopPropagation()}>
-        <div className="auth-card glass registration-disclaimer registration-disclaimer--modal feedback-modal">
+        <div
+          className="auth-card glass registration-disclaimer registration-disclaimer--modal feedback-modal"
+          data-tour="feedback-form"
+        >
           <button
             type="button"
             className="registration-disclaimer__close feedback-modal__close"
             onClick={onClose}
-            disabled={isBusy}
+            disabled={isBusy || tourMode}
             aria-label={t('feedback.cancel')}
           >
             <X size={18} />
@@ -187,7 +195,7 @@ export default function FeedbackModal({
                     type="button"
                     className="btn secondary"
                     onClick={onClose}
-                    disabled={submitState === 'submitting'}
+                    disabled={submitState === 'submitting' || tourMode}
                   >
                     {t('feedback.cancel')}
                   </button>

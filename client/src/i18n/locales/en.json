@@ -467,7 +467,7 @@
       "steps": {
         "welcome": {
           "title": "Welcome aboard!",
-          "body": "We created a demo logbook with three travel days in Kiel Bay. This short tour shows you the key features."
+          "body": "We created a demo logbook with three travel days in Kiel Bay. You can delete the sample entries anytime when you're ready to start your own logbook. This short tour shows you the key features."
         },
         "welcome_public": {
           "title": "Welcome aboard!",
@@ -497,9 +497,17 @@
           "title": "Crew list",
           "body": "Manage crew members and assign them to travel days later."
         },
+        "nav_stats": {
+          "title": "Statistics dashboard",
+          "body": "View travel distances, consumption, route maps, and propulsion breakdown — calculated automatically from your log entries."
+        },
+        "nav_feedback": {
+          "title": "Send feedback",
+          "body": "Use this form to report bugs, ideas, or general feedback to the project team — you can also open it anytime later via the icon in the top right."
+        },
         "finish": {
           "title": "You're all set!",
-          "body": "You can restart the tour anytime in Settings. Fair winds!"
+          "body": "You'll land on the statistics dashboard next. You can restart the tour anytime in Settings. Fair winds!"
         }
       }
     }

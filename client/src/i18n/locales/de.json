@@ -467,7 +467,7 @@
       "steps": {
         "welcome": {
           "title": "Willkommen an Bord!",
-          "body": "Wir haben ein Demo-Logbuch mit drei Reisetagen in der Kieler Förde für Sie angelegt. Diese kurze Tour zeigt Ihnen die wichtigsten Funktionen."
+          "body": "Wir haben ein Demo-Logbuch mit drei Reisetagen in der Kieler Förde für Sie angelegt. Die Beispieleinträge können Sie jederzeit löschen, wenn Sie mit dem eigenen Logbuch starten möchten. Diese kurze Tour zeigt Ihnen die wichtigsten Funktionen."
         },
         "welcome_public": {
           "title": "Willkommen an Bord!",
@@ -497,9 +497,17 @@
           "title": "Crew-Liste",
           "body": "Verwalten Sie Besatzungsmitglieder und weisen Sie sie später Reisetagen zu."
         },
+        "nav_stats": {
+          "title": "Statistik-Dashboard",
+          "body": "Hier sehen Sie Reisedistanzen, Verbrauch, Routenkarten und Antriebsanteile – automatisch aus Ihren Logbucheinträgen berechnet."
+        },
+        "nav_feedback": {
+          "title": "Feedback senden",
+          "body": "Über dieses Formular können Sie Fehler, Ideen oder allgemeines Feedback direkt an das Projektteam schicken – auch nach der Tour jederzeit über das Symbol oben rechts."
+        },
         "finish": {
           "title": "Alles klar!",
-          "body": "Sie können die Tour jederzeit unter Einstellungen erneut starten. Gute Fahrt!"
+          "body": "Sie landen gleich im Statistik-Dashboard. Die Tour können Sie jederzeit unter Einstellungen erneut starten. Gute Fahrt!"
         }
       }
     }
