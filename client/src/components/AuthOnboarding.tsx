@@ -16,9 +16,10 @@ import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
 
 interface AuthOnboardingProps {
   onAuthenticated: () => void
+  onOpenDemo?: () => void
 }
 
-export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps) {
+export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnboardingProps) {
   const { t, i18n } = useTranslation()
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
@@ -526,7 +527,7 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
         <button
           type="button"
           className="btn secondary"
-          onClick={() => { window.location.pathname = '/demo' }}
+          onClick={() => onOpenDemo?.()}
           disabled={loading}
           style={{ width: '100%' }}
         >

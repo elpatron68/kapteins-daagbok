@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
@@ -59,7 +59,7 @@ function App() {
   const [shareKey, setShareKey] = useState('')
 
   // Public demo mode (no account required)
-  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [isDemoMode, setIsDemoMode] = useState(() => window.location.pathname === '/demo')
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -138,25 +138,36 @@ function App() {
     }
   }, [isAuthenticated])
 
-  useEffect(() => {
+  const syncRouteFromLocation = useCallback(() => {
     const params = new URLSearchParams(window.location.search)
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const path = window.location.pathname
 
-    if (window.location.pathname === '/demo') {
+    if (path === '/demo') {
       setIsDemoMode(true)
+      setIsViewerMode(false)
+      setIsAcceptingInvite(false)
       return
     }
 
-    if (window.location.pathname === '/share' && params.has('token') && hashParams.has('key')) {
+    setIsDemoMode(false)
+
+    if (path === '/share' && params.has('token') && hashParams.has('key')) {
       setShareToken(params.get('token') || '')
       setShareKey(hashParams.get('key') || '')
       setIsViewerMode(true)
+      setIsAcceptingInvite(false)
       return
     }
 
+    setIsViewerMode(false)
+
     if (params.has('token')) {
       setIsAcceptingInvite(true)
+      return
     }
+
+    setIsAcceptingInvite(false)
 
     const savedUser = localStorage.getItem('active_username')
     const key = getActiveMasterKey()
@@ -169,6 +180,19 @@ function App() {
         setActiveLogbookTitle(savedLogbookTitle)
       }
     }
+  }, [])
+
+  useEffect(() => {
+    syncRouteFromLocation()
+    window.addEventListener('popstate', syncRouteFromLocation)
+    return () => window.removeEventListener('popstate', syncRouteFromLocation)
+  }, [syncRouteFromLocation])
+
+  const openDemo = useCallback(() => {
+    window.history.pushState({}, document.title, '/demo')
+    setIsDemoMode(true)
+    setIsViewerMode(false)
+    setIsAcceptingInvite(false)
   }, [])
 
   useEffect(() => {
@@ -245,7 +269,7 @@ function App() {
 
   const handleExitDemo = () => {
     window.history.replaceState({}, document.title, '/')
-    setIsDemoMode(false)
+    syncRouteFromLocation()
   }
 
   if (isDemoMode) {
@@ -288,7 +312,7 @@ function App() {
   if (!isAuthenticated) {
     return (
       <div className="auth-screen">
-        <AuthOnboarding onAuthenticated={handleAuthenticated} />
+        <AuthOnboarding onAuthenticated={handleAuthenticated} onOpenDemo={openDemo} />
       </div>
     )
   }
