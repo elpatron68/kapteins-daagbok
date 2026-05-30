@@ -13,6 +13,7 @@ import {
 } from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
 import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
+import BetaBadge from './BetaBadge.tsx'
 
 interface AuthOnboardingProps {
   onAuthenticated: () => void
@@ -408,7 +409,10 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
     <div className="auth-card glass">
       <div className="auth-brand">
         <img src="/logo.png" alt="Kapteins Daagbok" className="auth-logo-img" />
-        <h1>{t('app.name')}</h1>
+        <div className="auth-brand-title-row">
+          <h1>{t('app.name')}</h1>
+          <BetaBadge />
+        </div>
         <p className="tagline">{t('auth.tagline')}</p>
       </div>
 

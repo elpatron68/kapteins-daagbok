@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../services/db.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, type DecryptedLogbook } from '../services/logbook.js'
 import LogbookRoleBadge from './LogbookRoleBadge.tsx'
+import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
@@ -177,7 +178,10 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
         <div className="header-brand">
           <Ship className="header-logo" size={32} />
           <div>
-            <h1>{t('app.name')}</h1>
+            <div className="header-brand-title-row">
+              <h1>{t('app.name')}</h1>
+              <BetaBadge />
+            </div>
             <p className="subtitle">{t('app.tagline')}</p>
           </div>
         </div>

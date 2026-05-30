@@ -28,6 +28,7 @@ import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
 import LogbookRoleBadge from './components/LogbookRoleBadge.tsx'
+import BetaBadge from './components/BetaBadge.tsx'
 import { db } from './services/db.js'
 import { getLogbookAccess } from './services/logbookAccess.js'
 import type { LogbookAccessRole } from './services/logbook.js'
@@ -452,6 +453,7 @@ function App() {
             <div className="app-title-area">
               <div className="app-title-row">
                 <h2>{activeLogbookTitle}</h2>
+                <BetaBadge />
                 {activeAccessRole && activeAccessRole !== 'OWNER' && (
                   <LogbookRoleBadge role={activeAccessRole} />
                 )}

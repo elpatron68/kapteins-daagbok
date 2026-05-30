@@ -2,7 +2,9 @@
   "translation": {
     "app": {
       "name": "Kapteins Daagbok",
-      "tagline": "Privates Yacht-Logbuch"
+      "tagline": "Privates Yacht-Logbuch",
+      "beta": "Beta",
+      "beta_hint": "Beta-Version — Funktionen können sich noch ändern"
     },
     "nav": {
       "dashboard": "Dashboard",
