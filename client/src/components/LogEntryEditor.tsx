@@ -426,7 +426,12 @@ export default function LogEntryEditor({
 
   const loadTrack = async () => {
     if (readOnly && preloadedTrack) {
-      setSavedTrack(preloadedTrack)
+      setSavedTrack({
+        waypoints: preloadedTrack.waypoints ?? [],
+        gpxContent: preloadedTrack.gpxContent ?? '',
+        filename: preloadedTrack.filename ?? 'track.gpx',
+        fileType: preloadedTrack.fileType ?? 'gpx'
+      })
       return
     }
     try {
@@ -1367,7 +1372,7 @@ export default function LogEntryEditor({
                   <Upload size={16} style={{ color: '#fbbf24' }} />
                   <span className="track-info-name">{savedTrack.filename || 'track'}</span>
                   <span className="track-info-stats">
-                    {savedTrack.fileType.toUpperCase()}
+                    {(savedTrack.fileType ?? 'gpx').toUpperCase()}
                     {savedTrack.waypoints.length > 0 && (
                       <> · {savedTrack.waypoints.length} {t('logs.track_upload_points')}</>
                     )}

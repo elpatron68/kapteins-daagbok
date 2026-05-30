@@ -523,6 +523,16 @@ export default function AuthOnboarding({ onAuthenticated }: AuthOnboardingProps)
           <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
         </div>
 
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={() => { window.location.pathname = '/demo' }}
+          disabled={loading}
+          style={{ width: '100%' }}
+        >
+          {t('auth.explore_demo')}
+        </button>
+
         {/* Registration form */}
         <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
           <div className="input-group">

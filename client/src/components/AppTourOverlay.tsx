@@ -25,6 +25,7 @@ export default function AppTourOverlay() {
   const { t } = useTranslation()
   const {
     isActive,
+    isDemoTour,
     currentStepId,
     currentStepIndex,
     totalSteps,
@@ -104,7 +105,7 @@ export default function AppTourOverlay() {
 
   if (!isActive || !currentStepId) return null
 
-  const { title, body } = getTourStepCopy(currentStepId, t)
+  const { title, body } = getTourStepCopy(currentStepId, t, { demoMode: isDemoTour })
   const centered = isCenteredTourStep(currentStepId)
 
   const tooltipStyle = centered

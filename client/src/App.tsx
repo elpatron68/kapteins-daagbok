@@ -23,6 +23,7 @@ import {
 } from './services/appearance.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
+import DemoViewer from './components/DemoViewer.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
@@ -56,6 +57,9 @@ function App() {
   const [isViewerMode, setIsViewerMode] = useState(false)
   const [shareToken, setShareToken] = useState('')
   const [shareKey, setShareKey] = useState('')
+
+  // Public demo mode (no account required)
+  const [isDemoMode, setIsDemoMode] = useState(false)
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -137,6 +141,11 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
+
+    if (window.location.pathname === '/demo') {
+      setIsDemoMode(true)
+      return
+    }
 
     if (window.location.pathname === '/share' && params.has('token') && hashParams.has('key')) {
       setShareToken(params.get('token') || '')
@@ -232,6 +241,19 @@ function App() {
   const toggleLanguage = () => {
     const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
     i18n.changeLanguage(nextLang)
+  }
+
+  const handleExitDemo = () => {
+    window.history.replaceState({}, document.title, '/')
+    setIsDemoMode(false)
+  }
+
+  if (isDemoMode) {
+    return (
+      <div style={{ display: 'contents' }}>
+        <DemoViewer onExit={handleExitDemo} />
+      </div>
+    )
   }
 
   if (isViewerMode) {

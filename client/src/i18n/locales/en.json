@@ -38,6 +38,7 @@
       "error_incorrect_recovery": "Incorrect recovery phrase. Decryption failed.",
       "error_decryption_failed": "Decryption failed. Please check your recovery phrase.",
       "or_register": "or register",
+      "explore_demo": "Explore demo without account",
       "username_placeholder": "Username / Skipper Name",
       "processing": "Processing...",
       "help": "Help",
@@ -383,7 +384,10 @@
     },
     "demo": {
       "logbook_title": "Baltic Sea Demo Logbook",
-      "badge": "Demo"
+      "badge": "Demo",
+      "public_banner": "Read-only demo view",
+      "cta_register": "Create account",
+      "back_to_login": "Back to login"
     },
     "stats": {
       "title": "Statistics",
@@ -428,6 +432,10 @@
         "welcome": {
           "title": "Welcome aboard!",
           "body": "We created a demo logbook with three travel days in Kiel Bay. This short tour shows you the key features."
+        },
+        "welcome_public": {
+          "title": "Welcome aboard!",
+          "body": "Explore our demo logbook with three travel days in Kiel Bay — no account required. This short tour shows vessel data, crew, and log entries."
         },
         "nav_logs": {
           "title": "Log entries",

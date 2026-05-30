@@ -38,6 +38,7 @@
       "error_incorrect_recovery": "Falscher Wiederherstellungsschlüssel. Entschlüsselung fehlgeschlagen.",
       "error_decryption_failed": "Entschlüsselung fehlgeschlagen. Bitte überprüfen Sie Ihren Wiederherstellungsschlüssel.",
       "or_register": "oder Registrieren",
+      "explore_demo": "Demo ohne Account erkunden",
       "username_placeholder": "Benutzername / Skippername",
       "processing": "Verarbeitung...",
       "help": "Hilfe",
@@ -383,7 +384,10 @@
     },
     "demo": {
       "logbook_title": "Demo-Logbuch Ostsee",
-      "badge": "Demo"
+      "badge": "Demo",
+      "public_banner": "Schreibgeschützte Demo-Ansicht",
+      "cta_register": "Account erstellen",
+      "back_to_login": "Zur Anmeldung"
     },
     "stats": {
       "title": "Statistik",
@@ -428,6 +432,10 @@
         "welcome": {
           "title": "Willkommen an Bord!",
           "body": "Wir haben ein Demo-Logbuch mit drei Reisetagen in der Kieler Förde für Sie angelegt. Diese kurze Tour zeigt Ihnen die wichtigsten Funktionen."
+        },
+        "welcome_public": {
+          "title": "Willkommen an Bord!",
+          "body": "Erkunden Sie unser Demo-Logbuch mit drei Reisetagen in der Kieler Förde – ganz ohne Account. Diese kurze Tour zeigt Ihnen Schiffsdaten, Crew und Logbucheinträge."
         },
         "nav_logs": {
           "title": "Logbucheinträge",
