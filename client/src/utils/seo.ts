@@ -22,6 +22,9 @@ function setMeta(attr: 'name' | 'property', key: string, content: string) {
 
 function syncLanguageUrl(lang: SeoLang) {
   const url = new URL(window.location.href)
+  const currentLng = url.searchParams.get('lng')
+  if (currentLng && normalizeSeoLang(currentLng) === lang) return
+
   url.searchParams.set('lng', lang)
   const next = `${url.pathname}${url.search}${url.hash}`
   window.history.replaceState({}, '', next)

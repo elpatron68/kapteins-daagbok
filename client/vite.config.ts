@@ -51,7 +51,7 @@ export default defineConfig({
         short_name: 'Daagbok',
         lang: 'de',
         description:
-          'Digitales Yacht-Logbuch — E2E-verschlüsselt, offline-fähig. Digital yacht logbook — E2E encrypted, offline-capable PWA.',
+          'Digitales Yacht-Logbuch — E2E-verschlüsselt, offline-fähig.',
         theme_color: '#1e293b',
         background_color: '#0f172a',
         display: 'standalone',
