@@ -17,8 +17,47 @@ export interface LogEventPayload {
   remarks: string
 }
 
+const LOG_EVENT_FIELDS: (keyof LogEventPayload)[] = [
+  'time', 'mgk', 'rwk', 'windPressure', 'windDirection', 'windStrength', 'seaState',
+  'weatherIcon', 'current', 'heel', 'sailsOrMotor', 'logReading', 'distance',
+  'gpsLat', 'gpsLng', 'remarks'
+]
+
+/** Normalize partial/legacy events so all fields are strings (safe for form + save). */
+export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<string, unknown>): LogEventPayload {
+  const e = event as Record<string, unknown>
+  const timeRaw = String(e.time ?? '').trim()
+  const normalized: LogEventPayload = {
+    time: timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw,
+    mgk: '',
+    rwk: '',
+    windPressure: '',
+    windDirection: '',
+    windStrength: '',
+    seaState: '',
+    weatherIcon: '',
+    current: '',
+    heel: '',
+    sailsOrMotor: '',
+    logReading: '',
+    distance: '',
+    gpsLat: '',
+    gpsLng: '',
+    remarks: ''
+  }
+  for (const key of LOG_EVENT_FIELDS) {
+    if (key === 'time') continue
+    normalized[key] = String(e[key] ?? '').trim()
+  }
+  return normalized
+}
+
+export function logEventsEqual(a: LogEventPayload, b: LogEventPayload): boolean {
+  return LOG_EVENT_FIELDS.every((key) => a[key] === b[key])
+}
+
 /** Chronological order: earliest time first (HH:MM). */
-export function sortLogEventsByTime<T extends Pick<LogEventPayload, 'time'>>(events: T[]): T[] {
+export function sortLogEventsByTime<T extends LogEventPayload>(events: T[]): T[] {
   return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 }
 
@@ -43,7 +82,7 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
     destination: input.destination.trim(),
     freshwater: { ...input.freshwater },
     fuel: { ...input.fuel },
-    events: sortLogEventsByTime(input.events.map((e) => ({ ...e })))
+    events: sortLogEventsByTime(input.events.map((e) => normalizeLogEvent(e)))
   }
 
   if (input.trackDistanceNm !== undefined) payload.trackDistanceNm = input.trackDistanceNm

@@ -13,6 +13,7 @@ import SettingsForm from './components/SettingsForm.tsx'
 import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
+import { UnsavedChangesProvider, useUnsavedChangesContext } from './context/UnsavedChangesContext.tsx'
 import { getActiveMasterKey, logoutUser, checkServerSession } from './services/auth.js'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
@@ -48,6 +49,7 @@ const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 
 function App() {
   const { t, i18n } = useTranslation()
+  const { confirmLeave } = useUnsavedChangesContext()
   const { registerNavigation, requestStartAfterLogin, isActive, currentStepId } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
@@ -347,7 +349,14 @@ function App() {
     consumePendingPushLogbook()
   }
 
-  const handleLogout = () => {
+  const handleTabChange = async (tab: AppTab) => {
+    if (tab === activeTab) return
+    if (!(await confirmLeave())) return
+    setActiveTab(tab)
+  }
+
+  const handleLogout = async () => {
+    if (!(await confirmLeave())) return
     void logoutUser()
     setIsAuthenticated(false)
     setActiveLogbookId(null)
@@ -358,7 +367,8 @@ function App() {
     localStorage.removeItem('active_logbook_title')
   }
 
-  const handleBackToDashboard = () => {
+  const handleBackToDashboard = async () => {
+    if (!(await confirmLeave())) return
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
     setTourSelectedEntryId(null)
@@ -505,7 +515,7 @@ function App() {
         <aside className="app-sidebar">
           <button
             className={`sidebar-btn ${activeTab === 'logs' ? 'active' : ''}`}
-            onClick={() => setActiveTab('logs')}
+            onClick={() => void handleTabChange('logs')}
             data-tour="nav-logs"
           >
             <FileText size={18} />
@@ -514,7 +524,7 @@ function App() {
           
           <button
             className={`sidebar-btn ${activeTab === 'vessel' ? 'active' : ''}`}
-            onClick={() => setActiveTab('vessel')}
+            onClick={() => void handleTabChange('vessel')}
             data-tour="nav-vessel"
           >
             <Ship size={18} />
@@ -523,7 +533,7 @@ function App() {
 
           <button
             className={`sidebar-btn ${activeTab === 'crew' ? 'active' : ''}`}
-            onClick={() => setActiveTab('crew')}
+            onClick={() => void handleTabChange('crew')}
             data-tour="nav-crew"
           >
             <Users size={18} />
@@ -542,7 +552,7 @@ function App() {
 
           <button
             className={`sidebar-btn ${activeTab === 'stats' ? 'active' : ''}`}
-            onClick={() => setActiveTab('stats')}
+            onClick={() => void handleTabChange('stats')}
             data-tour="nav-stats"
           >
             <BarChart2 size={18} />
@@ -551,7 +561,7 @@ function App() {
 
           <button
             className={`sidebar-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
+            onClick={() => void handleTabChange('settings')}
           >
             <Settings size={18} />
             {t('nav.settings')}
@@ -604,12 +614,14 @@ function App() {
 export default function AppWrapper() {
   return (
     <DialogProvider>
-      <AppTourProvider>
-        <PwaUpdatePrompt />
-        <App />
-        <AppTourOverlay />
-      </AppTourProvider>
-      <AppFooter />
+      <UnsavedChangesProvider>
+        <AppTourProvider>
+          <PwaUpdatePrompt />
+          <App />
+          <AppTourOverlay />
+        </AppTourProvider>
+        <AppFooter />
+      </UnsavedChangesProvider>
     </DialogProvider>
   )
 }

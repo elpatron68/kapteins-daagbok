@@ -20,7 +20,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, type LogEventPayload } from '../utils/logEntryPayload.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -35,6 +35,7 @@ import {
   type SavedTrack
 } from '../services/trackUpload.js'
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
+import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
 
 function emptyTankLevels() {
   return { morning: 0, refilled: 0, evening: 0, consumption: 0 }
@@ -248,7 +249,60 @@ export default function LogEntryEditor({
     })
   }, [buildPayloadForSigning, signSkipper, signCrew])
 
-  const isDirty = savedFingerprint !== null && currentFingerprint !== savedFingerprint
+  const buildEventFromForm = (): LogEvent =>
+    normalizeLogEvent({
+      time: evTime,
+      mgk: evMgk,
+      rwk: evRwk,
+      windPressure: evWindPressure,
+      windDirection: evWindDirection,
+      windStrength: evWindStrength,
+      seaState: evSeaState,
+      weatherIcon: evWeatherIcon,
+      current: evCurrent,
+      heel: evHeel,
+      sailsOrMotor: evSailsOrMotor,
+      logReading: evLogReading,
+      distance: evDistance,
+      gpsLat: evGpsLat,
+      gpsLng: evGpsLng,
+      remarks: evRemarks
+    })
+
+  const applyEventFormToEvents = (eventData: LogEvent): LogEvent[] => {
+    if (editingEventIndex !== null) {
+      return sortLogEventsByTime(events.map((ev, idx) => (idx === editingEventIndex ? eventData : ev)))
+    }
+    return sortLogEventsByTime([...events, eventData])
+  }
+
+  const hasPendingEventForm = useMemo(() => {
+    if (!evTime.trim()) return false
+    const draft = buildEventFromForm()
+    if (editingEventIndex !== null) {
+      const original = events[editingEventIndex]
+      return original ? !logEventsEqual(draft, original) : false
+    }
+    return true
+  }, [
+    evTime, evMgk, evRwk, evWindPressure, evWindDirection, evWindStrength, evSeaState,
+    evWeatherIcon, evCurrent, evHeel, evSailsOrMotor, evLogReading, evDistance,
+    evGpsLat, evGpsLng, evRemarks, editingEventIndex, events
+  ])
+
+  const isDirty = savedFingerprint !== null && (
+    currentFingerprint !== savedFingerprint || hasPendingEventForm
+  )
+
+  const { confirmLeave } = useRegisterUnsavedChanges(
+    `log-entry-${entryId}`,
+    !readOnly && !loading && isDirty
+  )
+
+  const handleBack = async () => {
+    if (!(await confirmLeave())) return
+    onBack()
+  }
 
   const persistEntryToDb = useCallback(async (eventsOverride?: LogEvent[]) => {
     if (readOnly) return
@@ -483,7 +537,7 @@ export default function LogEntryEditor({
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
           loadTrackStatsFromEntry(preloadedEntry)
-          setEvents(sortLogEventsByTime(preloadedEntry.events || []))
+          setEvents(sortLogEventsByTime((preloadedEntry.events || []).map(normalizeLogEvent)))
           setSavedFingerprint(fingerprintFromStoredEntry(preloadedEntry))
           return
         }
@@ -516,7 +570,7 @@ export default function LogEntryEditor({
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
             loadTrackStatsFromEntry(decrypted)
-            setEvents(sortLogEventsByTime(decrypted.events || []))
+            setEvents(sortLogEventsByTime((decrypted.events || []).map(normalizeLogEvent)))
             setSavedFingerprint(fingerprintFromStoredEntry(decrypted))
           }
         }
@@ -783,25 +837,6 @@ export default function LogEntryEditor({
     return currentItems.includes(item.toLowerCase())
   }
 
-  const buildEventFromForm = (): LogEvent => ({
-    time: evTime,
-    mgk: evMgk.trim(),
-    rwk: evRwk.trim(),
-    windPressure: evWindPressure.trim(),
-    windDirection: evWindDirection.trim(),
-    windStrength: evWindStrength.trim(),
-    seaState: evSeaState.trim(),
-    weatherIcon: evWeatherIcon.trim(),
-    current: evCurrent.trim(),
-    heel: evHeel.trim(),
-    sailsOrMotor: evSailsOrMotor.trim(),
-    logReading: evLogReading.trim(),
-    distance: evDistance.trim(),
-    gpsLat: evGpsLat.trim(),
-    gpsLng: evGpsLng.trim(),
-    remarks: evRemarks.trim()
-  })
-
   const clearEventForm = () => {
     setEvTime('')
     setEvMgk('')
@@ -824,22 +859,23 @@ export default function LogEntryEditor({
   }
 
   const fillEventForm = (ev: LogEvent) => {
-    setEvTime(ev.time)
-    setEvMgk(ev.mgk)
-    setEvRwk(ev.rwk)
-    setEvWindPressure(ev.windPressure)
-    setEvWindDirection(ev.windDirection)
-    setEvWindStrength(ev.windStrength)
-    setEvSeaState(ev.seaState)
-    setEvWeatherIcon(ev.weatherIcon)
-    setEvCurrent(ev.current)
-    setEvHeel(ev.heel)
-    setEvSailsOrMotor(ev.sailsOrMotor)
-    setEvLogReading(ev.logReading)
-    setEvDistance(ev.distance)
-    setEvGpsLat(ev.gpsLat)
-    setEvGpsLng(ev.gpsLng)
-    setEvRemarks(ev.remarks)
+    const normalized = normalizeLogEvent(ev)
+    setEvTime(normalized.time)
+    setEvMgk(normalized.mgk)
+    setEvRwk(normalized.rwk)
+    setEvWindPressure(normalized.windPressure)
+    setEvWindDirection(normalized.windDirection)
+    setEvWindStrength(normalized.windStrength)
+    setEvSeaState(normalized.seaState)
+    setEvWeatherIcon(normalized.weatherIcon)
+    setEvCurrent(normalized.current)
+    setEvHeel(normalized.heel)
+    setEvSailsOrMotor(normalized.sailsOrMotor)
+    setEvLogReading(normalized.logReading)
+    setEvDistance(normalized.distance)
+    setEvGpsLat(normalized.gpsLat)
+    setEvGpsLng(normalized.gpsLng)
+    setEvRemarks(normalized.remarks)
     setEvLocationName('')
   }
 
@@ -866,27 +902,25 @@ export default function LogEntryEditor({
     if (readOnly || !evTime) return
 
     const eventData = buildEventFromForm()
-    let nextEvents: LogEvent[]
+    const isEdit = editingEventIndex !== null
+    const hadSkipperSignature = isEdit && !!signSkipper
 
-    if (editingEventIndex !== null) {
-      const hadSkipperSignature = !!signSkipper
+    if (hadSkipperSignature) {
       markSkipperSignatureClearedForEventChange()
-      nextEvents = sortLogEventsByTime(events.map((ev, idx) => (idx === editingEventIndex ? eventData : ev)))
+    }
+
+    const nextEvents = applyEventFormToEvents(eventData)
+
+    try {
+      await persistEntryToDb(nextEvents)
+      setEvents(nextEvents)
+      clearEventForm()
       if (hadSkipperSignature) {
         void showAlertRef.current(
           t('logs.sign_cleared_skipper_re_sign'),
           t('logs.sign_cleared_skipper_re_sign_title')
         )
       }
-    } else {
-      nextEvents = sortLogEventsByTime([...events, eventData])
-    }
-
-    setEvents(nextEvents)
-    clearEventForm()
-
-    try {
-      await persistEntryToDb(nextEvents)
     } catch (err: any) {
       console.error('Failed to auto-save event:', err)
       setError(err.message || 'Failed to save event.')
@@ -935,13 +969,28 @@ export default function LogEntryEditor({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (readOnly || !isDirty) return
+    if (readOnly) return
+
+    let eventsToSave = events
+
+    if (hasPendingEventForm) {
+      const isEdit = editingEventIndex !== null
+      if (isEdit && signSkipper) {
+        markSkipperSignatureClearedForEventChange()
+      }
+      eventsToSave = applyEventFormToEvents(buildEventFromForm())
+      setEvents(eventsToSave)
+      clearEventForm()
+    } else if (!isDirty) {
+      return
+    }
+
     setSaving(true)
     setError(null)
     setSuccess(false)
 
     try {
-      await persistEntryToDb()
+      await persistEntryToDb(eventsToSave)
 
       setSuccess(true)
       trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
@@ -972,7 +1021,7 @@ export default function LogEntryEditor({
       <div className="form-card" style={{ paddingBottom: '20px' }}>
         <div className="section-title-bar">
           <div className="section-title-left">
-            <button className="btn-back" onClick={onBack} style={{ padding: '6px 12px' }}>
+            <button className="btn-back" onClick={() => void handleBack()} style={{ padding: '6px 12px' }}>
               <ChevronLeft size={16} />
               {t('logs.back_to_list')}
             </button>

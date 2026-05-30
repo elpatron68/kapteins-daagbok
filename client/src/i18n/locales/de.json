@@ -6,6 +6,12 @@
       "beta": "Beta",
       "beta_hint": "Beta-Version — Funktionen können sich noch ändern"
     },
+    "common": {
+      "unsaved_changes_title": "Ungespeicherte Änderungen",
+      "unsaved_changes_message": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen? Deine Änderungen gehen verloren.",
+      "unsaved_changes_leave": "Verlassen",
+      "unsaved_changes_stay": "Bleiben"
+    },
     "nav": {
       "dashboard": "Dashboard",
       "vessel": "Schiffsdaten",
