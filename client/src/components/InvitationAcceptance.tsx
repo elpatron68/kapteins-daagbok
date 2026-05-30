@@ -57,8 +57,6 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
 
   const autoAcceptStarted = useRef(false)
 
-  const isDe = i18n.language.startsWith('de')
-
   const sessionReady = (): boolean => {
     return !!(getActiveMasterKey() && localStorage.getItem('active_userid'))
   }
@@ -83,19 +81,16 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         setLogbookKey(hexToBuffer(hexKey))
       } catch (err) {
         console.error('Invalid key in URL fragment:', err)
-        setError(isDe
-          ? 'Der Einladungslink ist kryptografisch ungültig (Schlüssel fehlerhaft).'
-          : 'The invitation link is cryptographically invalid (corrupted key).')
+        setError(t('invitation.error_invalid_key'))
       }
     } else {
-      setError(isDe
-        ? 'Der Einladungslink enthält keinen Entschlüsselungsschlüssel (#key=...). Bitte den vollständigen Link vom Eigner verwenden.'
-        : 'The invitation link is missing the decryption key (#key=...). Please use the complete link from the owner.')
+      setError(t('invitation.error_missing_key'))
     }
 
     const rand = Math.floor(1000 + Math.random() * 9000)
     setRegUsername(`CrewSkipper_${rand}`)
-  }, [isDe])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: URL parsing and default username
+  }, [])
 
   useEffect(() => {
     if (token && logbookKey) {
@@ -110,14 +105,12 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       const res = await fetch(`/api/collaboration/invite-details?token=${token}`)
 
       if (res.status === 410) {
-        setError(isDe
-          ? 'Diese Einladung ist abgelaufen (48 Stunden gültig).'
-          : 'This invitation link has expired (valid for 48 hours only).')
+        setError(t('invitation.error_expired'))
         return
       }
 
       if (!res.ok) {
-        throw new Error(isDe ? 'Einladungstoken ungültig.' : 'Failed to verify invitation token.')
+        throw new Error(t('invitation.error_invalid_token'))
       }
 
       const details = await res.json()
@@ -130,7 +123,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       setDecryptedTitle(title)
     } catch (err: any) {
       console.error('Failed to load invitation details:', err)
-      setError(err.message || (isDe ? 'Einladungsdetails konnten nicht geladen werden.' : 'Invitation details could not be retrieved.'))
+      setError(err.message || t('invitation.error_load_failed'))
     } finally {
       setLoading(false)
     }
@@ -141,9 +134,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     const activeUserId = localStorage.getItem('active_userid')
     if (!masterKey || !activeUserId) {
       autoAcceptStarted.current = false
-      setError(isDe
-        ? 'Sitzung unvollständig — bitte erneut anmelden (Benutzer-ID fehlt).'
-        : 'Incomplete session — please log in again (user ID missing).')
+      setError(t('invitation.error_incomplete_session'))
       setIsLoggedIn(false)
       return
     }
@@ -194,12 +185,12 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       onAccepted(logbookId, decryptedTitle)
     } catch (err: any) {
       console.error('Accepting invitation failed:', err)
-      setError(err.message || (isDe ? 'Beitritt fehlgeschlagen.' : 'Acceptance failed.'))
+      setError(err.message || t('invitation.error_accept_failed'))
       autoAcceptStarted.current = false
     } finally {
       setAccepting(false)
     }
-  }, [logbookId, logbookKey, token, rawEncryptedTitle, decryptedTitle, onAccepted, isDe])
+  }, [logbookId, logbookKey, token, rawEncryptedTitle, decryptedTitle, onAccepted, t])
 
   useEffect(() => {
     if (loading || accepting || autoAcceptStarted.current) return
@@ -235,7 +226,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       if (resolvedUser) setUsername(resolvedUser)
       setShowRecoveryFallback(true)
     } catch (err: any) {
-      setAuthError(err.message || (isDe ? 'Passkey-Anmeldung fehlgeschlagen.' : 'Passkey authentication failed.'))
+      setAuthError(err.message || t('invitation.error_login_failed'))
     } finally {
       setLoading(false)
     }
@@ -247,9 +238,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
 
     const resolvedUser = (username.trim() || encryptedPayloads.username || '').trim()
     if (!resolvedUser) {
-      setAuthError(isDe
-        ? 'Benutzername konnte nicht ermittelt werden — bitte erneut anmelden.'
-        : 'Could not determine username — please try logging in again.')
+      setAuthError(t('invitation.error_username_missing'))
       return
     }
 
@@ -285,7 +274,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         setRecoveryPhrase(result.recoveryPhrase)
       }
     } catch (err: any) {
-      setAuthError(err.message || (isDe ? 'Registrierung fehlgeschlagen.' : 'Registration failed.'))
+      setAuthError(err.message || t('invitation.error_register_failed'))
     } finally {
       setLoading(false)
     }
@@ -344,7 +333,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           />
           <div className="auth-actions mt-4">
             <button type="button" className="btn secondary" onClick={() => setShowRecoveryFallback(false)}>
-              {isDe ? 'Zurück' : 'Back'}
+              {t('auth.back')}
             </button>
             <button type="submit" className="btn primary" disabled={loading}>
               {t('auth.decrypt_logbook')}
@@ -361,12 +350,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       <div className="auth-card glass">
         <div className="auth-header">
           <Ship className="auth-icon accent spin" size={48} />
-          <h2>{accepting ? (isDe ? 'Beitritt...' : 'Joining...') : (isDe ? 'Einladung wird geprüft...' : 'Checking Invitation...')}</h2>
+          <h2>{accepting ? t('invitation.loading_joining') : t('invitation.loading_checking')}</h2>
         </div>
         <p className="recovery-warning">
-          {accepting
-            ? (isDe ? 'Logbuch wird freigeschaltet und synchronisiert...' : 'Unlocking logbook and syncing data...')
-            : (isDe ? 'Lade Verschlüsselungsschlüssel...' : 'Retrieving encryption key...')}
+          {accepting ? t('invitation.loading_unlocking') : t('invitation.loading_retrieving_key')}
         </p>
       </div>
     )
@@ -377,12 +364,12 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       <div className="auth-card glass">
         <div className="auth-header">
           <AlertTriangle className="auth-icon warn" size={48} />
-          <h2>{isDe ? 'Einladungsfehler' : 'Invitation Error'}</h2>
+          <h2>{t('invitation.error_title')}</h2>
         </div>
         <p className="recovery-warning" style={{ color: '#ef4444' }}>{error}</p>
         <div className="auth-actions mt-6">
           <button className="btn primary" onClick={onCancel} style={{ width: '100%' }}>
-            {isDe ? 'Zurück zum Start' : 'Back to Dashboard'}
+            {t('invitation.back_to_start')}
           </button>
         </div>
       </div>
@@ -393,18 +380,18 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     <div className="auth-card glass">
       <div className="auth-header">
         <ShieldCheck className="auth-icon success" size={48} style={{ color: '#10b981' }} />
-        <h2>{isDe ? 'Logbuch-Einladung' : 'Logbook Invitation'}</h2>
+        <h2>{t('invitation.title')}</h2>
       </div>
 
       <div style={{ textAlign: 'center', margin: '20px 0', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', textTransform: 'uppercase' }}>
-          {isDe ? 'Einladung von' : 'INVITED BY'}
+          {t('invitation.invited_by')}
         </p>
         <p style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 600, color: '#f1f5f9' }}>
           Skipper {ownerUsername}
         </p>
         <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', textTransform: 'uppercase' }}>
-          {isDe ? 'Schiff / Logbuch' : 'VESSEL / LOGBOOK'}
+          {t('invitation.vessel_logbook')}
         </p>
         <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#fbbf24' }}>
           {decryptedTitle}
@@ -414,12 +401,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       {isLoggedIn ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
           <p style={{ fontSize: '14px', color: '#94a3b8', textAlign: 'center', lineHeight: '145%' }}>
-            {isDe
-              ? `Angemeldet als ${username}. Beitritt wird vorbereitet...`
-              : `Signed in as ${username}. Preparing to join...`}
+            {t('invitation.signed_in_preparing', { username })}
           </p>
           <button className="btn primary" onClick={handleAccept} disabled={accepting} style={{ width: '100%' }}>
-            {accepting ? (isDe ? 'Beitritt...' : 'Joining...') : (isDe ? 'Erneut beitreten' : 'Join again')}
+            {accepting ? t('invitation.loading_joining') : t('invitation.join_again')}
             <ArrowRight size={16} />
           </button>
         </div>
@@ -428,27 +413,25 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           {loginMode === 'options' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ fontSize: '13.5px', color: '#94a3b8', textAlign: 'center', lineHeight: '145%' }}>
-                {isDe
-                  ? 'Melden Sie sich an oder registrieren Sie ein Konto, um dem Logbuch beizutreten.'
-                  : 'Sign in or register an account to join this logbook.'}
+                {t('invitation.login_or_register_hint')}
               </p>
 
               <button className="btn primary" onClick={handleLogin} disabled={loading} style={{ width: '100%', padding: '14px' }}>
                 <LogIn size={16} />
-                {isDe ? 'Mit Passkey anmelden' : 'Log In with Passkey'}
+                {t('auth.login')}
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', margin: '8px 0' }}>
                 <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
                 <span style={{ padding: '0 10px', fontSize: '12px', color: '#64748b' }}>
-                  {isDe ? 'ODER NEU REGISTRIEREN' : 'OR SIGN UP'}
+                  {t('invitation.or_sign_up')}
                 </span>
                 <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
               </div>
 
               <button className="btn secondary" onClick={() => setLoginMode('register')} style={{ width: '100%' }}>
                 <UserPlus size={16} />
-                {isDe ? 'Neues Crew-Konto erstellen' : 'Register New Crew Account'}
+                {t('invitation.register_crew_account')}
               </button>
             </div>
           )}
@@ -457,7 +440,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
             <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="input-group">
                 <label style={{ display: 'block', fontSize: '13px', color: '#94a3b8', marginBottom: '6px' }}>
-                  {isDe ? 'Benutzername' : 'Username'}
+                  {t('invitation.username_label')}
                 </label>
                 <input
                   type="text"
@@ -469,10 +452,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
               </div>
               <div className="auth-actions">
                 <button type="button" className="btn secondary" onClick={() => setLoginMode('options')}>
-                  {isDe ? 'Zurück' : 'Back'}
+                  {t('auth.back')}
                 </button>
                 <button type="submit" className="btn primary" disabled={!regUsername.trim() || loading}>
-                  {isDe ? 'Passkey erstellen' : 'Create Passkey'}
+                  {t('invitation.create_passkey')}
                 </button>
               </div>
             </form>
@@ -485,7 +468,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       <div className="auth-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', marginTop: '24px' }}>
         <button className="btn-icon-text" onClick={toggleLanguage}>
           <Languages size={18} />
-          {isDe ? 'English' : 'Deutsch'}
+          {i18n.language.startsWith('de') ? t('invitation.switch_language_en') : t('invitation.switch_language_de')}
         </button>
       </div>
     </div>
