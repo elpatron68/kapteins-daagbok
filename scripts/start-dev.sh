@@ -185,6 +185,11 @@ if [ ! -d node_modules ]; then
   kill "$BACKEND_PID" 2>/dev/null
   exit 1
 fi
+# Vite 6+ via plugin-react 4; refresh lockfile after package.json changes
+if ! node -e "require.resolve('vite/package.json')" 2>/dev/null; then
+  echo "Client dependencies incomplete — running npm ci..."
+  npm ci || exit 1
+fi
 npm run dev &
 CLIENT_PID=$!
 cd "$REPO_ROOT" || exit 1
