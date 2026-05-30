@@ -21,7 +21,7 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 - **Schiffsdaten** und **Crew-Profile** (Skipper + Mitglieder)
 - **Statistik-Dashboard** — Strecken, Verbrauch, Segel/Motor, Hafenkette (pro Logbuch oder accountweit)
 - **Kollaboration** — Crew per Einladungslink einladen (Schreib- oder Lesezugriff)
-- **Push-Benachrichtigungen** (optional) — Logbuch-Eigner werden bei Crew-Sync per Web Push informiert (ohne Klartext-Inhalte)
+- **Push-Benachrichtigungen** (optional) — Logbuch-Eigner per Web Push informieren, wenn Crew Änderungen synchronisiert (ohne Klartext-Inhalte; Opt-in in den Einstellungen)
 - **Read-only-Freigabe** — öffentlicher Lese-Link für Dritte
 - **Export** — PDF pro Reisetag, CSV-Download/-Teilen
 - **Backup & Wiederherstellung** — vollständiges verschlüsseltes Logbuch-Backup (Einträge, Fotos, GPS, Crew, Schiff) als `.daagbok.json`; Restore auf gleichem oder neuem Account
@@ -47,12 +47,13 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 | Datenbank | PostgreSQL 16 |
 | Auth | WebAuthn (Passkeys) via `@simplewebauthn` |
 | Krypto | Web Crypto API (AES-GCM), BIP39 Recovery |
+| Push (optional) | Web Push (VAPID), Custom Service Worker (`injectManifest`) |
 
 ### Rollen & Zugriff
 
 | Rolle | Bedeutung |
 |-------|-----------|
-| **Owner** | Logbuch angelegt; voller Zugriff, Einladungen, Backup, Löschen |
+| **Owner** | Logbuch angelegt; voller Zugriff, Einladungen, Backup, Löschen; optional Push bei Crew-Änderungen |
 | **Collaborator (WRITE)** | Per Einladung; Einträge bearbeiten und als Crew signieren |
 | **Collaborator (READ)** | Nur Lesen (z. B. öffentlicher Share-Link) |
 
@@ -68,6 +69,27 @@ Nur der **Logbuch-Eigner** kann unter **Einstellungen → Backup & Wiederherstel
 
 Vor dem Löschen eines Logbuchs weist die App auf diese Funktion hin. Crew-Einladungen und Passkey-Signaturen werden nicht mitübertragen — Inhalte bleiben lesbar, Signaturen auf neuem Account ggf. nicht mehr verifizierbar.
 
+## Push-Benachrichtigungen (optional)
+
+Logbuch-**Eigner** können unter **Einstellungen** Web Push aktivieren. Sobald ein eingeladenes Crewmitglied mit Schreibrechten (`WRITE`) Änderungen synchronisiert, erhält der Owner eine **generische** Benachrichtigung — der Server kennt keine Logbuch-Inhalte (Zero-Knowledge).
+
+| Aspekt | Verhalten |
+|--------|-----------|
+| Auslöser | Erfolgreicher Sync-Push durch Collaborator (`create`/`update`) |
+| Aggregation | Mehrere Änderungen in einem Sync → eine Benachrichtigung pro Logbuch |
+| Drosselung | Max. eine Push-Nachricht pro Logbuch alle 3 Minuten |
+| Klick | Öffnet die App auf dem betroffenen Logbuch |
+
+**Voraussetzungen:**
+
+- HTTPS (Produktion)
+- VAPID-Schlüssel auf dem Server (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`)
+- Browser-Berechtigung „Benachrichtigungen“; auf **iOS** installierte PWA ab iOS 16.4+
+
+Schlüssel erzeugen: `npx web-push generate-vapid-keys` (im `server/`-Verzeichnis oder global).
+
+Ausführlicher Implementierungs- und Testplan: [docs/push-notifications-plan.md](docs/push-notifications-plan.md).
+
 ## Projektstruktur
 
 ```
@@ -75,13 +97,15 @@ kapteins-daagbok/
 ├── client/              # React-PWA (Frontend)
 │   ├── src/
 │   │   ├── components/  # UI-Komponenten
-│   │   ├── services/    # Auth, Sync, Krypto, Backup, Analytics, …
+│   │   ├── services/    # Auth, Sync, Krypto, Backup, Push, Analytics, …
+│   │   ├── sw.ts        # Service Worker (Precache + Web Push)
 │   │   └── i18n/        # DE/EN-Übersetzungen
 │   └── Dockerfile       # Nginx-Produktions-Image
 ├── server/              # Express-API + Prisma
-│   ├── src/routes/      # auth, logbooks, sync, collaboration, sign
+│   ├── src/routes/      # auth, logbooks, sync, collaboration, sign, push
+│   ├── src/services/    # z. B. pushNotify (Web Push)
 │   └── prisma/          # Datenbankschema
-├── docs/                # Projektdokumentation (z. B. Plausible Events)
+├── docs/                # Projektdokumentation
 ├── scripts/             # Dev- und Deploy-Skripte
 ├── docker-compose.yml   # Produktions-Stack (DB + Backend + Frontend)
 └── VERSION              # App-Version (Build & Footer)
@@ -93,6 +117,7 @@ kapteins-daagbok/
 - **npm**
 - **Docker** (für PostgreSQL in der Entwicklung oder den vollständigen Stack)
 - Optional: OpenWeatherMap-API-Key (Wetter-Abruf in den Einstellungen)
+- Optional: VAPID-Schlüssel für Web Push (siehe Abschnitt Push-Benachrichtigungen)
 
 ## Lokale Entwicklung
 
@@ -153,7 +178,7 @@ Gesamten Stack lokal bauen und starten:
 
 Frontend: http://localhost · API: http://localhost/api/health
 
-Umgebungsvariablen für Passkeys in `.env` setzen (`RP_ID`, `ORIGIN`).
+Umgebungsvariablen in `.env` setzen — mindestens `RP_ID` und `ORIGIN` für Passkeys. Für Push die VAPID-Variablen an den **Backend**-Container durchreichen (z. B. in `docker-compose.yml` unter `backend.environment` ergänzen).
 
 ## Deployment
 
@@ -165,11 +190,14 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
 Standard-Ziel: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
 
+Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN` und bei Push `VAPID_*` enthalten. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
+
 ## Dokumentation
 
 | Dokument | Inhalt |
 |----------|--------|
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
+| [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
 | [.planning/PROJECT.md](.planning/PROJECT.md) | Produktvision und Anforderungen (GSD) |
 
 ## Analytics
