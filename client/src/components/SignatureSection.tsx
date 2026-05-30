@@ -4,7 +4,7 @@ import { Check } from 'lucide-react'
 import SignaturePad from './SignaturePad.tsx'
 import PasskeySignButton from './PasskeySignButton.tsx'
 import type { PasskeySignature, SignatureValue } from '../types/signatures.js'
-import { isPasskeySignature } from '../utils/signatures.js'
+import { isPasskeySignature, getSignaturePayload, getSignatureAttribution } from '../utils/signatures.js'
 
 type SignatureMode = 'passkey' | 'classic'
 
@@ -25,14 +25,30 @@ interface SignatureSectionProps {
   onBeforeSign?: () => Promise<boolean>
 }
 
+function SignerAttributionBadge({ value }: { value: SignatureValue | '' }) {
+  const { t, i18n } = useTranslation()
+  const attribution = getSignatureAttribution(value)
+  if (!attribution) return null
+
+  const formattedDate = new Date(attribution.signedAt).toLocaleString(
+    i18n.language === 'de' ? 'de-DE' : 'en-GB'
+  )
+
+  return (
+    <div className="passkey-sign-badge valid signature-attribution-badge">
+      <span>{t('logs.sign_passkey_signed', { username: attribution.username })}</span>
+      <span className="passkey-sign-date">{formattedDate}</span>
+    </div>
+  )
+}
+
 function padValue(value: SignatureValue | ''): string {
-  if (!value || isPasskeySignature(value)) return ''
-  return value
+  return getSignaturePayload(value)
 }
 
 function modeFromValue(value: SignatureValue | '', passkeyAvailable: boolean): SignatureMode {
   if (isPasskeySignature(value)) return 'passkey'
-  if (value) return 'classic'
+  if (getSignaturePayload(value)) return 'classic'
   return passkeyAvailable ? 'passkey' : 'classic'
 }
 
@@ -108,6 +124,7 @@ function RoleSignatureBlock({
     }
     return (
       <div className="signature-role-block">
+        <SignerAttributionBadge value={value} />
         <SignaturePad
           id={padId}
           label={roleLabel}
@@ -162,6 +179,7 @@ function RoleSignatureBlock({
 
       {showClassicPanel && (
         <>
+          <SignerAttributionBadge value={value} />
           <SignaturePad
             id={padId}
             label={roleLabel}
@@ -203,7 +221,7 @@ export default function SignatureSection({
   const { t } = useTranslation()
 
   const showSkipperPasskey = canSignSkipper && isOnline
-  const showCrewPasskey = canSignCrew && isOnline && !canSignSkipper
+  const showCrewPasskey = canSignCrew && isOnline
   const hasSignature = !!(signSkipper || signCrew)
 
   return (

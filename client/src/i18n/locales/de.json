@@ -151,6 +151,7 @@
       "sign_passkey_signing": "Passkey wird angefordert…",
       "sign_passkey_signed": "Freigegeben von {{username}}",
       "sign_passkey_export": "Passkey: {{username}} ({{date}})",
+      "sign_attribution_export": "{{username}} ({{date}})",
       "sign_passkey_clear": "Passkey-Freigabe entfernen",
       "sign_mode_passkey": "Passkey",
       "sign_mode_classic": "Klassisch",

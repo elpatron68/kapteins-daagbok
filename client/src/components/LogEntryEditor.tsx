@@ -16,6 +16,8 @@ import {
   fingerprintSignature,
   normalizedSerializedSignature,
   isPasskeySignature,
+  isClassicSignature,
+  createClassicSignature,
   isSignatureValidForEntry,
   hasAnySignature
 } from '../utils/signatures.js'
@@ -1711,7 +1713,30 @@ export default function LogEntryEditor({
             if (canSignSkipper && !readOnly) setSignSkipper(value)
           }}
           onSignCrewChange={(value) => {
-            if (canSignCrew && !readOnly) setSignCrew(value)
+            if (!canSignCrew || readOnly) return
+            if (!value) {
+              setSignCrew('')
+              return
+            }
+            if (isPasskeySignature(value) || isClassicSignature(value)) {
+              setSignCrew(value)
+              return
+            }
+            if (!canSignSkipper) {
+              const userId = localStorage.getItem('active_userid') || ''
+              const username = localStorage.getItem('active_username') || ''
+              if (userId && username) {
+                setSignCrew(createClassicSignature({
+                  role: 'crew',
+                  userId,
+                  username,
+                  signedAt: new Date().toISOString(),
+                  payload: value
+                }))
+                return
+              }
+            }
+            setSignCrew(value)
           }}
           onPasskeySignSkipper={handlePasskeySignSkipper}
           onPasskeySignCrew={handlePasskeySignCrew}

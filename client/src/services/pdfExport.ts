@@ -3,7 +3,7 @@ import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { decryptJson } from './crypto.js'
-import { isSignatureImage, isPasskeySignature } from '../utils/signatures.js'
+import { isSignatureImage, isPasskeySignature, isClassicSignature, getSignaturePayload } from '../utils/signatures.js'
 import { sortLogEventsByTime } from '../utils/logEntryPayload.js'
 import i18n from '../i18n/index.js'
 
@@ -256,8 +256,16 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
     const crewDate = formatPasskeySignDate(entry.signCrew.signedAt);
     doc.text(`Passkey: ${entry.signCrew.username}`, sigX + 80.5, sigY + 9);
     doc.text(crewDate, sigX + 80.5, sigY + 13.5);
-  } else if (isSignatureImage(entry.signCrew)) {
-    doc.addImage(entry.signCrew, 'PNG', sigX + 80.5, sigY + 6, 72, 14)
+  } else if (isClassicSignature(entry.signCrew)) {
+    doc.setFont('Helvetica', 'normal');
+    const crewDate = formatPasskeySignDate(entry.signCrew.signedAt);
+    doc.text(entry.signCrew.username, sigX + 80.5, sigY + 9);
+    doc.text(crewDate, sigX + 80.5, sigY + 13.5);
+    if (isSignatureImage(entry.signCrew.payload)) {
+      doc.addImage(entry.signCrew.payload, 'PNG', sigX + 80.5, sigY + 6, 72, 14)
+    }
+  } else if (isSignatureImage(getSignaturePayload(entry.signCrew))) {
+    doc.addImage(getSignaturePayload(entry.signCrew), 'PNG', sigX + 80.5, sigY + 6, 72, 14)
   } else {
     doc.setFont('Helvetica', 'normal');
     doc.text(String(entry.signCrew || '—').toUpperCase(), sigX + 80.5, sigY + 11.2);

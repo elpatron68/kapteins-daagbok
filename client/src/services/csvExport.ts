@@ -96,6 +96,10 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     passkeyLabel: (username: string, signedAt: string) => {
       const date = new Date(signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
       return i18n.t('logs.sign_passkey_export', { username, date })
+    },
+    attributionLabel: (username: string, signedAt: string) => {
+      const date = new Date(signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
+      return i18n.t('logs.sign_attribution_export', { username, date })
     }
   };
 

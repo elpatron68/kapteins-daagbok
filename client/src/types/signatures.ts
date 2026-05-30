@@ -11,5 +11,16 @@ export interface PasskeySignature {
   clientVerified: boolean
 }
 
-/** Legacy: PNG data URL oder getippter Name */
-export type SignatureValue = string | PasskeySignature
+/** Klassische Unterschrift mit Benutzer-Zuordnung (Crew) */
+export interface ClassicSignature {
+  kind: 'classic'
+  version: 1
+  role: 'skipper' | 'crew'
+  userId: string
+  username: string
+  signedAt: string
+  payload: string
+}
+
+/** Legacy: PNG data URL oder getippter Name; oder strukturierte Signaturen */
+export type SignatureValue = string | PasskeySignature | ClassicSignature

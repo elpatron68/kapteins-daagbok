@@ -57,6 +57,13 @@ function hasWriteAccess(access: { isOwner: boolean; collaboration?: { role: stri
   return access.isOwner || access.collaboration?.role === 'WRITE'
 }
 
+async function hasWriteCollaborators(logbookId: string): Promise<boolean> {
+  const count = await prisma.collaboration.count({
+    where: { logbookId, role: 'WRITE' }
+  })
+  return count > 0
+}
+
 async function getAllowCredentialsForRole(
   logbookId: string,
   role: 'skipper' | 'crew',
@@ -79,7 +86,16 @@ async function getAllowCredentialsForRole(
   })
 
   const userIds = collaborations.map((c) => c.userId)
-  if (userIds.length === 0) return []
+  if (userIds.length === 0) {
+    const credentials = await prisma.credential.findMany({
+      where: { userId: requestingUserId }
+    })
+    return credentials.map((cred) => ({
+      id: Buffer.from(cred.credentialId, 'base64url'),
+      type: 'public-key' as const,
+      transports: cred.transports as any[]
+    }))
+  }
 
   const credentials = await prisma.credential.findMany({
     where: { userId: { in: userIds } }
@@ -107,7 +123,13 @@ async function isAuthorizedSigner(
       logbookId_userId: { logbookId, userId: signerUserId }
     }
   })
-  return collaboration?.role === 'WRITE'
+  if (collaboration?.role === 'WRITE') return true
+
+  if (signerUserId === ownerUserId) {
+    return !(await hasWriteCollaborators(logbookId))
+  }
+
+  return false
 }
 
 router.post('/options', async (req: any, res) => {
@@ -149,9 +171,7 @@ router.post('/options', async (req: any, res) => {
 
     if (allowCredentials.length === 0) {
       return res.status(400).json({
-        error: role === 'crew'
-          ? 'No write collaborators with passkeys found'
-          : 'No passkey credentials found for signer'
+        error: 'No passkey credentials found for signer'
       })
     }
 
