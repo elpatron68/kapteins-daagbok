@@ -37,6 +37,7 @@ import {
   type SavedTrack
 } from '../services/trackUpload.js'
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
+import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
 
 function emptyTankLevels() {
@@ -49,6 +50,7 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
   const trackDistance = decrypted.trackDistanceNm
   const trackSpeedMax = decrypted.trackSpeedMaxKn
   const trackSpeedAvg = decrypted.trackSpeedAvgKn
+  const motorHoursRaw = decrypted.motorHours
 
   const payload = buildLogEntryPayload({
     date: String(decrypted.date || ''),
@@ -78,6 +80,10 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
     trackSpeedAvgKn:
       trackSpeedAvg != null && trackSpeedAvg !== ''
         ? parseFloat(String(trackSpeedAvg))
+        : undefined,
+    motorHours:
+      motorHoursRaw != null && motorHoursRaw !== ''
+        ? parseFloat(String(motorHoursRaw))
         : undefined,
     events: (decrypted.events as LogEventPayload[]) || []
   })
@@ -149,6 +155,9 @@ export default function LogEntryEditor({
   const [trackSpeedMaxKn, setTrackSpeedMaxKn] = useState('')
   const [trackSpeedAvgKn, setTrackSpeedAvgKn] = useState('')
 
+  // Motor hours under engine propulsion (per travel day)
+  const [motorHours, setMotorHours] = useState('')
+
   // Events list state
   const [events, setEvents] = useState<LogEvent[]>([])
 
@@ -209,6 +218,11 @@ export default function LogEntryEditor({
     if (entry?.trackSpeedAvgKn != null && entry.trackSpeedAvgKn !== '') {
       setTrackSpeedAvgKn(String(entry.trackSpeedAvgKn))
     }
+    if (entry?.motorHours != null && entry.motorHours !== '') {
+      setMotorHours(String(entry.motorHours))
+    } else {
+      setMotorHours('')
+    }
   }
 
   const buildPayloadForSigning = useCallback((eventsOverride?: LogEvent[]) => {
@@ -232,15 +246,21 @@ export default function LogEntryEditor({
       trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
       trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
       trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
+      motorHours: motorHours.trim() ? parseFloat(motorHours) : undefined,
       events: eventsOverride ?? events
     })
   }, [
     date, dayOfTravel, departure, destination,
     fwMorning, fwRefilled, fwEvening, fwConsumption,
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
-    trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn,
+    trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
     events
   ])
+
+  const fuelPerMotorHour = useMemo(
+    () => computeFuelPerMotorHour(parseFloat(fuelConsumption) || 0, parseFloat(motorHours) || 0),
+    [fuelConsumption, motorHours]
+  )
 
   const currentFingerprint = useMemo(() => {
     const payload = buildPayloadForSigning()
@@ -1109,6 +1129,20 @@ export default function LogEntryEditor({
                 disabled={saving || readOnly}
               />
             </div>
+
+            <div className="input-group">
+              <label>{t('logs.motor_hours')}</label>
+              <input
+                type="number"
+                className="input-text"
+                value={motorHours}
+                onChange={(e) => setMotorHours(e.target.value)}
+                disabled={saving || readOnly}
+                min="0"
+                step="0.1"
+                placeholder="0"
+              />
+            </div>
           </div>
         </div>
 
@@ -1214,6 +1248,22 @@ export default function LogEntryEditor({
                   type="number"
                   className="input-text consumption-value"
                   value={fuelConsumption}
+                  readOnly
+                  tabIndex={-1}
+                  aria-readonly="true"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>{t('logs.fuel_per_motor_hour')}</label>
+                <input
+                  type="text"
+                  className="input-text consumption-value"
+                  value={
+                    fuelPerMotorHour != null
+                      ? `${formatFuelPerMotorHour(fuelPerMotorHour)} L/h`
+                      : '—'
+                  }
                   readOnly
                   tabIndex={-1}
                   aria-readonly="true"

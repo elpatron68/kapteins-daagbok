@@ -71,6 +71,7 @@ export interface LogEntryPayloadInput {
   trackDistanceNm?: number
   trackSpeedMaxKn?: number
   trackSpeedAvgKn?: number
+  motorHours?: number
   events: LogEventPayload[]
 }
 
@@ -88,6 +89,9 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
   if (input.trackDistanceNm !== undefined) payload.trackDistanceNm = input.trackDistanceNm
   if (input.trackSpeedMaxKn !== undefined) payload.trackSpeedMaxKn = input.trackSpeedMaxKn
   if (input.trackSpeedAvgKn !== undefined) payload.trackSpeedAvgKn = input.trackSpeedAvgKn
+  if (input.motorHours !== undefined && input.motorHours > 0) {
+    payload.motorHours = Number(input.motorHours.toFixed(2))
+  }
 
   return payload
 }

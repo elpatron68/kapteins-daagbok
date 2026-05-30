@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BarChart2, Anchor, Droplets, Fuel, Sailboat, Gauge } from 'lucide-react'
+import { BarChart2, Anchor, Droplets, Fuel, Sailboat, Gauge, Timer } from 'lucide-react'
 import MultiTrackMap from './MultiTrackMap.tsx'
 import {
   formatLiters,
+  formatHours,
   formatNm,
   loadAccountStats,
   loadLogbookStats,
@@ -12,6 +13,7 @@ import {
   type TravelDayStats
 } from '../services/statsAggregation.js'
 import { compareTravelDaysChronological } from '../utils/logEntryTankLevels.js'
+import { formatFuelPerMotorHour } from '../utils/fuelStats.js'
 
 interface StatsDashboardProps {
   logbookId: string
@@ -79,11 +81,25 @@ function TotalsGrid({ totals }: { totals: StatsTotals }) {
         unit={t('stats.unit_nm')}
       />
       <KpiCard
+        icon={<Timer size={20} />}
+        label={t('stats.motor_hours_total')}
+        value={formatHours(totals.totalMotorHours)}
+        unit={t('stats.unit_h')}
+      />
+      <KpiCard
         icon={<Fuel size={20} />}
         label={t('stats.fuel_total')}
         value={formatLiters(totals.totalFuelL)}
         unit={t('stats.unit_l')}
       />
+      {totals.fuelPerMotorHourL != null && (
+        <KpiCard
+          icon={<Timer size={20} />}
+          label={t('stats.fuel_per_motor_hour')}
+          value={formatFuelPerMotorHour(totals.fuelPerMotorHourL)}
+          unit={`${t('stats.unit_l')}/${t('stats.unit_h')}`}
+        />
+      )}
       <KpiCard
         icon={<Droplets size={20} />}
         label={t('stats.water_total')}
@@ -248,6 +264,36 @@ function LogbookScopeView({ summary }: { summary: LogbookStatsSummary }) {
       </div>
 
       <div className="member-editor-card glass mt-6">
+        <h3 className="stats-section-title">{t('stats.daily_motor_hours')}</h3>
+        <p className="stats-section-sub">
+          {t('stats.avg_motor_hours')}: {formatHours(totals.avgMotorHoursPerDay)} {t('stats.unit_h')}
+          {totals.fuelPerMotorHourL != null && (
+            <>
+              {' · '}
+              {t('stats.fuel_per_motor_hour')}: {formatFuelPerMotorHour(totals.fuelPerMotorHourL)} {t('stats.unit_l')}/{t('stats.unit_h')}
+            </>
+          )}
+        </p>
+        <DailyBarChart
+          days={travelDays}
+          valueFn={(d) => d.motorHours}
+          barClass="stats-bar--motor-hours"
+          formatValue={formatHours}
+        />
+        {travelDays.some((d) => d.fuelPerMotorHourL != null) && (
+          <>
+            <h4 className="stats-section-subtitle mt-4">{t('stats.daily_fuel_per_motor_hour')}</h4>
+            <DailyBarChart
+              days={travelDays}
+              valueFn={(d) => d.fuelPerMotorHourL ?? 0}
+              barClass="stats-bar--fuel-per-hour"
+              formatValue={(v) => formatFuelPerMotorHour(v > 0 ? v : null)}
+            />
+          </>
+        )}
+      </div>
+
+      <div className="member-editor-card glass mt-6">
         <h3 className="stats-section-title">{t('stats.daily_consumption')}</h3>
         <p className="stats-section-sub">
           {t('stats.avg_fuel')}: {formatLiters(totals.avgFuelPerDayL)} {t('stats.unit_l')}
@@ -255,6 +301,9 @@ function LogbookScopeView({ summary }: { summary: LogbookStatsSummary }) {
           {t('stats.avg_water')}: {formatLiters(totals.avgFreshwaterPerDayL)} {t('stats.unit_l')}
           {totals.fuelPerNmL != null && (
             <> · {t('stats.fuel_per_nm')}: {totals.fuelPerNmL} {t('stats.unit_l')}/{t('stats.unit_nm')}</>
+          )}
+          {totals.fuelPerMotorHourL != null && (
+            <> · {t('stats.fuel_per_motor_hour')}: {formatFuelPerMotorHour(totals.fuelPerMotorHourL)} {t('stats.unit_l')}/{t('stats.unit_h')}</>
           )}
         </p>
         <ConsumptionChart days={travelDays} />
@@ -367,6 +416,7 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
                         <th>{t('stats.travel_days')}</th>
                         <th>{t('stats.total_distance')}</th>
                         <th>{t('stats.fuel_total')}</th>
+                        <th>{t('stats.motor_hours_total')}</th>
                         <th>{t('stats.water_total')}</th>
                       </tr>
                     </thead>
@@ -377,6 +427,7 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
                           <td>{lb.totals.travelDayCount}</td>
                           <td>{formatNm(lb.totals.totalDistanceNm)} {t('stats.unit_nm')}</td>
                           <td>{formatLiters(lb.totals.totalFuelL)} {t('stats.unit_l')}</td>
+                          <td>{formatHours(lb.totals.totalMotorHours)} {t('stats.unit_h')}</td>
                           <td>{formatLiters(lb.totals.totalFreshwaterL)} {t('stats.unit_l')}</td>
                         </tr>
                       ))}
@@ -398,7 +449,38 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
                   </div>
 
                   <div className="member-editor-card glass mt-6">
+                    <h3 className="stats-section-title">{t('stats.daily_motor_hours')}</h3>
+                    {accountStats.totals.fuelPerMotorHourL != null && (
+                      <p className="stats-section-sub">
+                        {t('stats.fuel_per_motor_hour')}: {formatFuelPerMotorHour(accountStats.totals.fuelPerMotorHourL)} {t('stats.unit_l')}/{t('stats.unit_h')}
+                      </p>
+                    )}
+                    <DailyBarChart
+                      days={allAccountDays}
+                      valueFn={(d) => d.motorHours}
+                      barClass="stats-bar--motor-hours"
+                      formatValue={formatHours}
+                    />
+                    {allAccountDays.some((d) => d.fuelPerMotorHourL != null) && (
+                      <>
+                        <h4 className="stats-section-subtitle mt-4">{t('stats.daily_fuel_per_motor_hour')}</h4>
+                        <DailyBarChart
+                          days={allAccountDays}
+                          valueFn={(d) => d.fuelPerMotorHourL ?? 0}
+                          barClass="stats-bar--fuel-per-hour"
+                          formatValue={(v) => formatFuelPerMotorHour(v > 0 ? v : null)}
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="member-editor-card glass mt-6">
                     <h3 className="stats-section-title">{t('stats.daily_consumption')}</h3>
+                    {accountStats.totals.fuelPerMotorHourL != null && (
+                      <p className="stats-section-sub">
+                        {t('stats.fuel_per_motor_hour')}: {formatFuelPerMotorHour(accountStats.totals.fuelPerMotorHourL)} {t('stats.unit_l')}/{t('stats.unit_h')}
+                      </p>
+                    )}
                     <ConsumptionChart days={allAccountDays} />
                   </div>
 

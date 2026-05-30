@@ -80,7 +80,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
   const headers = [
     'Date', 'Day of Travel', 'Departure Port', 'Destination Port',
     'Skipper Signature', 'Crew Signature',
-    'Track Distance (nm)', 'Track Max Speed (kn)', 'Track Avg Speed (kn)',
+    'Track Distance (nm)', 'Track Max Speed (kn)', 'Track Avg Speed (kn)', 'Motor Hours (h)',
     'Event Time', 'MgK Course', 'RwK Course',
     'Wind Dir', 'Wind Str', 'Barometer (hPa)', 'Sea State',
     'Current', 'Heel Angle', 'Sails/Motor', 'Log (nm)', 'Distance (nm)',
@@ -113,6 +113,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     const trackDist = entry.trackDistanceNm ?? '';
     const trackMax = entry.trackSpeedMaxKn ?? '';
     const trackAvg = entry.trackSpeedAvgKn ?? '';
+    const motorH = entry.motorHours ?? '';
     const fwM = entry.freshwater?.morning ?? '';
     const fwR = entry.freshwater?.refilled ?? '';
     const fwE = entry.freshwater?.evening ?? '';
@@ -128,7 +129,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
       rows.push([
         dateVal, travelDay, dep, dest,
         signS, signC,
-        trackDist, trackMax, trackAvg,
+        trackDist, trackMax, trackAvg, motorH,
         '', '', '',
         '', '', '', '',
         '', '', '', '', '',
@@ -144,7 +145,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
         rows.push([
           dateVal, travelDay, dep, dest,
           signS, signC,
-          trackDist, trackMax, trackAvg,
+          trackDist, trackMax, trackAvg, motorH,
           ev.time || '', ev.mgk || '', ev.rwk || '',
           ev.windDirection || '', ev.windStrength || '', ev.windPressure || '', ev.seaState || '',
           ev.current || '', ev.heel || '', ev.sailsOrMotor || '', ev.logReading || '', ev.distance || '',

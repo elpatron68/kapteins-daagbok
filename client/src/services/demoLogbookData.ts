@@ -26,6 +26,7 @@ export interface DemoDaySpec {
   filename: string
   freshwater: { morning: number; refilled: number; evening: number; consumption: number }
   fuel: { morning: number; refilled: number; evening: number; consumption: number }
+  motorHours?: number
   events: Array<Record<string, string>>
 }
 
@@ -100,6 +101,7 @@ export function buildDemoDays(): DemoDaySpec[] {
       filename: 'laboe-damp.gpx',
       freshwater: { morning: 105, refilled: 25, evening: 110, consumption: 20 },
       fuel: { morning: 78, refilled: 0, evening: 70, consumption: 8 },
+      motorHours: 1.5,
       events: [
         {
           time: '09:00',
@@ -247,6 +249,9 @@ export function buildPublicDemoFixture(): PublicDemoFixture {
       entryPayload.trackSpeedMaxKn = stats.speedMaxKn
       entryPayload.trackSpeedAvgKn = stats.speedAvgKn
     }
+    if (day.motorHours != null && day.motorHours > 0) {
+      entryPayload.motorHours = day.motorHours
+    }
 
     entries.push(entryPayload as PublicDemoFixture['entries'][number])
 
@@ -302,6 +307,9 @@ export function buildDemoEntryPayloads(): Array<{
       entryPayload.trackDistanceNm = stats.distanceNm
       entryPayload.trackSpeedMaxKn = stats.speedMaxKn
       entryPayload.trackSpeedAvgKn = stats.speedAvgKn
+    }
+    if (day.motorHours != null && day.motorHours > 0) {
+      entryPayload.motorHours = day.motorHours
     }
 
     return {

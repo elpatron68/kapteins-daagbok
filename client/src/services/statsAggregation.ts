@@ -10,6 +10,7 @@ import {
   parseEventDistanceNm,
   splitDistanceByPropulsion
 } from '../utils/propulsionStats.js'
+import { computeFuelPerMotorHour } from '../utils/fuelStats.js'
 
 export type DistanceSource = 'gps' | 'events' | 'none'
 
@@ -27,6 +28,8 @@ export interface TravelDayStats {
   sailDistanceNm: number
   motorDistanceNm: number
   unknownPropulsionNm: number
+  motorHours: number
+  fuelPerMotorHourL: number | null
   hasGpsTrack: boolean
 }
 
@@ -59,12 +62,15 @@ export interface StatsTotals {
   sailDistanceNm: number
   motorDistanceNm: number
   unknownPropulsionNm: number
+  totalMotorHours: number
   totalFuelL: number
   totalFreshwaterL: number
   avgDistancePerDayNm: number
+  avgMotorHoursPerDay: number
   avgFuelPerDayL: number
   avgFreshwaterPerDayL: number
   fuelPerNmL: number | null
+  fuelPerMotorHourL: number | null
 }
 
 const TRACK_COLORS = [
@@ -102,6 +108,7 @@ function buildTotals(days: TravelDayStats[]): StatsTotals {
   const sailDistanceNm = days.reduce((sum, d) => sum + d.sailDistanceNm, 0)
   const motorDistanceNm = days.reduce((sum, d) => sum + d.motorDistanceNm, 0)
   const unknownPropulsionNm = days.reduce((sum, d) => sum + d.unknownPropulsionNm, 0)
+  const totalMotorHours = days.reduce((sum, d) => sum + d.motorHours, 0)
   const totalFuelL = days.reduce((sum, d) => sum + d.fuelConsumptionL, 0)
   const totalFreshwaterL = days.reduce((sum, d) => sum + d.freshwaterConsumptionL, 0)
 
@@ -112,10 +119,13 @@ function buildTotals(days: TravelDayStats[]): StatsTotals {
     sailDistanceNm: Number(sailDistanceNm.toFixed(2)),
     motorDistanceNm: Number(motorDistanceNm.toFixed(2)),
     unknownPropulsionNm: Number(unknownPropulsionNm.toFixed(2)),
+    totalMotorHours: Number(totalMotorHours.toFixed(1)),
     totalFuelL: Number(totalFuelL.toFixed(1)),
     totalFreshwaterL: Number(totalFreshwaterL.toFixed(1)),
     avgDistancePerDayNm:
       travelDayCount > 0 ? Number((totalDistanceNm / travelDayCount).toFixed(2)) : 0,
+    avgMotorHoursPerDay:
+      travelDayCount > 0 ? Number((totalMotorHours / travelDayCount).toFixed(1)) : 0,
     avgFuelPerDayL:
       travelDayCount > 0 ? Number((totalFuelL / travelDayCount).toFixed(1)) : 0,
     avgFreshwaterPerDayL:
@@ -123,7 +133,8 @@ function buildTotals(days: TravelDayStats[]): StatsTotals {
     fuelPerNmL:
       totalDistanceNm > 0 && totalFuelL > 0
         ? Number((totalFuelL / totalDistanceNm).toFixed(2))
-        : null
+        : null,
+    fuelPerMotorHourL: computeFuelPerMotorHour(totalFuelL, totalMotorHours)
   }
 }
 
@@ -180,6 +191,9 @@ async function loadTravelDaysForLogbook(
       hasGpsTrack = !!(await db.gpsTracks.get(entry.payloadId))
     }
 
+    const fuelConsumptionL = Number(payload.fuel?.consumption) || 0
+    const motorHours = Number(payload.motorHours) || 0
+
     days.push({
       entryId: entry.payloadId,
       logbookId,
@@ -189,11 +203,13 @@ async function loadTravelDaysForLogbook(
       destination: payload.destination || '',
       distanceNm,
       distanceSource,
-      fuelConsumptionL: Number(payload.fuel?.consumption) || 0,
+      fuelConsumptionL,
       freshwaterConsumptionL: Number(payload.freshwater?.consumption) || 0,
       sailDistanceNm: propulsion.sailDistanceNm,
       motorDistanceNm: propulsion.motorDistanceNm,
       unknownPropulsionNm: propulsion.unknownPropulsionNm,
+      motorHours,
+      fuelPerMotorHourL: computeFuelPerMotorHour(fuelConsumptionL, motorHours),
       hasGpsTrack
     })
   }
@@ -247,5 +263,9 @@ export function formatNm(value: number): string {
 }
 
 export function formatLiters(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+export function formatHours(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

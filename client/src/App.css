@@ -2660,6 +2660,13 @@ html.theme-cupertino .events-scroll-container {
   color: var(--app-text-muted);
 }
 
+.stats-section-subtitle {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
 .stats-route-chain {
   margin: 0;
   font-size: 15px;
@@ -2760,6 +2767,14 @@ html.theme-cupertino .events-scroll-container {
 
 .stats-bar--water {
   background: linear-gradient(180deg, #38bdf8, #0284c7);
+}
+
+.stats-bar--motor-hours {
+  background: linear-gradient(180deg, #a78bfa, #7c3aed);
+}
+
+.stats-bar--fuel-per-hour {
+  background: linear-gradient(180deg, #fb923c, #ea580c);
 }
 
 .stats-bar-label {
