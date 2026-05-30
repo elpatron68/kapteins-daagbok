@@ -29,6 +29,7 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@kapteins-daagbok.eu}
+      OpenWeatherMapAPIKey: ${OpenWeatherMapAPIKey:-}
     command: sh -c "npx prisma db push && node dist/index.js"
     depends_on:
       db:

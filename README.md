@@ -116,7 +116,7 @@ kapteins-daagbok/
 - **Node.js** 20+
 - **npm**
 - **Docker** (für PostgreSQL in der Entwicklung oder den vollständigen Stack)
-- Optional: OpenWeatherMap-API-Key (Wetter-Abruf in den Einstellungen)
+- Optional: eigener OpenWeatherMap-API-Key in den Einstellungen (sonst serverseitiger Key aus `.env`)
 - Optional: VAPID-Schlüssel für Web Push (siehe Abschnitt Push-Benachrichtigungen)
 
 ## Lokale Entwicklung
@@ -136,10 +136,11 @@ cp .env.example .env
 
 Für lokale Passkeys: `RP_ID=localhost`, `ORIGIN=http://localhost:5173` (bzw. die tatsächliche Frontend-URL).
 
-Im `server/`-Verzeichnis eine `.env` mit `DATABASE_URL` anlegen, z. B.:
+Im `server/`-Verzeichnis eine `.env` mit `DATABASE_URL` anlegen — oder den Key in der **Projekt-`.env`** (`OpenWeatherMapAPIKey=...`); das Backend lädt beide Dateien.
 
 ```
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/daagbox?schema=public"
+OpenWeatherMapAPIKey=          # Fallback für Wetter-Abruf, wenn Nutzer keinen eigenen Key hat
 RP_ID=localhost
 ORIGIN=http://localhost:5173
 # Optional — Web Push (npx web-push generate-vapid-keys)

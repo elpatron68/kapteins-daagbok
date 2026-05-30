@@ -25,6 +25,7 @@ import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -640,24 +641,19 @@ export default function LogEntryEditor({
         return
       }
 
-      const apiKey = localStorage.getItem('owm_api_key')
-      if (!apiKey) {
-        showAlert('GPS capturing failed, and no OpenWeatherMap API key is configured to perform location lookup.')
-        return
-      }
-
       try {
-        const res = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(locationQuery)}&appid=${apiKey}&units=metric`
-        )
-        if (!res.ok) throw new Error('Location not found')
-        const data = await res.json()
-        if (data.coord) {
-          setEvGpsLat(Number(data.coord.lat).toFixed(6))
-          setEvGpsLng(Number(data.coord.lon).toFixed(6))
+        const data = await fetchOpenWeatherCurrent({ q: locationQuery })
+        const coord = data.coord as { lat?: number; lon?: number } | undefined
+        if (coord?.lat !== undefined && coord?.lon !== undefined) {
+          setEvGpsLat(Number(coord.lat).toFixed(6))
+          setEvGpsLng(Number(coord.lon).toFixed(6))
           showAlert(`Coordinates loaded for "${locationQuery}" via OpenWeatherMap.`)
         }
       } catch (e) {
+        if (e instanceof WeatherApiError && e.code === 'NO_KEY') {
+          showAlert(t('settings.no_key'))
+          return
+        }
         showAlert('Failed to retrieve GPS location or look up coordinates by location name.')
       }
     }
@@ -696,35 +692,26 @@ export default function LogEntryEditor({
       return
     }
 
-    const apiKey = localStorage.getItem('owm_api_key')
-    if (!apiKey) {
-      showAlert(t('settings.no_key'))
-      return
-    }
-
     setWeatherLoading(true)
     try {
-      let url = ''
-      if (hasGps) {
-        url = `https://api.openweathermap.org/data/2.5/weather?lat=${evGpsLat}&lon=${evGpsLng}&appid=${apiKey}&units=metric`
-      } else {
-        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(fallbackLocation)}&appid=${apiKey}&units=metric`
-      }
+      const data = await fetchOpenWeatherCurrent(
+        hasGps
+          ? { lat: evGpsLat, lon: evGpsLng }
+          : { q: fallbackLocation }
+      )
 
-      const res = await fetch(url)
-
-      if (!res.ok) throw new Error('Weather API rejected the request')
-
-      const data = await res.json()
-
+      const coord = data.coord as { lat?: number; lon?: number } | undefined
       // If fetched by location, automatically pre-fill GPS coordinates
-      if (!hasGps && data.coord) {
-        setEvGpsLat(Number(data.coord.lat).toFixed(6))
-        setEvGpsLng(Number(data.coord.lon).toFixed(6))
+      if (!hasGps && coord?.lat !== undefined && coord?.lon !== undefined) {
+        setEvGpsLat(Number(coord.lat).toFixed(6))
+        setEvGpsLng(Number(coord.lon).toFixed(6))
       }
+
+      const wind = data.wind as { speed?: number; deg?: number } | undefined
+      const main = data.main as { pressure?: number } | undefined
 
       // Convert wind speed m/s to Beaufort scale
-      const mps = data.wind.speed || 0
+      const mps = wind?.speed || 0
       let bft = 0
       if (mps < 0.3) bft = 0
       else if (mps < 1.6) bft = 1
@@ -741,22 +728,27 @@ export default function LogEntryEditor({
       else bft = 12
 
       setEvWindStrength(`${bft} Bft (${mps.toFixed(1)} m/s)`)
-      setEvWindPressure(String(data.main.pressure || ''))
+      setEvWindPressure(String(main?.pressure || ''))
       
       // Calculate wind compass direction sector
-      if (data.wind.deg !== undefined) {
-        const deg = data.wind.deg
+      if (wind?.deg !== undefined) {
+        const deg = wind.deg
         const sectors = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
         const index = Math.round(deg / 22.5) % 16
         setEvWindDirection(sectors[index])
       }
 
-      if (data.weather && data.weather[0]) {
-        setEvWeatherIcon(data.weather[0].icon)
+      if (data.weather && Array.isArray(data.weather) && data.weather[0]) {
+        const first = data.weather[0] as { icon?: string }
+        if (first.icon) setEvWeatherIcon(first.icon)
       }
 
       showAlert(t('settings.weather_success'))
     } catch (err) {
+      if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
+        showAlert(t('settings.no_key'))
+        return
+      }
       console.error('Weather prefilling failed:', err)
       showAlert(t('settings.weather_error'))
     } finally {
