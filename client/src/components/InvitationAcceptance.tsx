@@ -21,6 +21,25 @@ interface InvitationAcceptanceProps {
   onCancel: () => void
 }
 
+type LocalizedError =
+  | { source: 'i18n'; key: string }
+  | { source: 'raw'; text: string }
+
+const resolveLocalizedError = (
+  error: LocalizedError | null,
+  t: (key: string) => string
+): string | null => {
+  if (!error) return null
+  return error.source === 'i18n' ? t(error.key) : error.text
+}
+
+const localizedErrorFromMessage = (
+  message: string | undefined,
+  fallbackKey: string
+): LocalizedError => {
+  return message ? { source: 'raw', text: message } : { source: 'i18n', key: fallbackKey }
+}
+
 const hexToBuffer = (hex: string): ArrayBuffer => {
   const bytes = new Uint8Array(hex.length / 2)
   for (let i = 0; i < bytes.length; i++) {
@@ -34,7 +53,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
 
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<LocalizedError | null>(null)
 
   const [token, setToken] = useState('')
   const [logbookKey, setLogbookKey] = useState<ArrayBuffer | null>(null)
@@ -48,7 +67,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
   const [username, setUsername] = useState('')
   const [loginMode, setLoginMode] = useState<'options' | 'register'>('options')
   const [regUsername, setRegUsername] = useState('')
-  const [authError, setAuthError] = useState<string | null>(null)
+  const [authError, setAuthError] = useState<LocalizedError | null>(null)
 
   const [recoveryPhrase, setRecoveryPhrase] = useState<string | null>(null)
   const [showRecoveryFallback, setShowRecoveryFallback] = useState(false)
@@ -56,6 +75,9 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
   const [encryptedPayloads, setEncryptedPayloads] = useState<any>(null)
 
   const autoAcceptStarted = useRef(false)
+
+  const errorText = resolveLocalizedError(error, t)
+  const authErrorText = resolveLocalizedError(authError, t)
 
   const sessionReady = (): boolean => {
     return !!(getActiveMasterKey() && localStorage.getItem('active_userid'))
@@ -81,15 +103,14 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         setLogbookKey(hexToBuffer(hexKey))
       } catch (err) {
         console.error('Invalid key in URL fragment:', err)
-        setError(t('invitation.error_invalid_key'))
+        setError({ source: 'i18n', key: 'invitation.error_invalid_key' })
       }
     } else {
-      setError(t('invitation.error_missing_key'))
+      setError({ source: 'i18n', key: 'invitation.error_missing_key' })
     }
 
     const rand = Math.floor(1000 + Math.random() * 9000)
     setRegUsername(`CrewSkipper_${rand}`)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: URL parsing and default username
   }, [])
 
   useEffect(() => {
@@ -105,12 +126,13 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       const res = await fetch(`/api/collaboration/invite-details?token=${token}`)
 
       if (res.status === 410) {
-        setError(t('invitation.error_expired'))
+        setError({ source: 'i18n', key: 'invitation.error_expired' })
         return
       }
 
       if (!res.ok) {
-        throw new Error(t('invitation.error_invalid_token'))
+        setError({ source: 'i18n', key: 'invitation.error_invalid_token' })
+        return
       }
 
       const details = await res.json()
@@ -123,7 +145,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       setDecryptedTitle(title)
     } catch (err: any) {
       console.error('Failed to load invitation details:', err)
-      setError(err.message || t('invitation.error_load_failed'))
+      setError(localizedErrorFromMessage(err.message, 'invitation.error_load_failed'))
     } finally {
       setLoading(false)
     }
@@ -134,7 +156,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     const activeUserId = localStorage.getItem('active_userid')
     if (!masterKey || !activeUserId) {
       autoAcceptStarted.current = false
-      setError(t('invitation.error_incomplete_session'))
+      setError({ source: 'i18n', key: 'invitation.error_incomplete_session' })
       setIsLoggedIn(false)
       return
     }
@@ -185,12 +207,12 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       onAccepted(logbookId, decryptedTitle)
     } catch (err: any) {
       console.error('Accepting invitation failed:', err)
-      setError(err.message || t('invitation.error_accept_failed'))
+      setError(localizedErrorFromMessage(err.message, 'invitation.error_accept_failed'))
       autoAcceptStarted.current = false
     } finally {
       setAccepting(false)
     }
-  }, [logbookId, logbookKey, token, rawEncryptedTitle, decryptedTitle, onAccepted, t])
+  }, [logbookId, logbookKey, token, rawEncryptedTitle, decryptedTitle, onAccepted])
 
   useEffect(() => {
     if (loading || accepting || autoAcceptStarted.current) return
@@ -226,7 +248,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       if (resolvedUser) setUsername(resolvedUser)
       setShowRecoveryFallback(true)
     } catch (err: any) {
-      setAuthError(err.message || t('invitation.error_login_failed'))
+      setAuthError(localizedErrorFromMessage(err.message, 'invitation.error_login_failed'))
     } finally {
       setLoading(false)
     }
@@ -238,7 +260,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
 
     const resolvedUser = (username.trim() || encryptedPayloads.username || '').trim()
     if (!resolvedUser) {
-      setAuthError(t('invitation.error_username_missing'))
+      setAuthError({ source: 'i18n', key: 'invitation.error_username_missing' })
       return
     }
 
@@ -251,10 +273,10 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         setIsLoggedIn(true)
         setUsername(resolvedUser)
       } else {
-        setAuthError(t('auth.error_incorrect_recovery'))
+        setAuthError({ source: 'i18n', key: 'auth.error_incorrect_recovery' })
       }
     } catch (err: any) {
-      setAuthError(err.message || t('auth.error_decryption_failed'))
+      setAuthError(localizedErrorFromMessage(err.message, 'auth.error_decryption_failed'))
     } finally {
       setLoading(false)
     }
@@ -274,7 +296,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
         setRecoveryPhrase(result.recoveryPhrase)
       }
     } catch (err: any) {
-      setAuthError(err.message || t('invitation.error_register_failed'))
+      setAuthError(localizedErrorFromMessage(err.message, 'invitation.error_register_failed'))
     } finally {
       setLoading(false)
     }
@@ -340,7 +362,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
             </button>
           </div>
         </form>
-        {authError && <div className="auth-error mt-4">{authError}</div>}
+        {authErrorText && <div className="auth-error mt-4">{authErrorText}</div>}
       </div>
     )
   }
@@ -366,7 +388,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           <AlertTriangle className="auth-icon warn" size={48} />
           <h2>{t('invitation.error_title')}</h2>
         </div>
-        <p className="recovery-warning" style={{ color: '#ef4444' }}>{error}</p>
+        <p className="recovery-warning" style={{ color: '#ef4444' }}>{errorText}</p>
         <div className="auth-actions mt-6">
           <button className="btn primary" onClick={onCancel} style={{ width: '100%' }}>
             {t('invitation.back_to_start')}
@@ -461,7 +483,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
             </form>
           )}
 
-          {authError && <div className="auth-error mt-4" style={{ fontSize: '13px' }}>{authError}</div>}
+          {authErrorText && <div className="auth-error mt-4" style={{ fontSize: '13px' }}>{authErrorText}</div>}
         </div>
       )}
 
