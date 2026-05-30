@@ -21,6 +21,7 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 - **Schiffsdaten** und **Crew-Profile** (Skipper + Mitglieder)
 - **Statistik-Dashboard** — Strecken, Verbrauch, Segel/Motor, Hafenkette (pro Logbuch oder accountweit)
 - **Kollaboration** — Crew per Einladungslink einladen (Schreib- oder Lesezugriff)
+- **Push-Benachrichtigungen** (optional) — Logbuch-Eigner werden bei Crew-Sync per Web Push informiert (ohne Klartext-Inhalte)
 - **Read-only-Freigabe** — öffentlicher Lese-Link für Dritte
 - **Export** — PDF pro Reisetag, CSV-Download/-Teilen
 - **Backup & Wiederherstellung** — vollständiges verschlüsseltes Logbuch-Backup (Einträge, Fotos, GPS, Crew, Schiff) als `.daagbok.json`; Restore auf gleichem oder neuem Account
@@ -116,6 +117,10 @@ Im `server/`-Verzeichnis eine `.env` mit `DATABASE_URL` anlegen, z. B.:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/daagbox?schema=public"
 RP_ID=localhost
 ORIGIN=http://localhost:5173
+# Optional — Web Push (npx web-push generate-vapid-keys)
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:support@kapteins-daagbok.eu
 ```
 
 ### 3. Datenbank & Schema

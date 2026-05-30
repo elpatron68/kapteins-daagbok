@@ -6,6 +6,7 @@ import logbooksRouter from './routes/logbooks.js'
 import syncRouter from './routes/sync.js'
 import collaborationRouter from './routes/collaboration.js'
 import signRouter from './routes/sign.js'
+import pushRouter from './routes/push.js'
 import { prisma } from './db.js'
 
 dotenv.config()
@@ -22,6 +23,7 @@ app.use('/api/logbooks', logbooksRouter)
 app.use('/api/sync', syncRouter)
 app.use('/api/collaboration', collaborationRouter)
 app.use('/api/sign', signRouter)
+app.use('/api/push', pushRouter)
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

@@ -39,6 +39,10 @@ import {
   getStoredDemoFirstEntryId,
   seedDemoLogbookIfNeeded
 } from './services/demoLogbook.js'
+import { fetchLogbooks } from './services/logbook.js'
+import { ensurePushSubscriptionIfEnabled } from './services/pushNotifications.js'
+
+const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -169,6 +173,18 @@ function App() {
 
     setIsAcceptingInvite(false)
 
+    const openLogbookId = params.get('logbook')
+    if (openLogbookId) {
+      sessionStorage.setItem(PENDING_PUSH_LOGBOOK_KEY, openLogbookId)
+      const cleanUrl = new URL(window.location.href)
+      cleanUrl.searchParams.delete('logbook')
+      window.history.replaceState(
+        {},
+        document.title,
+        `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`
+      )
+    }
+
     const savedUser = localStorage.getItem('active_username')
     const key = getActiveMasterKey()
     if (savedUser && key) {
@@ -217,9 +233,53 @@ function App() {
     localStorage.setItem('active_logbook_title', title)
   }
 
+  const openLogbookById = useCallback(
+    async (logbookId: string) => {
+      try {
+        const books = await fetchLogbooks()
+        const match = books.find((b) => b.id === logbookId)
+        if (match) {
+          selectLogbook(match.id, match.title)
+          return
+        }
+      } catch (err) {
+        console.error('Failed to resolve logbook from push:', err)
+      }
+      selectLogbook(logbookId, `${logbookId.slice(0, 8)}…`)
+    },
+    []
+  )
+
+  const consumePendingPushLogbook = useCallback(() => {
+    const pending = sessionStorage.getItem(PENDING_PUSH_LOGBOOK_KEY)
+    if (!pending) return
+    sessionStorage.removeItem(PENDING_PUSH_LOGBOOK_KEY)
+    void openLogbookById(pending)
+  }, [openLogbookById])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      consumePendingPushLogbook()
+    }
+  }, [isAuthenticated, consumePendingPushLogbook])
+
+  useEffect(() => {
+    if (!isAuthenticated || !('serviceWorker' in navigator)) return
+
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OPEN_LOGBOOK' && typeof event.data.logbookId === 'string') {
+        void openLogbookById(event.data.logbookId)
+      }
+    }
+
+    navigator.serviceWorker.addEventListener('message', onSwMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage)
+  }, [isAuthenticated, openLogbookById])
+
   const handleAuthenticated = async () => {
     setIsAuthenticated(true)
     trackPlausibleEvent(PlausibleEvents.LOGGED_IN)
+    void ensurePushSubscriptionIfEnabled()
 
     try {
       const demo = await seedDemoLogbookIfNeeded()
@@ -229,6 +289,7 @@ function App() {
           setDemoHighlightEntryId(demo.firstEntryId)
         }
         requestStartAfterLogin()
+        consumePendingPushLogbook()
         return
       }
     } catch (err) {
@@ -241,6 +302,7 @@ function App() {
       setActiveLogbookId(savedLogbookId)
       setActiveLogbookTitle(savedLogbookTitle)
     }
+    consumePendingPushLogbook()
   }
 
   const handleLogout = () => {

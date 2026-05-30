@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
+import { notifyOwnerOfCollaboratorChanges } from '../services/pushNotify.js'
 
 const router = Router()
 
@@ -24,6 +25,27 @@ router.post('/push', async (req: any, res) => {
     }
 
     const results = []
+    const ownerNotifications = new Map<
+      string,
+      { ownerId: string; logbookId: string; count: number }
+    >()
+
+    const recordCollaboratorChange = (
+      ownerId: string,
+      logbookId: string,
+      isOwner: boolean,
+      isCollaborator: unknown,
+      action: string,
+      type: string
+    ) => {
+      if (isOwner || !isCollaborator) return
+      if (action !== 'create' && action !== 'update') return
+      if (type === 'logbook') return
+      const key = `${ownerId}:${logbookId}`
+      const entry = ownerNotifications.get(key) ?? { ownerId, logbookId, count: 0 }
+      entry.count += 1
+      ownerNotifications.set(key, entry)
+    }
 
     for (const item of items) {
       const { action, type, payloadId, logbookId, data, updatedAt } = item
@@ -218,11 +240,23 @@ router.post('/push', async (req: any, res) => {
           }
         }
 
+        recordCollaboratorChange(
+          logbook.userId,
+          logbookId,
+          isOwner,
+          isCollaborator,
+          action,
+          type
+        )
         results.push({ payloadId, status: 'success' })
       } catch (err: any) {
         console.error(`Error processing sync item ${payloadId}:`, err)
         results.push({ payloadId, status: 'error', error: err.message || 'Operation failed' })
       }
+    }
+
+    for (const { ownerId, logbookId, count } of ownerNotifications.values()) {
+      void notifyOwnerOfCollaboratorChanges(logbookId, ownerId, req.userId, count)
     }
 
     return res.json({ results })

@@ -5,6 +5,7 @@ import { ensureLogbookKey } from '../services/logbookKeys.js'
 import LogbookBackupPanel from './LogbookBackupPanel.tsx'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
+import PushNotificationSettings from './PushNotificationSettings.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { notifyAppearanceChanged } from '../services/appearance.js'
 import ThemedSelect from './ThemedSelect.tsx'
@@ -297,6 +298,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
 
       <form onSubmit={handleSubmit} className="vessel-form mt-6">
         <PwaInstallPrompt variant="inline" />
+        <PushNotificationSettings />
 
         {/* Weather Integration card */}
         <div className="member-editor-card glass">

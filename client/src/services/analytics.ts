@@ -20,7 +20,9 @@ export const PlausibleEvents = {
   PHOTO_UPLOADED: 'Photo Uploaded',
   BACKUP_EXPORTED: 'Backup Exported',
   BACKUP_RESTORED: 'Backup Restored',
-  DEMO_OPENED: 'Demo Opened'
+  DEMO_OPENED: 'Demo Opened',
+  PUSH_ENABLED: 'Push Enabled',
+  PUSH_DISABLED: 'Push Disabled'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
