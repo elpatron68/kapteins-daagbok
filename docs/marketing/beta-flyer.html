@@ -109,8 +109,8 @@
 
     .screenshots {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4mm;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3mm;
       flex-shrink: 0;
       position: relative;
       z-index: 1;
@@ -128,7 +128,7 @@
 
     .screenshot-card img {
       width: 100%;
-      height: 54mm;
+      height: 50mm;
       object-fit: contain;
       object-position: top center;
       display: block;
@@ -288,7 +288,7 @@
     </p>
 
     <section class="features" aria-label="Funktionen">
-      <div class="feature"><span class="feature-icon">✦</span><span>Reisetage im nautischen Logbuch-Format (Hafen, Wetter, Besegelung, Crew, Tankstände, etc.)</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Reisetage im nautischen Logbuch-Format (Hafen, Wetter, Besegelung, Crew, Tankstände)</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Offline-fähige PWA — läuft auf jedem Smartphone &amp; Tablet</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Einfache passwortlose Passkey-Anmeldung</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Ende-zu-Ende Verschlüsselung</span></div>
@@ -313,6 +313,10 @@
       <figure class="screenshot-card">
         <img src="assets/screenshot-logbook.png" alt="Logbuch-Journal mit Reisetagen" />
         <figcaption class="screenshot-caption">Logbuch-Journal</figcaption>
+      </figure>
+      <figure class="screenshot-card">
+        <img src="assets/screenshot-vessel.png" alt="Schiffs-Stammdaten mit Yachtfoto" />
+        <figcaption class="screenshot-caption">Schiffsdaten</figcaption>
       </figure>
     </section>
 
