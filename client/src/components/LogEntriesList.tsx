@@ -9,7 +9,9 @@ import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
+import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
+import { getSkipperSignStatus, type SkipperSignStatus } from '../utils/signatures.js'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
 import {
   carryOverFromPreviousDay,
@@ -41,6 +43,7 @@ interface DecryptedEntryItem {
   departure: string
   destination: string
   updatedAt: string
+  skipperSignStatus: SkipperSignStatus
 }
 
 export default function LogEntriesList({
@@ -79,14 +82,18 @@ export default function LogEntriesList({
     setError(null)
     try {
       if (readOnly && preloadedEntries) {
-        const list = preloadedEntries.map((entry: any) => ({
-          id: entry.payloadId || entry.id,
-          date: entry.date || '',
-          dayOfTravel: entry.dayOfTravel || '',
-          departure: entry.departure || '',
-          destination: entry.destination || '',
-          updatedAt: entry.updatedAt || new Date().toISOString()
-        }))
+        const list: DecryptedEntryItem[] = []
+        for (const entry of preloadedEntries) {
+          list.push({
+            id: entry.payloadId || entry.id,
+            date: entry.date || '',
+            dayOfTravel: entry.dayOfTravel || '',
+            departure: entry.departure || '',
+            destination: entry.destination || '',
+            updatedAt: entry.updatedAt || new Date().toISOString(),
+            skipperSignStatus: await getSkipperSignStatus(entry)
+          })
+        }
 
         list.sort((a, b) => {
           const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -114,7 +121,8 @@ export default function LogEntriesList({
             dayOfTravel: decrypted.dayOfTravel || '',
             departure: decrypted.departure || '',
             destination: decrypted.destination || '',
-            updatedAt: entry.updatedAt
+            updatedAt: entry.updatedAt,
+            skipperSignStatus: await getSkipperSignStatus(decrypted as Record<string, unknown>)
           })
         }
       }
@@ -411,6 +419,7 @@ export default function LogEntriesList({
                   <span className="sync-badge synced">
                     {t('logs.day_of_travel')} {item.dayOfTravel}
                   </span>
+                  <EntrySkipperSignBadge status={item.skipperSignStatus} />
                   <span className="date-badge">
                     {new Date(item.date).toLocaleDateString()}
                   </span>

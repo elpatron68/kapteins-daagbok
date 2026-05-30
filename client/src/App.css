@@ -931,6 +931,30 @@ html.scheme-dark .themed-select-option.is-selected {
   color: var(--app-text-subtle);
 }
 
+.entry-sign-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.entry-sign-badge--skipper.valid {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.entry-sign-badge--skipper.invalid {
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
 .btn-delete {
   background: none;
   border: none;

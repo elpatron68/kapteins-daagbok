@@ -1,4 +1,7 @@
+import { hashEntryForSigning } from './entryCanonicalHash.js'
 import type { PasskeySignature, SignatureValue } from '../types/signatures.js'
+
+export type SkipperSignStatus = 'none' | 'valid' | 'invalid'
 
 export function isSignatureImage(value: string | undefined | null): boolean {
   return typeof value === 'string' && value.startsWith('data:image/')
@@ -29,6 +32,16 @@ export function hasAnySignature(
 
 export function isSignatureValidForEntry(sig: PasskeySignature, entryHash: string): boolean {
   return sig.entryHash === entryHash
+}
+
+export async function getSkipperSignStatus(
+  entry: Record<string, unknown>
+): Promise<SkipperSignStatus> {
+  const signSkipper = normalizeSignature(entry.signSkipper)
+  if (!signSkipper) return 'none'
+  if (!isPasskeySignature(signSkipper)) return 'valid'
+  const hash = await hashEntryForSigning(entry)
+  return isSignatureValidForEntry(signSkipper, hash) ? 'valid' : 'invalid'
 }
 
 export interface SignatureExportLabels {
