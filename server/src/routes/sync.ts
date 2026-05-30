@@ -121,6 +121,17 @@ router.post('/push', async (req: any, res) => {
           continue
         }
 
+        if (!isOwner && (type === 'yacht' || (type === 'crew' && payloadId === 'skipper'))) {
+          results.push({
+            payloadId,
+            status: 'error',
+            error: type === 'yacht'
+              ? 'Forbidden: Only owner can modify vessel data'
+              : 'Forbidden: Only owner can modify skipper profile'
+          })
+          continue
+        }
+
         if (action === 'delete') {
           if (type === 'yacht') {
             await prisma.yachtPayload.deleteMany({ where: { logbookId } })

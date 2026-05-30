@@ -271,6 +271,7 @@
     "crew": {
       "title": "Skipper- & Crew-Profile",
       "skipper_section": "Skipper-Profil",
+      "skipper_read_only_hint": "Das Skipper-Profil kann nur vom Logbuch-Eigner bearbeitet werden.",
       "crew_section": "Crew-Liste",
       "add_crew": "Crew-Mitglied hinzufügen",
       "edit_crew": "Crew-Mitglied bearbeiten",

@@ -435,6 +435,8 @@ function App() {
 
   const logbookReadOnly =
     activeLogbookRecord?.isShared === 1 && activeAccessRole === 'READ'
+  const isLogbookOwner =
+    activeAccessRole === 'OWNER' || activeLogbookRecord?.isShared !== 1
 
   if (!activeLogbookId) {
     return (
@@ -581,11 +583,15 @@ function App() {
           )}
 
           {activeTab === 'vessel' && (
-            <VesselForm logbookId={activeLogbookId} readOnly={logbookReadOnly} />
+            <VesselForm logbookId={activeLogbookId} readOnly={logbookReadOnly || !isLogbookOwner} />
           )}
 
           {activeTab === 'crew' && (
-            <CrewForm logbookId={activeLogbookId} readOnly={logbookReadOnly} />
+            <CrewForm
+              logbookId={activeLogbookId}
+              readOnly={logbookReadOnly}
+              skipperReadOnly={!isLogbookOwner}
+            />
           )}
 
           {activeTab === 'stats' && activeLogbookId && activeLogbookTitle && (

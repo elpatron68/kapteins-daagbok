@@ -12,6 +12,7 @@ import { Users, User, Plus, Trash2, Edit2, Save, X, Check, Camera } from 'lucide
 interface CrewFormProps {
   logbookId: string
   readOnly?: boolean
+  skipperReadOnly?: boolean
   preloadedData?: any[]
 }
 
@@ -34,9 +35,15 @@ interface DecryptedCrew {
   data: CrewMemberData
 }
 
-export default function CrewForm({ logbookId, readOnly = false, preloadedData }: CrewFormProps) {
+export default function CrewForm({
+  logbookId,
+  readOnly = false,
+  skipperReadOnly = false,
+  preloadedData
+}: CrewFormProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
+  const skipperFormReadOnly = readOnly || skipperReadOnly
 
   // Skipper profile state
   const [skipName, setSkipName] = useState('')
@@ -192,7 +199,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
 
   const handleSaveSkipper = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (readOnly) return
+    if (skipperFormReadOnly) return
     setSavingSkipper(true)
     setError(null)
     setSkipperSuccess(false)
@@ -397,10 +404,14 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
 
         {error && <div className="auth-error mb-4">{error}</div>}
 
+        {skipperReadOnly && !readOnly && (
+          <p className="help-text mb-4">{t('crew.skipper_read_only_hint')}</p>
+        )}
+
         <form onSubmit={handleSaveSkipper} className="vessel-form">
           <div className="form-grid">
             <div className="vessel-photo-wrapper">
-              <div className="vessel-photo-preview" onClick={readOnly ? undefined : () => skipFileInputRef.current?.click()} style={{ cursor: readOnly ? 'default' : 'pointer' }}>
+              <div className="vessel-photo-preview" onClick={skipperFormReadOnly ? undefined : () => skipFileInputRef.current?.click()} style={{ cursor: skipperFormReadOnly ? 'default' : 'pointer' }}>
                 {skipPhoto ? (
                   <img src={skipPhoto} alt={skipName || 'Skipper'} className="vessel-photo" />
                 ) : (
@@ -408,7 +419,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                     <User size={48} className="placeholder-icon" />
                   </div>
                 )}
-                {!readOnly && (
+                {!skipperFormReadOnly && (
                   <div className="vessel-photo-overlay">
                     <Camera size={24} />
                     <span>{skipPhoto ? t('vessel.photo_change') : t('vessel.photo_add')}</span>
@@ -416,7 +427,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 )}
               </div>
               
-              {!readOnly && (
+              {!skipperFormReadOnly && (
                 <div className="vessel-photo-actions">
                   <button
                     type="button"
@@ -473,7 +484,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipName}
                 onChange={(e) => setSkipName(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
                 required
               />
             </div>
@@ -485,7 +496,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipAddress}
                 onChange={(e) => setSkipAddress(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -496,7 +507,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipBirthDate}
                 onChange={(e) => setSkipBirthDate(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -507,7 +518,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipPhone}
                 onChange={(e) => setSkipPhone(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -518,7 +529,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipNationality}
                 onChange={(e) => setSkipNationality(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -529,7 +540,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipPassport}
                 onChange={(e) => setSkipPassport(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -540,7 +551,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipBloodType}
                 onChange={(e) => setSkipBloodType(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -551,7 +562,7 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipAllergies}
                 onChange={(e) => setSkipAllergies(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
 
@@ -562,12 +573,12 @@ export default function CrewForm({ logbookId, readOnly = false, preloadedData }:
                 className="input-text"
                 value={skipDiseases}
                 onChange={(e) => setSkipDiseases(e.target.value)}
-                disabled={savingSkipper || readOnly}
+                disabled={savingSkipper || skipperFormReadOnly}
               />
             </div>
           </div>
 
-          {!readOnly && (
+          {!skipperFormReadOnly && (
             <div className="form-actions">
               {skipperSuccess && (
                 <div className="success-toast">
