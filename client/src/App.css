@@ -388,6 +388,51 @@ html.scheme-dark .themed-select-option.is-selected {
   max-height: min(90vh, 820px);
 }
 
+.feedback-modal {
+  position: relative;
+}
+
+.feedback-modal__close {
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+}
+
+.feedback-status {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.feedback-status p {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.feedback-status--success {
+  color: #4ade80;
+  padding: 24px 8px 32px;
+}
+
+.feedback-status--success p {
+  color: var(--app-text-heading, #f1f5f9);
+}
+
+.feedback-status--error {
+  color: var(--app-error-text, #fda4af);
+  background: var(--app-error-bg, rgba(244, 63, 94, 0.08));
+  border: 1px solid var(--app-error-border, #f43f5e);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.feedback-status--error p {
+  margin: 0;
+  font-size: 14px;
+}
+
 .feedback-modal .auth-actions {
   margin-top: 0;
 }
