@@ -74,6 +74,6 @@ export function normalizedSerializedSignature(value: unknown): SignatureValue | 
   return serializeSignature(normalizeSignature(value) || '')
 }
 
-export function fingerprintSignature(value: unknown): string {
+export function fingerprintSignature(value: unknown): SignatureValue | '' {
   return normalizedSerializedSignature(value) ?? ''
 }
