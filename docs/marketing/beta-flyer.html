@@ -169,6 +169,33 @@
       width: 4mm;
     }
 
+    .lang-list {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1.5mm;
+    }
+
+    .lang-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2mm;
+      white-space: nowrap;
+    }
+
+    .feature-flag {
+      display: inline-block;
+      width: 5mm;
+      height: 3.5mm;
+      border-radius: 0.3mm;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 0.15mm rgba(0, 0, 0, 0.25);
+    }
+
+    .lang-sep {
+      color: #94a3b8;
+    }
+
     .beta-box {
       background: rgba(30, 41, 59, 0.85);
       border: 1px solid rgba(251, 191, 36, 0.35);
@@ -301,7 +328,7 @@
       <div class="feature"><span class="feature-icon">✦</span><span>Verschlüsseltes Backup &amp; Wiederherstellung</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Logbuch mit Freunden teilen</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Beliebig viele Schiffe und Logbücher</span></div>
-      <div class="feature"><span class="feature-icon">✦</span><span>Deutsch &amp; Englisch</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span class="lang-list"><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>Englisch</span></span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Crafted in Kiel.Sailing.City.</span></div>
     </section>
 
