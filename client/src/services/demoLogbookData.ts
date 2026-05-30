@@ -51,7 +51,7 @@ export interface PublicDemoFixture {
   yacht: Record<string, unknown>
   crews: DemoCrewRecord[]
   entries: Array<Record<string, unknown> & { payloadId: string }>
-  gpsTracks: Array<{ entryId: string; waypoints: unknown[]; filename: string; gpxContent?: string }>
+  gpsTracks: Array<{ entryId: string; waypoints: unknown[]; filename: string; gpxContent?: string; fileType: string }>
   photos: never[]
   firstEntryId: string
 }
