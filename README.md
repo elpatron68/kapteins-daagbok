@@ -199,6 +199,7 @@ Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABA
 |----------|--------|
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
+| [docs/marketing/kapteins-daagbok-beta-flyer.pdf](docs/marketing/kapteins-daagbok-beta-flyer.pdf) | Beta-Flyer (DIN A4) zum Ausdrucken — Quelle: `docs/marketing/beta-flyer.html`, neu erzeugen: `cd client && npm run generate:flyer` |
 | [.planning/PROJECT.md](.planning/PROJECT.md) | Produktvision und Anforderungen (GSD) |
 
 ## Analytics
