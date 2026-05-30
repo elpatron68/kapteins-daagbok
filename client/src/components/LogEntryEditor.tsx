@@ -138,7 +138,7 @@ export default function LogEntryEditor({
   const [signSkipper, setSignSkipper] = useState<SignatureValue | ''>('')
   const [signCrew, setSignCrew] = useState<SignatureValue | ''>('')
   const [canSignSkipper, setCanSignSkipper] = useState(false)
-  const [hasWriteCollaborators, setHasWriteCollaborators] = useState(false)
+  const [canSignCrew, setCanSignCrew] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [entryHash, setEntryHash] = useState('')
 
@@ -362,8 +362,11 @@ export default function LogEntryEditor({
   useEffect(() => {
     getLogbookAccess(logbookId).then((access) => {
       if (!access) return
-      setCanSignSkipper(access.isOwner || access.role === 'WRITE')
-      setHasWriteCollaborators(access.writeCollaboratorCount > 0)
+      setCanSignSkipper(access.isOwner)
+      setCanSignCrew(
+        access.role === 'WRITE' ||
+        (access.isOwner && access.writeCollaboratorCount === 0)
+      )
     })
   }, [logbookId])
 
@@ -429,6 +432,7 @@ export default function LogEntryEditor({
   const crewSignatureValid = !isPasskeySignature(signCrew) || isSignatureValidForEntry(signCrew, entryHash)
 
   const handlePasskeySignSkipper = async () => {
+    if (!canSignSkipper) return
     const confirmed = await confirmSignWarning()
     if (!confirmed) return
 
@@ -446,6 +450,7 @@ export default function LogEntryEditor({
   }
 
   const handlePasskeySignCrew = async () => {
+    if (!canSignCrew) return
     const confirmed = await confirmSignWarning()
     if (!confirmed) return
 
@@ -1697,13 +1702,17 @@ export default function LogEntryEditor({
           disabled={saving}
           isOnline={isOnline}
           canSignSkipper={canSignSkipper}
-          hasWriteCollaborators={hasWriteCollaborators}
+          canSignCrew={canSignCrew}
           signSkipper={signSkipper}
           signCrew={signCrew}
           skipperSignatureValid={skipperSignatureValid}
           crewSignatureValid={crewSignatureValid}
-          onSignSkipperChange={setSignSkipper}
-          onSignCrewChange={setSignCrew}
+          onSignSkipperChange={(value) => {
+            if (canSignSkipper && !readOnly) setSignSkipper(value)
+          }}
+          onSignCrewChange={(value) => {
+            if (canSignCrew && !readOnly) setSignCrew(value)
+          }}
           onPasskeySignSkipper={handlePasskeySignSkipper}
           onPasskeySignCrew={handlePasskeySignCrew}
           onBeforeSign={confirmSignWarning}

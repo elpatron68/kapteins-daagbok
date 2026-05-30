@@ -13,7 +13,7 @@ interface SignatureSectionProps {
   disabled?: boolean
   isOnline: boolean
   canSignSkipper: boolean
-  hasWriteCollaborators: boolean
+  canSignCrew: boolean
   signSkipper: SignatureValue | ''
   signCrew: SignatureValue | ''
   skipperSignatureValid: boolean
@@ -189,7 +189,7 @@ export default function SignatureSection({
   disabled = false,
   isOnline,
   canSignSkipper,
-  hasWriteCollaborators,
+  canSignCrew,
   signSkipper,
   signCrew,
   skipperSignatureValid,
@@ -203,7 +203,7 @@ export default function SignatureSection({
   const { t } = useTranslation()
 
   const showSkipperPasskey = canSignSkipper && isOnline
-  const showCrewPasskey = hasWriteCollaborators && isOnline
+  const showCrewPasskey = canSignCrew && isOnline && !canSignSkipper
   const hasSignature = !!(signSkipper || signCrew)
 
   return (
@@ -228,7 +228,7 @@ export default function SignatureSection({
           passkeySignature={isPasskeySignature(signSkipper) ? signSkipper : undefined}
           signatureValid={skipperSignatureValid}
           showPasskey={showSkipperPasskey}
-          readOnly={readOnly}
+          readOnly={readOnly || !canSignSkipper}
           disabled={disabled}
           classicHint={showSkipperPasskey ? t('logs.sign_classic_or_passkey') : undefined}
           offlineHint={!isOnline && canSignSkipper ? t('logs.sign_offline_hint') : undefined}
@@ -245,7 +245,7 @@ export default function SignatureSection({
           passkeySignature={isPasskeySignature(signCrew) ? signCrew : undefined}
           signatureValid={crewSignatureValid}
           showPasskey={showCrewPasskey}
-          readOnly={readOnly}
+          readOnly={readOnly || !canSignCrew}
           disabled={disabled}
           classicHint={showCrewPasskey ? t('logs.sign_crew_passkey_hint') : undefined}
           onChange={onSignCrewChange}

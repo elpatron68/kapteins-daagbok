@@ -99,14 +99,7 @@ async function isAuthorizedSigner(
   role: 'skipper' | 'crew'
 ): Promise<boolean> {
   if (role === 'skipper') {
-    // Skipper signing: owner or WRITE collaborator (design §2.1), using their own passkey.
-    if (signerUserId === ownerUserId) return true
-    const collaboration = await prisma.collaboration.findUnique({
-      where: {
-        logbookId_userId: { logbookId, userId: signerUserId }
-      }
-    })
-    return collaboration?.role === 'WRITE'
+    return signerUserId === ownerUserId
   }
 
   const collaboration = await prisma.collaboration.findUnique({
@@ -136,6 +129,16 @@ router.post('/options', async (req: any, res) => {
 
     if (!hasWriteAccess(access)) {
       return res.status(403).json({ error: 'Forbidden: WRITE access required to sign entries' })
+    }
+
+    const authorized = await isAuthorizedSigner(
+      logbookId,
+      access.logbook.userId,
+      req.userId,
+      role
+    )
+    if (!authorized) {
+      return res.status(403).json({ error: 'Forbidden: Signer not authorized for this role' })
     }
 
     const allowCredentials = await getAllowCredentialsForRole(
