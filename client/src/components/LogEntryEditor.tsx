@@ -6,7 +6,7 @@ import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import SignatureSection from './SignatureSection.tsx'
 import TrackMap from './TrackMap.tsx'
@@ -148,6 +148,8 @@ export default function LogEntryEditor({
   const lockedContentHashRef = useRef<string | null>(null)
   const contentReadyRef = useRef(false)
   const lastSignatureAlertHashRef = useRef<string | null>(null)
+  const skipCrewSignClearRef = useRef(false)
+  const [editingEventIndex, setEditingEventIndex] = useState<number | null>(null)
 
   const applyTrackStats = (waypoints: SavedTrack['waypoints']) => {
     const stats = computeTrackStats(waypoints)
@@ -253,13 +255,17 @@ export default function LogEntryEditor({
 
     if (entryHash !== lockedContentHashRef.current) {
       lockedContentHashRef.current = null
-      setSignSkipper('')
-      setSignCrew('')
-      if (lastSignatureAlertHashRef.current !== entryHash) {
+      const hadSkipper = !!signSkipper
+      const hadCrew = !!signCrew
+      const skipperOnly = skipCrewSignClearRef.current
+      skipCrewSignClearRef.current = false
+      if (hadSkipper) setSignSkipper('')
+      if (hadCrew && !skipperOnly) setSignCrew('')
+      if (lastSignatureAlertHashRef.current !== entryHash && (hadSkipper || (hadCrew && !skipperOnly))) {
         lastSignatureAlertHashRef.current = entryHash
         void showAlertRef.current(
-          t('logs.sign_cleared_re_sign'),
-          t('logs.sign_cleared_re_sign_title')
+          skipperOnly ? t('logs.sign_cleared_skipper_re_sign') : t('logs.sign_cleared_re_sign'),
+          skipperOnly ? t('logs.sign_cleared_skipper_re_sign_title') : t('logs.sign_cleared_re_sign_title')
         )
       }
     }
@@ -692,32 +698,26 @@ export default function LogEntryEditor({
     return currentItems.includes(item.toLowerCase())
   }
 
-  const handleAddEvent = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (readOnly || !evTime) return
+  const buildEventFromForm = (): LogEvent => ({
+    time: evTime,
+    mgk: evMgk.trim(),
+    rwk: evRwk.trim(),
+    windPressure: evWindPressure.trim(),
+    windDirection: evWindDirection.trim(),
+    windStrength: evWindStrength.trim(),
+    seaState: evSeaState.trim(),
+    weatherIcon: evWeatherIcon.trim(),
+    current: evCurrent.trim(),
+    heel: evHeel.trim(),
+    sailsOrMotor: evSailsOrMotor.trim(),
+    logReading: evLogReading.trim(),
+    distance: evDistance.trim(),
+    gpsLat: evGpsLat.trim(),
+    gpsLng: evGpsLng.trim(),
+    remarks: evRemarks.trim()
+  })
 
-    const newEvent: LogEvent = {
-      time: evTime,
-      mgk: evMgk.trim(),
-      rwk: evRwk.trim(),
-      windPressure: evWindPressure.trim(),
-      windDirection: evWindDirection.trim(),
-      windStrength: evWindStrength.trim(),
-      seaState: evSeaState.trim(),
-      weatherIcon: evWeatherIcon.trim(),
-      current: evCurrent.trim(),
-      heel: evHeel.trim(),
-      sailsOrMotor: evSailsOrMotor.trim(),
-      logReading: evLogReading.trim(),
-      distance: evDistance.trim(),
-      gpsLat: evGpsLat.trim(),
-      gpsLng: evGpsLng.trim(),
-      remarks: evRemarks.trim()
-    }
-
-    setEvents((prev) => [...prev, newEvent])
-
-    // Clear event form fields
+  const clearEventForm = () => {
     setEvTime('')
     setEvMgk('')
     setEvRwk('')
@@ -735,11 +735,86 @@ export default function LogEntryEditor({
     setEvGpsLng('')
     setEvRemarks('')
     setEvLocationName('')
+    setEditingEventIndex(null)
+  }
+
+  const fillEventForm = (ev: LogEvent) => {
+    setEvTime(ev.time)
+    setEvMgk(ev.mgk)
+    setEvRwk(ev.rwk)
+    setEvWindPressure(ev.windPressure)
+    setEvWindDirection(ev.windDirection)
+    setEvWindStrength(ev.windStrength)
+    setEvSeaState(ev.seaState)
+    setEvWeatherIcon(ev.weatherIcon)
+    setEvCurrent(ev.current)
+    setEvHeel(ev.heel)
+    setEvSailsOrMotor(ev.sailsOrMotor)
+    setEvLogReading(ev.logReading)
+    setEvDistance(ev.distance)
+    setEvGpsLat(ev.gpsLat)
+    setEvGpsLng(ev.gpsLng)
+    setEvRemarks(ev.remarks)
+    setEvLocationName('')
+  }
+
+  const markSkipperSignatureClearedForEventChange = () => {
+    if (!signSkipper) return
+    skipCrewSignClearRef.current = true
+    setSignSkipper('')
+  }
+
+  const handleEditEvent = (index: number) => {
+    if (readOnly) return
+    const ev = events[index]
+    if (!ev) return
+    fillEventForm(ev)
+    setEditingEventIndex(index)
+  }
+
+  const handleCancelEventEdit = () => {
+    clearEventForm()
+  }
+
+  const handleSaveEvent = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (readOnly || !evTime) return
+
+    const eventData = buildEventFromForm()
+
+    if (editingEventIndex !== null) {
+      const hadSkipperSignature = !!signSkipper
+      markSkipperSignatureClearedForEventChange()
+      setEvents((prev) => prev.map((ev, idx) => (idx === editingEventIndex ? eventData : ev)))
+      if (hadSkipperSignature) {
+        void showAlertRef.current(
+          t('logs.sign_cleared_skipper_re_sign'),
+          t('logs.sign_cleared_skipper_re_sign_title')
+        )
+      }
+    } else {
+      setEvents((prev) => [...prev, eventData])
+    }
+
+    clearEventForm()
   }
 
   const handleDeleteEvent = (index: number) => {
     if (readOnly) return
+    const hadSkipperSignature = !!signSkipper
+    markSkipperSignatureClearedForEventChange()
     setEvents((prev) => prev.filter((_, idx) => idx !== index))
+    if (hadSkipperSignature) {
+      void showAlertRef.current(
+        t('logs.sign_cleared_skipper_re_sign'),
+        t('logs.sign_cleared_skipper_re_sign_title')
+      )
+    }
+    if (editingEventIndex === index) {
+      clearEventForm()
+    } else if (editingEventIndex !== null && index < editingEventIndex) {
+      setEditingEventIndex(editingEventIndex - 1)
+    }
   }
 
   const handleDownloadPdf = async () => {
@@ -1079,8 +1154,22 @@ export default function LogEntryEditor({
                       </td>
                       <td className="remarks-td">{ev.remarks}</td>
                       {!readOnly && (
-                        <td>
-                          <button type="button" className="btn-icon logout" onClick={() => handleDeleteEvent(idx)}>
+                        <td className="events-actions-td">
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            onClick={() => handleEditEvent(idx)}
+                            title={t('logs.edit_event')}
+                            disabled={editingEventIndex !== null && editingEventIndex !== idx}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon logout"
+                            onClick={() => handleDeleteEvent(idx)}
+                            title={t('logs.delete_event')}
+                          >
                             <Trash2 size={14} />
                           </button>
                         </td>
@@ -1095,7 +1184,9 @@ export default function LogEntryEditor({
           {/* Add New Event Form Sub-Card */}
           {!readOnly && (
             <div className="member-editor-card glass">
-              <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>{t('logs.add_event')}</h4>
+              <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>
+                {editingEventIndex !== null ? t('logs.edit_event') : t('logs.add_event')}
+              </h4>
             
             <div className="form-grid mb-4">
               <div className="input-group">
@@ -1329,16 +1420,30 @@ export default function LogEntryEditor({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={handleAddEvent}
-              disabled={saving || !evTime}
-              style={{ width: 'auto', padding: '10px 20px', marginLeft: 'auto', display: 'flex' }}
-            >
-              <Plus size={16} />
-              {t('logs.add_event_btn')}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+              {editingEventIndex !== null && (
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={handleCancelEventEdit}
+                  disabled={saving}
+                  style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
+                >
+                  <X size={16} />
+                  {t('logs.cancel_event_edit')}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={handleSaveEvent}
+                disabled={saving || !evTime}
+                style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
+              >
+                {editingEventIndex !== null ? <Save size={16} /> : <Plus size={16} />}
+                {editingEventIndex !== null ? t('logs.save_event_btn') : t('logs.add_event_btn')}
+              </button>
+            </div>
           </div>
           )}
         </div>

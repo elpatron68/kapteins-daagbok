@@ -1430,6 +1430,18 @@ html.scheme-dark .themed-select-option.is-selected {
   vertical-align: middle;
 }
 
+.events-actions-td {
+  white-space: nowrap;
+}
+
+.events-actions-td .btn-icon {
+  margin-left: 4px;
+}
+
+.events-actions-td .btn-icon:first-child {
+  margin-left: 0;
+}
+
 .events-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.02);
 }
