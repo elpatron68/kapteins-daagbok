@@ -21,10 +21,11 @@ export default function EntrySkipperSignBadge({ status }: EntrySkipperSignBadgeP
     <span
       className={`entry-sign-badge entry-sign-badge--skipper ${isValid ? 'valid' : 'invalid'}`}
       title={label}
-      aria-label={label}
     >
-      {isValid ? <CaptainCap size={14} /> : <AlertTriangle size={12} />}
-      {!isValid && t('logs.sign_badge_skipper_invalid')}
+      {isValid ? <CaptainCap size={14} aria-hidden /> : <AlertTriangle size={12} aria-hidden />}
+      <span className={isValid ? 'entry-sign-badge__sr-label' : undefined}>
+        {isValid ? t('logs.sign_badge_skipper') : t('logs.sign_badge_skipper_invalid')}
+      </span>
     </span>
   )
 }

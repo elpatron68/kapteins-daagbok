@@ -141,6 +141,7 @@
       "sign_passkey_failed": "Passkey-Freigabe fehlgeschlagen",
       "sign_passkey_cancelled": "Passkey-Freigabe abgebrochen",
       "sign_invalid": "Signatur ungültig — Inhalt wurde geändert",
+      "sign_badge_skipper": "Skipper",
       "sign_badge_skipper_invalid": "Ungültig",
       "sign_badge_skipper_title_valid": "Skipper hat freigegeben",
       "sign_badge_skipper_title_invalid": "Skipper-Signatur ungültig — Inhalt wurde geändert",

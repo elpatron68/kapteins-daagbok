@@ -932,6 +932,7 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .entry-sign-badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -954,6 +955,18 @@ html.scheme-dark .themed-select-option.is-selected {
   color: #fde68a;
   background: rgba(251, 191, 36, 0.12);
   border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.entry-sign-badge__sr-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .btn-delete {
