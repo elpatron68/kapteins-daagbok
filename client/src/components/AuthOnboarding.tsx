@@ -273,6 +273,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
             </label>
             <input
               type="password"
+              name="new-pin"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={8}
@@ -282,6 +283,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
               onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
               disabled={loading}
               required
+              autoComplete="new-password"
               style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
             />
           </div>
@@ -322,6 +324,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
           <div className="input-group">
             <input
               type="password"
+              name="pin"
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={8}
@@ -331,6 +334,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
               onChange={(e) => setPinLoginInput(e.target.value.replace(/\D/g, ''))}
               disabled={loading}
               required
+              autoComplete="current-password"
               style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
             />
           </div>

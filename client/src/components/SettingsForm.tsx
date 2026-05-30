@@ -293,12 +293,14 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
             </label>
             <input
               id="owm-api-key"
+              name="owm-api-key"
               type="password"
               className="input-text"
               placeholder="e.g. 8b6a7f...d8"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               disabled={saving}
+              autoComplete="off"
             />
           </div>
         </div>

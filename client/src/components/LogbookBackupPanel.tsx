@@ -58,6 +58,16 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  const handleExportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await handleExport()
+  }
+
+  const handleImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await handleRestore()
+  }
+
   const handleExport = async () => {
     setError(null)
     setSuccess(null)
@@ -209,40 +219,45 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
         </h4>
         <p className="text-muted backup-section-desc">{t('settings.backup_export_desc')}</p>
 
-        <div className="input-group">
-          <label htmlFor="backup-export-passphrase">{t('settings.backup_passphrase')}</label>
-          <input
-            id="backup-export-passphrase"
-            type="password"
-            className="input-text"
-            value={exportPassphrase}
-            onChange={(e) => setExportPassphrase(e.target.value)}
-            placeholder={t('settings.backup_passphrase_placeholder')}
-            autoComplete="new-password"
-            disabled={exporting}
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="backup-export-confirm">{t('settings.backup_passphrase_confirm')}</label>
-          <input
-            id="backup-export-confirm"
-            type="password"
-            className="input-text"
-            value={exportConfirm}
-            onChange={(e) => setExportConfirm(e.target.value)}
-            autoComplete="new-password"
-            disabled={exporting}
-          />
-        </div>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={handleExport}
-          disabled={exporting || !exportPassphrase || !exportConfirm}
-        >
-          <Download size={16} />
-          {exporting ? t('settings.backup_exporting') : t('settings.backup_export_btn')}
-        </button>
+        <form onSubmit={handleExportSubmit} className="backup-export-form">
+          <div className="input-group">
+            <label htmlFor="backup-export-passphrase">{t('settings.backup_passphrase')}</label>
+            <input
+              id="backup-export-passphrase"
+              name="backup-export-passphrase"
+              type="password"
+              className="input-text"
+              value={exportPassphrase}
+              onChange={(e) => setExportPassphrase(e.target.value)}
+              placeholder={t('settings.backup_passphrase_placeholder')}
+              autoComplete="new-password"
+              disabled={exporting}
+              required
+            />
+          </div>
+          <div className="input-group">
+            <label htmlFor="backup-export-confirm">{t('settings.backup_passphrase_confirm')}</label>
+            <input
+              id="backup-export-confirm"
+              name="backup-export-confirm"
+              type="password"
+              className="input-text"
+              value={exportConfirm}
+              onChange={(e) => setExportConfirm(e.target.value)}
+              autoComplete="new-password"
+              disabled={exporting}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={exporting || !exportPassphrase || !exportConfirm}
+          >
+            <Download size={16} />
+            {exporting ? t('settings.backup_exporting') : t('settings.backup_export_btn')}
+          </button>
+        </form>
       </section>
 
       <section className="backup-section backup-section--import" aria-labelledby="backup-import-heading">
@@ -252,58 +267,61 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
         </h4>
         <p className="text-muted backup-section-desc">{t('settings.backup_restore_desc')}</p>
 
-        <div className="input-group">
-          <label htmlFor="backup-import-file">{t('settings.backup_file_label')}</label>
-          <input
-            id="backup-import-file"
-            ref={fileInputRef}
-            type="file"
-            accept=".daagbok.json,application/json"
-            className="input-text"
-            onChange={handleFileChange}
-            disabled={importing}
-          />
-        </div>
+        <form onSubmit={handleImportSubmit} className="backup-import-form">
+          <div className="input-group">
+            <label htmlFor="backup-import-file">{t('settings.backup_file_label')}</label>
+            <input
+              id="backup-import-file"
+              ref={fileInputRef}
+              type="file"
+              accept=".daagbok.json,application/json"
+              className="input-text"
+              onChange={handleFileChange}
+              disabled={importing}
+            />
+          </div>
 
-        {importFile && (
-          <>
-            <div className="input-group">
-              <label htmlFor="backup-import-passphrase">{t('settings.backup_passphrase')}</label>
-              <input
-                id="backup-import-passphrase"
-                type="password"
-                className="input-text"
-                value={importPassphrase}
-                onChange={(e) => {
-                  setImportPassphrase(e.target.value)
-                  setImportPreview(null)
-                }}
-                autoComplete="current-password"
-                disabled={importing}
-              />
-            </div>
+          {importFile && (
+            <>
+              <div className="input-group">
+                <label htmlFor="backup-import-passphrase">{t('settings.backup_passphrase')}</label>
+                <input
+                  id="backup-import-passphrase"
+                  name="backup-import-passphrase"
+                  type="password"
+                  className="input-text"
+                  value={importPassphrase}
+                  onChange={(e) => {
+                    setImportPassphrase(e.target.value)
+                    setImportPreview(null)
+                  }}
+                  autoComplete="current-password"
+                  disabled={importing}
+                  required
+                />
+              </div>
 
-            <div className="backup-actions-row">
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={handlePreviewImport}
-                disabled={previewing || importing || !importPassphrase}
-              >
-                {previewing ? t('settings.backup_previewing') : t('settings.backup_preview_btn')}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => handleRestore()}
-                disabled={importing || !importPassphrase}
-              >
-                <Upload size={16} />
-                {importing ? t('settings.backup_restoring') : t('settings.backup_restore_btn')}
-              </button>
-            </div>
-          </>
-        )}
+              <div className="backup-actions-row">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={handlePreviewImport}
+                  disabled={previewing || importing || !importPassphrase}
+                >
+                  {previewing ? t('settings.backup_previewing') : t('settings.backup_preview_btn')}
+                </button>
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={importing || !importPassphrase}
+                >
+                  <Upload size={16} />
+                  {importing ? t('settings.backup_restoring') : t('settings.backup_restore_btn')}
+                </button>
+              </div>
+            </>
+          )}
+        </form>
 
         {importPreview && (
           <div className="backup-preview glass">
