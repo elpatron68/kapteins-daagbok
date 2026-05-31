@@ -144,6 +144,7 @@ export interface LogEntryPayloadInput {
   destination: string
   freshwater: { morning: number; refilled: number; evening: number; consumption: number }
   fuel: { morning: number; refilled: number; evening: number; consumption: number }
+  greywater?: { level: number }
   trackDistanceNm?: number
   trackSpeedMaxKn?: number
   trackSpeedAvgKn?: number
@@ -167,6 +168,13 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
   if (input.trackSpeedAvgKn !== undefined) payload.trackSpeedAvgKn = input.trackSpeedAvgKn
   if (input.motorHours !== undefined && input.motorHours > 0) {
     payload.motorHours = Number(input.motorHours.toFixed(2))
+  }
+
+  if (input.greywater !== undefined) {
+    const level = Number(input.greywater.level) || 0
+    if (level > 0) {
+      payload.greywater = { level: Number(level.toFixed(1)) }
+    }
   }
 
   return payload

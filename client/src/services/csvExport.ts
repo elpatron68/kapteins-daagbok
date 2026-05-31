@@ -88,6 +88,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     'Latitude', 'Longitude', 'Remarks',
     'Freshwater Morning (L)', 'Freshwater Refilled (L)', 'Freshwater Evening (L)', 'Freshwater Consumption (L)',
     'Fuel Morning (L)', 'Fuel Refilled (L)', 'Fuel Evening (L)', 'Fuel Consumption (L)',
+    'Greywater Level (L)',
     'Yacht Name', 'Home Port', 'Owner', 'Charter Company', 'Registration', 'Callsign', 'ATIS', 'MMSI'
   ];
 
@@ -123,6 +124,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     const fuelR = entry.fuel?.refilled ?? '';
     const fuelE = entry.fuel?.evening ?? '';
     const fuelCons = entry.fuel?.consumption ?? '';
+    const greywaterLevel = entry.greywater?.level ?? '';
 
     const eventsList = entry.events || [];
     if (eventsList.length === 0) {
@@ -137,6 +139,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
         '', '', '',
         fwM, fwR, fwE, fwCons,
         fuelM, fuelR, fuelE, fuelCons,
+        greywaterLevel,
         yachtName, homePort, owner, charter, registration, callsign, atis, mmsi
       ].map(escapeCsvValue));
     } else {
@@ -153,6 +156,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
           ev.gpsLat || '', ev.gpsLng || '', ev.remarks || '',
           fwM, fwR, fwE, fwCons,
           fuelM, fuelR, fuelE, fuelCons,
+          greywaterLevel,
           yachtName, homePort, owner, charter, registration, callsign, atis, mmsi
         ].map(escapeCsvValue));
       }

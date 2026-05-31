@@ -42,6 +42,8 @@ import {
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
+import TankLiterInput from './TankLiterInput.tsx'
+import { extractTankCapacitiesFromYacht, type VesselTankCapacities } from '../utils/tankCapacity.js'
 
 function emptyTankLevels() {
   return { morning: 0, refilled: 0, evening: 0, consumption: 0 }
@@ -50,6 +52,7 @@ function emptyTankLevels() {
 function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string {
   const fw = (decrypted.freshwater as Record<string, number> | undefined) ?? emptyTankLevels()
   const fuel = (decrypted.fuel as Record<string, number> | undefined) ?? emptyTankLevels()
+  const gw = decrypted.greywater as { level?: number } | undefined
   const trackDistance = decrypted.trackDistanceNm
   const trackSpeedMax = decrypted.trackSpeedMaxKn
   const trackSpeedAvg = decrypted.trackSpeedAvgKn
@@ -72,6 +75,7 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
       evening: fuel.evening || 0,
       consumption: fuel.consumption ?? 0
     },
+    greywater: gw ? { level: gw.level || 0 } : undefined,
     trackDistanceNm:
       trackDistance != null && trackDistance !== ''
         ? parseFloat(String(trackDistance))
@@ -144,6 +148,9 @@ export default function LogEntryEditor({
   const [fuelRefilled, setFuelRefilled] = useState('0')
   const [fuelEvening, setFuelEvening] = useState('0')
   const [fuelConsumption, setFuelConsumption] = useState('0')
+
+  const [greywaterLevel, setGreywaterLevel] = useState('0')
+  const [tankCapacities, setTankCapacities] = useState<VesselTankCapacities>({})
 
   // Signatures
   const [signSkipper, setSignSkipper] = useState<SignatureValue | ''>('')
@@ -249,6 +256,7 @@ export default function LogEntryEditor({
         evening: parseFloat(fuelEvening) || 0,
         consumption: parseFloat(fuelConsumption) || 0
       },
+      greywater: { level: parseFloat(greywaterLevel) || 0 },
       trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
       trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
       trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
@@ -259,6 +267,7 @@ export default function LogEntryEditor({
     date, dayOfTravel, departure, destination,
     fwMorning, fwRefilled, fwEvening, fwConsumption,
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
+    greywaterLevel,
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
     events
   ])
@@ -267,6 +276,8 @@ export default function LogEntryEditor({
     () => computeFuelPerMotorHour(parseFloat(fuelConsumption) || 0, parseFloat(motorHours) || 0),
     [fuelConsumption, motorHours]
   )
+
+  const tankCapacityTooltip = t('logs.tank_capacity_tooltip')
 
   const currentFingerprint = useMemo(() => {
     const payload = buildPayloadForSigning()
@@ -527,11 +538,12 @@ export default function LogEntryEditor({
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
 
-  // Load Yacht Sails
+  // Load yacht sails and tank capacities
   useEffect(() => {
-    async function loadYachtSails() {
-      if (readOnly && preloadedYacht?.sails) {
-        setYachtSails(preloadedYacht.sails)
+    async function loadYachtMeta() {
+      if (readOnly && preloadedYacht) {
+        if (preloadedYacht.sails) setYachtSails(preloadedYacht.sails)
+        setTankCapacities(extractTankCapacitiesFromYacht(preloadedYacht))
         return
       }
       try {
@@ -541,16 +553,19 @@ export default function LogEntryEditor({
         const yacht = await db.yachts.get(logbookId)
         if (yacht) {
           const decrypted = await decryptJson(yacht.encryptedData, yacht.iv, yacht.tag, masterKey)
-          if (decrypted && decrypted.sails && Array.isArray(decrypted.sails)) {
-            setYachtSails(decrypted.sails)
+          if (decrypted) {
+            if (decrypted.sails && Array.isArray(decrypted.sails)) {
+              setYachtSails(decrypted.sails)
+            }
+            setTankCapacities(extractTankCapacitiesFromYacht(decrypted))
           }
         }
       } catch (err) {
-        console.error('Failed to load yacht sails in editor:', err)
+        console.error('Failed to load yacht meta in editor:', err)
       }
     }
-    loadYachtSails()
-  }, [logbookId, preloadedYacht])
+    loadYachtMeta()
+  }, [logbookId, preloadedYacht, readOnly])
 
   // Load entry details
   useEffect(() => {
@@ -579,6 +594,11 @@ export default function LogEntryEditor({
             setFuelRefilled(String(preloadedEntry.fuel.refilled || 0))
             setFuelEvening(String(preloadedEntry.fuel.evening || 0))
             setFuelConsumption(String(preloadedEntry.fuel.consumption ?? 0))
+          }
+          if (preloadedEntry.greywater) {
+            setGreywaterLevel(String(preloadedEntry.greywater.level || 0))
+          } else {
+            setGreywaterLevel('0')
           }
 
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
@@ -612,6 +632,11 @@ export default function LogEntryEditor({
               setFuelRefilled(String(decrypted.fuel.refilled || 0))
               setFuelEvening(String(decrypted.fuel.evening || 0))
               setFuelConsumption(String(decrypted.fuel.consumption ?? 0))
+            }
+            if (decrypted.greywater) {
+              setGreywaterLevel(String(decrypted.greywater.level || 0))
+            } else {
+              setGreywaterLevel('0')
             }
 
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
@@ -1210,41 +1235,35 @@ export default function LogEntryEditor({
               <h3>{t('logs.freshwater')}</h3>
             </div>
             <div className="consumption-grid">
+              <TankLiterInput
+                id="fw-morning"
+                label={t('logs.morning')}
+                value={fwMorning}
+                onChange={setFwMorning}
+                maxLiters={tankCapacities.freshwaterCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
+              <TankLiterInput
+                id="fw-refilled"
+                label={t('logs.refilled')}
+                value={fwRefilled}
+                onChange={setFwRefilled}
+                maxLiters={tankCapacities.freshwaterCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
+              <TankLiterInput
+                id="fw-evening"
+                label={t('logs.evening')}
+                value={fwEvening}
+                onChange={setFwEvening}
+                maxLiters={tankCapacities.freshwaterCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
               <div className="input-group">
-                <label>{t('logs.morning')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fwMorning}
-                  onChange={(e) => setFwMorning(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.refilled')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fwRefilled}
-                  onChange={(e) => setFwRefilled(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.evening')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fwEvening}
-                  onChange={(e) => setFwEvening(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.consumption')} (L)</label>
+                <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
                 <input
                   type="number"
                   className="input-text consumption-value"
@@ -1252,6 +1271,7 @@ export default function LogEntryEditor({
                   readOnly
                   tabIndex={-1}
                   aria-readonly="true"
+                  title={tankCapacityTooltip}
                 />
               </div>
             </div>
@@ -1264,41 +1284,35 @@ export default function LogEntryEditor({
               <h3>{t('logs.fuel')}</h3>
             </div>
             <div className="consumption-grid">
+              <TankLiterInput
+                id="fuel-morning"
+                label={t('logs.morning')}
+                value={fuelMorning}
+                onChange={setFuelMorning}
+                maxLiters={tankCapacities.fuelCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
+              <TankLiterInput
+                id="fuel-refilled"
+                label={t('logs.refilled')}
+                value={fuelRefilled}
+                onChange={setFuelRefilled}
+                maxLiters={tankCapacities.fuelCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
+              <TankLiterInput
+                id="fuel-evening"
+                label={t('logs.evening')}
+                value={fuelEvening}
+                onChange={setFuelEvening}
+                maxLiters={tankCapacities.fuelCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
               <div className="input-group">
-                <label>{t('logs.morning')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fuelMorning}
-                  onChange={(e) => setFuelMorning(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.refilled')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fuelRefilled}
-                  onChange={(e) => setFuelRefilled(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.evening')}</label>
-                <input
-                  type="number"
-                  className="input-text"
-                  value={fuelEvening}
-                  onChange={(e) => setFuelEvening(e.target.value)}
-                  disabled={saving || readOnly}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.consumption')} (L)</label>
+                <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
                 <input
                   type="number"
                   className="input-text consumption-value"
@@ -1306,11 +1320,12 @@ export default function LogEntryEditor({
                   readOnly
                   tabIndex={-1}
                   aria-readonly="true"
+                  title={tankCapacityTooltip}
                 />
               </div>
 
               <div className="input-group">
-                <label>{t('logs.fuel_per_motor_hour')}</label>
+                <label title={tankCapacityTooltip}>{t('logs.fuel_per_motor_hour')}</label>
                 <input
                   type="text"
                   className="input-text consumption-value"
@@ -1322,8 +1337,28 @@ export default function LogEntryEditor({
                   readOnly
                   tabIndex={-1}
                   aria-readonly="true"
+                  title={tankCapacityTooltip}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Greywater card */}
+          <div className="form-card">
+            <div className="form-header">
+              <Compass size={20} className="form-icon" />
+              <h3>{t('logs.greywater')}</h3>
+            </div>
+            <div className="consumption-grid">
+              <TankLiterInput
+                id="greywater-level"
+                label={t('logs.greywater_level')}
+                value={greywaterLevel}
+                onChange={setGreywaterLevel}
+                maxLiters={tankCapacities.greywaterCapacityL}
+                disabled={saving || readOnly}
+                titleTooltip={tankCapacityTooltip}
+              />
             </div>
           </div>
         </div>

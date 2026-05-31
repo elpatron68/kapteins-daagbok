@@ -197,13 +197,15 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.text('VERBRAUCHSWERTE / CONSUMPTON STATS', 10, footerY + 3);
 
   let fwY = footerY + 5;
-  doc.rect(10, fwY, 110, rowHeight * 3, 'S');
+  const tankRows = 4;
+  doc.rect(10, fwY, 110, rowHeight * tankRows, 'S');
   doc.line(10, fwY + rowHeight, 120, fwY + rowHeight);
   doc.line(10, fwY + rowHeight * 2, 120, fwY + rowHeight * 2);
-  doc.line(40, fwY, 40, fwY + rowHeight * 3);
-  doc.line(60, fwY, 60, fwY + rowHeight * 3);
-  doc.line(80, fwY, 80, fwY + rowHeight * 3);
-  doc.line(100, fwY, 100, fwY + rowHeight * 3);
+  doc.line(10, fwY + rowHeight * 3, 120, fwY + rowHeight * 3);
+  doc.line(40, fwY, 40, fwY + rowHeight * tankRows);
+  doc.line(60, fwY, 60, fwY + rowHeight * tankRows);
+  doc.line(80, fwY, 80, fwY + rowHeight * tankRows);
+  doc.line(100, fwY, 100, fwY + rowHeight * tankRows);
 
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(7.5);
@@ -225,6 +227,12 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.text(String(entry.fuel?.refilled ?? '0'), 61, fwY + rowHeight * 2 + 4.2);
   doc.text(String(entry.fuel?.evening ?? '0'), 81, fwY + rowHeight * 2 + 4.2);
   doc.text(String(entry.fuel?.consumption ?? '0'), 101, fwY + rowHeight * 2 + 4.2);
+
+  doc.text('Grauwasser', 11, fwY + rowHeight * 3 + 4.2);
+  doc.text('—', 41, fwY + rowHeight * 3 + 4.2);
+  doc.text('—', 61, fwY + rowHeight * 3 + 4.2);
+  doc.text(String(entry.greywater?.level ?? '0'), 81, fwY + rowHeight * 3 + 4.2);
+  doc.text('—', 101, fwY + rowHeight * 3 + 4.2);
 
   // Signatures Box
   let sigX = 130;

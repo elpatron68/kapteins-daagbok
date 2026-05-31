@@ -117,7 +117,13 @@
       "no_sails": "No sails defined.",
       "photo_add": "Add Photo",
       "photo_change": "Change Photo",
-      "photo_delete": "Delete Photo"
+      "photo_delete": "Delete Photo",
+      "tanks_section": "Tanks (capacity)",
+      "tanks_help": "Optional, in liters — enables sliders in the journal when tank sizes are known.",
+      "freshwater_capacity_l": "Freshwater (liters)",
+      "fuel_capacity_l": "Fuel (liters)",
+      "greywater_capacity_l": "Greywater (liters)",
+      "invalid_tank_liters": "Invalid number — please enter capacity in liters (e.g. 200)."
     },
     "logs": {
       "title": "Logbook Journal",
@@ -138,6 +144,10 @@
       "route": "Route / Journey",
       "freshwater": "Freshwater (Liters)",
       "fuel": "Fuel (Liters)",
+      "greywater": "Greywater (Liters)",
+      "greywater_level": "Fill level",
+      "tank_slider_of_max": "{{current}} / {{max}} L",
+      "tank_capacity_tooltip": "If tank capacities (liters) are set in vessel master data, you can enter fill levels here using sliders.",
       "morning": "Morning Level",
       "refilled": "Refilled",
       "evening": "Evening Level",

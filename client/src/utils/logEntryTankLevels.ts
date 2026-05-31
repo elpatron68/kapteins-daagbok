@@ -41,6 +41,7 @@ export function getClosingTankLevel(tank?: Partial<TankLevels> | null): number {
 export interface LogEntryTankSource {
   freshwater?: Partial<TankLevels>
   fuel?: Partial<TankLevels>
+  greywater?: { level?: number }
   destination?: string
 }
 

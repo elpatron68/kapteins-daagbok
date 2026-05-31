@@ -117,7 +117,13 @@
       "no_sails": "Keine Segel hinterlegt.",
       "photo_add": "Foto hinzufügen",
       "photo_change": "Foto ändern",
-      "photo_delete": "Foto löschen"
+      "photo_delete": "Foto löschen",
+      "tanks_section": "Tanks (Fassungsvermögen)",
+      "tanks_help": "Optional in Liter — ermöglicht Slider im Journal bei bekannten Tankgrößen.",
+      "freshwater_capacity_l": "Trinkwasser (Liter)",
+      "fuel_capacity_l": "Treibstoff (Liter)",
+      "greywater_capacity_l": "Grauwasser (Liter)",
+      "invalid_tank_liters": "Ungültiger Zahlenwert — bitte Liter als Zahl eingeben (z. B. 200)."
     },
     "logs": {
       "title": "Logbuch-Journal",
@@ -138,6 +144,10 @@
       "route": "Reise von/nach",
       "freshwater": "Frischwasser (Liter)",
       "fuel": "Treibstoff / Fuel (Liter)",
+      "greywater": "Grauwasser (Liter)",
+      "greywater_level": "Füllstand",
+      "tank_slider_of_max": "{{current}} / {{max}} L",
+      "tank_capacity_tooltip": "Wenn in den Schiffsdaten die Tank-Fassungsvermögen (Liter) hinterlegt sind, kannst du Füllstände hier per Slider eingeben.",
       "morning": "Stand morgens",
       "refilled": "Nachgefüllt",
       "evening": "Stand abends",

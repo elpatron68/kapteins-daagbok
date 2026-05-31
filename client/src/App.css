@@ -3068,6 +3068,50 @@ html.theme-cupertino .events-scroll-container {
   }
 }
 
+.tank-liter-input .tank-liter-slider {
+  width: 100%;
+  margin: 4px 0 2px;
+  accent-color: #4ade80;
+  cursor: pointer;
+}
+
+.tank-liter-input .tank-liter-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tank-liter-input .tank-liter-slider-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.vessel-tanks-section {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.vessel-tanks-section h3 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+  color: #e2e8f0;
+}
+
+.vessel-tanks-help {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0 0 12px;
+}
+
+.vessel-tanks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
 /* GPS Track Upload & Map Styling */
 .track-upload-zone {
   display: flex;

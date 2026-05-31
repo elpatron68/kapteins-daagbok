@@ -26,6 +26,7 @@ export interface DemoDaySpec {
   filename: string
   freshwater: { morning: number; refilled: number; evening: number; consumption: number }
   fuel: { morning: number; refilled: number; evening: number; consumption: number }
+  greywaterLevel?: number
   motorHours?: number
   events: Array<Record<string, string>>
 }
@@ -69,6 +70,7 @@ export function buildDemoDays(): DemoDaySpec[] {
       filename: 'kiel-laboe.gpx',
       freshwater: { morning: 120, refilled: 0, evening: 105, consumption: 15 },
       fuel: { morning: 85, refilled: 0, evening: 78, consumption: 7 },
+      greywaterLevel: 25,
       events: [
         {
           time: '10:15',
@@ -101,6 +103,7 @@ export function buildDemoDays(): DemoDaySpec[] {
       filename: 'laboe-damp.gpx',
       freshwater: { morning: 105, refilled: 25, evening: 110, consumption: 20 },
       fuel: { morning: 78, refilled: 0, evening: 70, consumption: 8 },
+      greywaterLevel: 38,
       motorHours: 1.5,
       events: [
         {
@@ -134,6 +137,7 @@ export function buildDemoDays(): DemoDaySpec[] {
       filename: 'damp-schleimuende.gpx',
       freshwater: { morning: 110, refilled: 0, evening: 95, consumption: 15 },
       fuel: { morning: 70, refilled: 15, evening: 80, consumption: 5 },
+      greywaterLevel: 52,
       events: [
         {
           time: '08:30',
@@ -176,7 +180,10 @@ export function buildDemoYachtData(): Record<string, unknown> {
     atis: '',
     mmsi: '',
     sails: isDe ? ['Großsegel', 'Genua', 'Spinnaker'] : ['Mainsail', 'Genoa', 'Spinnaker'],
-    photo: null
+    photo: null,
+    freshwaterCapacityL: 200,
+    fuelCapacityL: 100,
+    greywaterCapacityL: 80
   }
 }
 
@@ -244,6 +251,10 @@ export function buildPublicDemoFixture(): PublicDemoFixture {
       events: day.events
     }
 
+    if (day.greywaterLevel != null && day.greywaterLevel > 0) {
+      entryPayload.greywater = { level: day.greywaterLevel }
+    }
+
     if (stats) {
       entryPayload.trackDistanceNm = stats.distanceNm
       entryPayload.trackSpeedMaxKn = stats.speedMaxKn
@@ -301,6 +312,10 @@ export function buildDemoEntryPayloads(): Array<{
       signSkipper: '',
       signCrew: '',
       events: day.events
+    }
+
+    if (day.greywaterLevel != null && day.greywaterLevel > 0) {
+      entryPayload.greywater = { level: day.greywaterLevel }
     }
 
     if (stats) {

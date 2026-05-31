@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildLogEntryPayload,
   hasUnsavedEventDraft,
   isLogEventDraftEmpty,
   normalizeLogEvent,
@@ -38,5 +39,27 @@ describe('logEntryPayload event drafts', () => {
   it('ignores edit mode when values match', () => {
     const events = [filledDraft()]
     expect(hasUnsavedEventDraft(filledDraft(), 0, events)).toBe(false)
+  })
+})
+
+describe('buildLogEntryPayload greywater', () => {
+  const base = {
+    date: '2026-05-31',
+    dayOfTravel: '1',
+    departure: 'Kiel',
+    destination: 'Laboe',
+    freshwater: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+    fuel: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+    events: [] as LogEventPayload[]
+  }
+
+  it('includes greywater when level > 0', () => {
+    const payload = buildLogEntryPayload({ ...base, greywater: { level: 45 } })
+    expect(payload.greywater).toEqual({ level: 45 })
+  })
+
+  it('omits greywater when level is 0', () => {
+    const payload = buildLogEntryPayload({ ...base, greywater: { level: 0 } })
+    expect(payload.greywater).toBeUndefined()
   })
 })

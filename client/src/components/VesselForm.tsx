@@ -7,6 +7,7 @@ import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { Ship, Save, Check, Plus, X, Camera, Trash2 } from 'lucide-react'
+import { parseOptionalTankLiters, tankCapacityInputFromStored } from '../utils/tankCapacity.js'
 
 interface VesselFormProps {
   logbookId: string
@@ -47,6 +48,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
   const [mmsi, setMmsi] = useState('')
   const [sails, setSails] = useState<string[]>([])
   const [newSailName, setNewSailName] = useState('')
+  const [freshwaterCapacityL, setFreshwaterCapacityL] = useState('')
+  const [fuelCapacityL, setFuelCapacityL] = useState('')
+  const [greywaterCapacityL, setGreywaterCapacityL] = useState('')
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [photo, setPhoto] = useState<string | null>(null)
@@ -78,6 +82,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
           setMmsi(preloadedData.mmsi || '')
           setSails(preloadedData.sails || [])
           setPhoto(preloadedData.photo || null)
+          setFreshwaterCapacityL(tankCapacityInputFromStored(preloadedData.freshwaterCapacityL))
+          setFuelCapacityL(tankCapacityInputFromStored(preloadedData.fuelCapacityL))
+          setGreywaterCapacityL(tankCapacityInputFromStored(preloadedData.greywaterCapacityL))
           return
         }
 
@@ -103,6 +110,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
             setMmsi(decrypted.mmsi || '')
             setSails(decrypted.sails || [])
             setPhoto(decrypted.photo || null)
+            setFreshwaterCapacityL(tankCapacityInputFromStored(decrypted.freshwaterCapacityL))
+            setFuelCapacityL(tankCapacityInputFromStored(decrypted.fuelCapacityL))
+            setGreywaterCapacityL(tankCapacityInputFromStored(decrypted.greywaterCapacityL))
           }
         }
       } catch (err: any) {
@@ -201,12 +211,19 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
       let parsedLengthM: number | undefined
       let parsedDraftM: number | undefined
       let parsedAirDraftM: number | undefined
+      let parsedFreshwaterCapacityL: number | undefined
+      let parsedFuelCapacityL: number | undefined
+      let parsedGreywaterCapacityL: number | undefined
       try {
         parsedLengthM = parseOptionalMetricMeters(lengthM)
         parsedDraftM = parseOptionalMetricMeters(draftM)
         parsedAirDraftM = parseOptionalMetricMeters(airDraftM)
-      } catch {
-        setError(t('vessel.invalid_metric'))
+        parsedFreshwaterCapacityL = parseOptionalTankLiters(freshwaterCapacityL)
+        parsedFuelCapacityL = parseOptionalTankLiters(fuelCapacityL)
+        parsedGreywaterCapacityL = parseOptionalTankLiters(greywaterCapacityL)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : ''
+        setError(msg === 'invalid_tank_liters' ? t('vessel.invalid_tank_liters') : t('vessel.invalid_metric'))
         setSaving(false)
         return
       }
@@ -217,6 +234,9 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
         lengthM: parsedLengthM,
         draftM: parsedDraftM,
         airDraftM: parsedAirDraftM,
+        freshwaterCapacityL: parsedFreshwaterCapacityL,
+        fuelCapacityL: parsedFuelCapacityL,
+        greywaterCapacityL: parsedGreywaterCapacityL,
         homePort: homePort.trim(),
         charterCompany: charterCompany.trim(),
         owner: owner.trim(),
@@ -478,6 +498,49 @@ export default function VesselForm({ logbookId, readOnly = false, preloadedData 
               onChange={(e) => setMmsi(e.target.value)}
               disabled={saving || readOnly}
             />
+          </div>
+
+          <div className="vessel-tanks-section">
+            <h3>{t('vessel.tanks_section')}</h3>
+            <p className="vessel-tanks-help">{t('vessel.tanks_help')}</p>
+            <div className="vessel-tanks-grid">
+              <div className="input-group">
+                <label>{t('vessel.freshwater_capacity_l')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="input-text"
+                  value={freshwaterCapacityL}
+                  onChange={(e) => setFreshwaterCapacityL(e.target.value)}
+                  disabled={saving || readOnly}
+                  placeholder="0"
+                />
+              </div>
+              <div className="input-group">
+                <label>{t('vessel.fuel_capacity_l')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="input-text"
+                  value={fuelCapacityL}
+                  onChange={(e) => setFuelCapacityL(e.target.value)}
+                  disabled={saving || readOnly}
+                  placeholder="0"
+                />
+              </div>
+              <div className="input-group">
+                <label>{t('vessel.greywater_capacity_l')}</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="input-text"
+                  value={greywaterCapacityL}
+                  onChange={(e) => setGreywaterCapacityL(e.target.value)}
+                  disabled={saving || readOnly}
+                  placeholder="0"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="sails-section">
