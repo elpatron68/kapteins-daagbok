@@ -48,6 +48,7 @@ export interface LogEntryTankSource {
 export interface CarryOverFromPreviousDay {
   freshwater: TankLevels
   fuel: TankLevels
+  greywaterLevel: number
   departure: string
 }
 
@@ -58,6 +59,10 @@ export function emptyTankLevels(morning = 0): TankLevels {
 export function formatTankLiters(liters: number): string {
   if (!Number.isFinite(liters) || liters <= 0) return '0'
   return Number.isInteger(liters) ? String(liters) : liters.toFixed(1)
+}
+
+export function getClosingGreywaterLevel(greywater?: { level?: number } | null): number {
+  return Number(greywater?.level) || 0
 }
 
 export function carryOverTankLevelsFromPreviousDay(previousEntry?: LogEntryTankSource | null): { freshwater: TankLevels; fuel: TankLevels } {
@@ -74,10 +79,16 @@ export function carryOverTankLevelsFromPreviousDay(previousEntry?: LogEntryTankS
 export function carryOverFromPreviousDay(previousEntry?: LogEntryTankSource | null): CarryOverFromPreviousDay {
   const { freshwater, fuel } = carryOverTankLevelsFromPreviousDay(previousEntry)
   const departure = previousEntry?.destination?.trim() || ''
+  const greywaterLevel = getClosingGreywaterLevel(previousEntry?.greywater)
 
-  return { freshwater, fuel, departure }
+  return { freshwater, fuel, greywaterLevel, departure }
 }
 
 export function hasCarryOverFromPreviousDay(carryOver: CarryOverFromPreviousDay): boolean {
-  return carryOver.freshwater.morning > 0 || carryOver.fuel.morning > 0 || carryOver.departure.length > 0
+  return (
+    carryOver.freshwater.morning > 0 ||
+    carryOver.fuel.morning > 0 ||
+    carryOver.greywaterLevel > 0 ||
+    carryOver.departure.length > 0
+  )
 }

@@ -241,14 +241,15 @@ export default function LogEntriesList({
 
       decryptedEntries.sort(compareTravelDaysChronological)
       const previousEntry = decryptedEntries.at(-1) ?? null
-      let { freshwater, fuel, departure } = carryOverFromPreviousDay(previousEntry)
+      let { freshwater, fuel, greywaterLevel, departure } = carryOverFromPreviousDay(previousEntry)
 
-      if (previousEntry && hasCarryOverFromPreviousDay({ freshwater, fuel, departure })) {
+      if (previousEntry && hasCarryOverFromPreviousDay({ freshwater, fuel, greywaterLevel, departure })) {
         const confirmed = await showConfirm(
           t('logs.carry_over_tanks_confirm', {
             departure: departure || '—',
             fw: formatTankLiters(freshwater.morning),
-            fuel: formatTankLiters(fuel.morning)
+            fuel: formatTankLiters(fuel.morning),
+            greywater: formatTankLiters(greywaterLevel)
           }),
           t('logs.carry_over_tanks_title'),
           t('logs.carry_over_tanks_yes'),
@@ -257,6 +258,7 @@ export default function LogEntriesList({
         if (!confirmed) {
           freshwater = emptyTankLevels()
           fuel = emptyTankLevels()
+          greywaterLevel = 0
           departure = ''
         }
       }
@@ -274,6 +276,7 @@ export default function LogEntriesList({
         destination: '',
         freshwater,
         fuel,
+        ...(greywaterLevel > 0 ? { greywater: { level: greywaterLevel } } : {}),
         signSkipper: '',
         signCrew: '',
         events: []

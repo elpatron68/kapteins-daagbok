@@ -193,7 +193,7 @@
       "delete_entry": "Tag löschen",
       "delete_confirm": "Bist du sicher, dass du diesen Reisetag unwiderruflich löschen möchtest?",
       "carry_over_tanks_title": "Daten vom Vortag übernehmen?",
-      "carry_over_tanks_confirm": "Start-Hafen, Frischwasser- und Kraftstoff-Morgenstände vom letzten Reisetag übernehmen?\n\nStart-Hafen: {{departure}}\nFrischwasser: {{fw}} L\nKraftstoff: {{fuel}} L",
+      "carry_over_tanks_confirm": "Start-Hafen, Frischwasser-, Kraftstoff- und Grauwasser-Startstände vom letzten Reisetag übernehmen?\n\nStart-Hafen: {{departure}}\nFrischwasser: {{fw}} L\nKraftstoff: {{fuel}} L\nGrauwasser: {{greywater}} L",
       "carry_over_tanks_yes": "Übernehmen",
       "carry_over_tanks_no": "Mit 0 starten",
       "event_title": "Chronologisches Ereignisprotokoll",
