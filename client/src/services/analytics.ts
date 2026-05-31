@@ -25,7 +25,15 @@ export const PlausibleEvents = {
   DEMO_OPENED: 'Demo Opened',
   PUSH_ENABLED: 'Push Enabled',
   PUSH_DISABLED: 'Push Disabled',
-  FOOTER_LINK_CLICKED: 'Footer Link Clicked'
+  FOOTER_LINK_CLICKED: 'Footer Link Clicked',
+  PROFILE_OPENED: 'Profile Opened',
+  PASSKEY_ADDED: 'Passkey Added',
+  PASSKEY_REMOVED: 'Passkey Removed',
+  PASSKEY_RENAMED: 'Passkey Renamed',
+  LAST_PASSKEY_REMOVE_HINTED: 'Last Passkey Remove Hinted',
+  LOCAL_PIN_SET: 'Local PIN Set',
+  LOCAL_PIN_REMOVED: 'Local PIN Removed',
+  DEVICE_FORGOTTEN: 'Device Forgotten'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]

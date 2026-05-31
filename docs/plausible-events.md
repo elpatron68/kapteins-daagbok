@@ -40,12 +40,22 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Push Enabled | Crew-Änderungs-Push aktiviert (`PushNotificationSettings.tsx`) | — |
 | Push Disabled | Crew-Änderungs-Push deaktiviert (`PushNotificationSettings.tsx`) | — |
 | Footer Link Clicked | Klick auf Autoren-Link im App-Footer (`AppFooter.tsx`) | — |
+| Profile Opened | Profilseite geöffnet (`UserProfilePage.tsx`, einmal pro Mount) | — |
+| Passkey Added | Passkey erfolgreich registriert (`UserProfilePage.tsx`) | `labeled`: `true` \| `false` (optionaler Name gesetzt) |
+| Passkey Removed | Passkey entfernt, mindestens ein Key verbleibt (`UserProfilePage.tsx`) | — |
+| Passkey Renamed | Passkey-Name gespeichert (`UserProfilePage.tsx`) | — |
+| Last Passkey Remove Hinted | Löschen des einzigen Passkeys abgebrochen — Hinweisdialog zur Kontolöschung (`UserProfilePage.tsx`) | — |
+| Local PIN Set | Lokaler PIN gesetzt oder geändert (`UserProfilePage.tsx`) | `action`: `set` \| `change` |
+| Local PIN Removed | Lokaler PIN entfernt (`UserProfilePage.tsx`) | — |
+| Device Forgotten | Account aus Schnell-Login-Liste dieses Geräts entfernt (`UserProfilePage.tsx`) | — |
 
 ## Bewusst nicht getrackt
 
 - **Demo-Logbuch:** Beim automatischen Seed (`demoLogbook.ts`) werden keine Events ausgelöst — nur echte Nutzeraktionen zählen.
 - **Manuelle Signaturen:** Nur Passkey-Signaturen lösen `Entry Signed` aus.
 - **PII:** Keine Inhalte aus verschlüsselten Logbüchern in Properties.
+- **Profil-KPIs:** Statistik-Karten und User-ID-Kopieren werden nicht getrackt (reine Anzeige bzw. zu granular).
+- **Kontolöschung:** `Account Deleted` bleibt in `auth.ts` — unabhängig davon, ob die Gefahrenzone auf der Profilseite oder früher in den Einstellungen genutzt wurde.
 
 ## Typische Funnels (Plausible Goals)
 
@@ -57,6 +67,7 @@ Empfohlene Goal-Ketten für Auswertung:
 4. **Öffentliche Freigabe:** Logbook Shared → Public Link Opened
 5. **Export:** Travel Day Saved → PDF Exported / CSV Exported
 6. **Datensicherung:** Backup Exported → Backup Restored
+7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 
 ## Entwicklung
 

@@ -50,6 +50,7 @@ import {
   type AccountStatsSummary
 } from '../services/statsAggregation.js'
 import { db } from '../services/db.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 interface UserProfilePageProps {
   onBack: () => void
@@ -155,6 +156,10 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   }, [loadData])
 
   useEffect(() => {
+    trackPlausibleEvent(PlausibleEvents.PROFILE_OPENED)
+  }, [])
+
+  useEffect(() => {
     const handleOnline = () => setOnline(true)
     const handleOffline = () => setOnline(false)
     window.addEventListener('online', handleOnline)
@@ -198,9 +203,11 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     setPasskeyBusy(true)
     setError(null)
     try {
+      const hadLabel = Boolean(newPasskeyLabel.trim())
       await addPasskey(newPasskeyLabel)
       setNewPasskeyLabel('')
       await loadData()
+      trackPlausibleEvent(PlausibleEvents.PASSKEY_ADDED, { labeled: hadLabel })
       showAlert(t('profile.add_passkey_success'))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('profile.add_passkey_failed'))
@@ -215,6 +222,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     try {
       await renamePasskey(credentialId, passkeyLabels[credentialId] ?? '')
       await loadData()
+      trackPlausibleEvent(PlausibleEvents.PASSKEY_RENAMED)
       showAlert(t('profile.passkey_rename_success'))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('profile.add_passkey_failed'))
@@ -234,10 +242,12 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
 
     forgetUsername(username)
     setIsKnownDevice(false)
+    trackPlausibleEvent(PlausibleEvents.DEVICE_FORGOTTEN)
   }
 
   const handleRemovePasskey = async (credentialId: string) => {
     if (profile && profile.credentials.length <= 1) {
+      trackPlausibleEvent(PlausibleEvents.LAST_PASSKEY_REMOVE_HINTED)
       await showAlert(
         t('profile.remove_passkey_last_desc'),
         t('profile.remove_passkey_last_title')
@@ -258,6 +268,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     try {
       await removePasskey(credentialId)
       await loadData()
+      trackPlausibleEvent(PlausibleEvents.PASSKEY_REMOVED)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('profile.remove_passkey_failed'))
     } finally {
@@ -282,6 +293,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
       return
     }
 
+    const pinAction = pinActive ? 'change' : 'set'
+
     setPinBusy(true)
     setError(null)
     try {
@@ -289,6 +302,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
       setPinActive(true)
       setPinInput('')
       setPinConfirm('')
+      trackPlausibleEvent(PlausibleEvents.LOCAL_PIN_SET, { action: pinAction })
       showAlert(t('profile.pin_saved'))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('profile.pin_save_failed'))
@@ -310,6 +324,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     setPinActive(false)
     setPinInput('')
     setPinConfirm('')
+    trackPlausibleEvent(PlausibleEvents.LOCAL_PIN_REMOVED)
   }
 
   return (
