@@ -18,7 +18,8 @@ import { UnsavedChangesProvider, useUnsavedChangesContext } from './context/Unsa
 import {
   logoutUser,
   checkServerSession,
-  hasUnlockedLocalCrypto
+  hasUnlockedLocalSession,
+  persistSessionUserId
 } from './services/auth.js'
 import AppErrorBoundary from './components/AppErrorBoundary.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
@@ -225,7 +226,8 @@ function App() {
   /** After PWA/bfcache resume, React state may still say "logged in" while the master key is gone. */
   const enforceUnlockedSession = useCallback(() => {
     if (isViewerMode || isDemoMode || isAcceptingInvite) return
-    if (isAuthenticated && !hasUnlockedLocalCrypto()) {
+    // Require full local session (incl. userId) so API calls are not left headless.
+    if (isAuthenticated && !hasUnlockedLocalSession()) {
       clearAuthenticatedAppState()
     }
   }, [
@@ -267,11 +269,12 @@ function App() {
         const session = await checkServerSession()
         if (cancelled) return
 
-        if (session.authenticated && session.userId) {
-          localStorage.setItem('active_userid', session.userId)
+        if (session.authenticated) {
+          persistSessionUserId(session.userId)
         }
 
-        if (session.authenticated && hasUnlockedLocalCrypto()) {
+        // Cookie alone is insufficient — need in-memory master key, username, and userId for API.
+        if (session.authenticated && hasUnlockedLocalSession()) {
           setIsAuthenticated(true)
           const savedLogbookId = localStorage.getItem('active_logbook_id')
           const savedLogbookTitle = localStorage.getItem('active_logbook_title')
@@ -280,7 +283,7 @@ function App() {
             setActiveLogbookTitle(savedLogbookTitle)
           }
         }
-        // authenticated without local crypto: stay on login (cookie alone is not enough)
+        // authenticated + crypto but no userId: stay on login (enforceUnlockedSession guards active UI)
       } catch (err) {
         if (!cancelled) {
           console.warn('Session restore failed:', err)

@@ -56,6 +56,13 @@ export function hasUnlockedLocalSession(): boolean {
   return hasUnlockedLocalCrypto() && !!localStorage.getItem('active_userid')
 }
 
+/** Persist server session user id when the /session response includes it. */
+export function persistSessionUserId(userId: string | undefined): void {
+  if (userId) {
+    localStorage.setItem('active_userid', userId)
+  }
+}
+
 export async function reauthWithPasskey(): Promise<boolean> {
   const options = await apiJson<any>(`${API_BASE}/reauth-options`, {
     method: 'POST'

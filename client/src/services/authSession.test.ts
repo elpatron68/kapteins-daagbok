@@ -32,3 +32,22 @@ describe('local session unlock checks', () => {
     expect(hasUnlockedLocalCrypto()).toBe(false)
   })
 })
+
+describe('persistSessionUserId', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('stores userId when provided', async () => {
+    const { persistSessionUserId } = await import('./auth.js')
+    persistSessionUserId('user-42')
+    expect(localStorage.getItem('active_userid')).toBe('user-42')
+  })
+
+  it('does not clear existing userId when omitted', async () => {
+    const { persistSessionUserId } = await import('./auth.js')
+    localStorage.setItem('active_userid', 'user-1')
+    persistSessionUserId(undefined)
+    expect(localStorage.getItem('active_userid')).toBe('user-1')
+  })
+})
