@@ -13,6 +13,7 @@ import {
 } from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
 import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
+import DisclaimerModal from './DisclaimerModal.tsx'
 import BetaBadge from './BetaBadge.tsx'
 
 interface AuthOnboardingProps {
@@ -50,6 +51,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
 
   const [isNewRegistration, setIsNewRegistration] = useState(false)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   const finishAuth = () => {
     if (isNewRegistration) {
@@ -410,6 +412,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
 
   // Render 3: Standard Login / Registration options form
   return (
+    <>
     <div className="auth-card glass">
       <div className="auth-brand">
         <img src="/logo.png" alt="Kapteins Daagbok" className="auth-logo-img" />
@@ -570,15 +573,23 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
       </div>
 
       <div className="auth-footer">
-        <button className="btn-icon-text" onClick={toggleLanguage}>
+        <button type="button" className="btn-icon-text" onClick={toggleLanguage}>
           <Languages size={18} />
           {i18n.language.startsWith('de') ? 'English' : 'Deutsch'}
         </button>
-        <a href="#help" className="btn-icon-text link-sec">
+        <button
+          type="button"
+          className="btn-icon-text link-sec"
+          onClick={() => setShowHelp(true)}
+          title={t('disclaimer.button_title')}
+          aria-label={t('disclaimer.button_title')}
+        >
           <HelpCircle size={18} />
           {t('auth.help')}
-        </a>
+        </button>
       </div>
     </div>
+    <DisclaimerModal open={showHelp} onClose={() => setShowHelp(false)} />
+    </>
   )
 }
