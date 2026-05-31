@@ -43,7 +43,13 @@ import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
 import TankLiterInput from './TankLiterInput.tsx'
-import { extractTankCapacitiesFromYacht, type VesselTankCapacities } from '../utils/tankCapacity.js'
+import {
+  computeEveningTankMaxLiters,
+  computeRefilledTankMaxLiters,
+  extractTankCapacitiesFromYacht,
+  formatTankLitersForInput,
+  type VesselTankCapacities
+} from '../utils/tankCapacity.js'
 
 function emptyTankLevels() {
   return { morning: 0, refilled: 0, evening: 0, consumption: 0 }
@@ -278,6 +284,36 @@ export default function LogEntryEditor({
   )
 
   const tankCapacityTooltip = t('logs.tank_capacity_tooltip')
+
+  const fwRefilledMax = useMemo(
+    () => computeRefilledTankMaxLiters(fwMorning, tankCapacities.freshwaterCapacityL),
+    [fwMorning, tankCapacities.freshwaterCapacityL]
+  )
+
+  const fwEveningMax = useMemo(
+    () =>
+      computeEveningTankMaxLiters(
+        fwMorning,
+        fwRefilled,
+        tankCapacities.freshwaterCapacityL
+      ),
+    [fwMorning, fwRefilled, tankCapacities.freshwaterCapacityL]
+  )
+
+  const fuelRefilledMax = useMemo(
+    () => computeRefilledTankMaxLiters(fuelMorning, tankCapacities.fuelCapacityL),
+    [fuelMorning, tankCapacities.fuelCapacityL]
+  )
+
+  const fuelEveningMax = useMemo(
+    () =>
+      computeEveningTankMaxLiters(
+        fuelMorning,
+        fuelRefilled,
+        tankCapacities.fuelCapacityL
+      ),
+    [fuelMorning, fuelRefilled, tankCapacities.fuelCapacityL]
+  )
 
   const currentFingerprint = useMemo(() => {
     const payload = buildPayloadForSigning()
@@ -537,6 +573,38 @@ export default function LogEntryEditor({
     const cons = morning + refilled - evening
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
+
+  useEffect(() => {
+    if (fwRefilledMax == null) return
+    const refilled = parseFloat(fwRefilled) || 0
+    if (refilled > fwRefilledMax) {
+      setFwRefilled(formatTankLitersForInput(fwRefilledMax))
+    }
+  }, [fwRefilledMax, fwMorning])
+
+  useEffect(() => {
+    if (fwEveningMax == null) return
+    const evening = parseFloat(fwEvening) || 0
+    if (evening > fwEveningMax) {
+      setFwEvening(formatTankLitersForInput(fwEveningMax))
+    }
+  }, [fwEveningMax, fwMorning, fwRefilled])
+
+  useEffect(() => {
+    if (fuelRefilledMax == null) return
+    const refilled = parseFloat(fuelRefilled) || 0
+    if (refilled > fuelRefilledMax) {
+      setFuelRefilled(formatTankLitersForInput(fuelRefilledMax))
+    }
+  }, [fuelRefilledMax, fuelMorning])
+
+  useEffect(() => {
+    if (fuelEveningMax == null) return
+    const evening = parseFloat(fuelEvening) || 0
+    if (evening > fuelEveningMax) {
+      setFuelEvening(formatTankLitersForInput(fuelEveningMax))
+    }
+  }, [fuelEveningMax, fuelMorning, fuelRefilled])
 
   // Load yacht sails and tank capacities
   useEffect(() => {
@@ -1249,7 +1317,7 @@ export default function LogEntryEditor({
                 label={t('logs.refilled')}
                 value={fwRefilled}
                 onChange={setFwRefilled}
-                maxLiters={tankCapacities.freshwaterCapacityL}
+                maxLiters={fwRefilledMax ?? tankCapacities.freshwaterCapacityL}
                 disabled={saving || readOnly}
                 titleTooltip={tankCapacityTooltip}
               />
@@ -1258,7 +1326,7 @@ export default function LogEntryEditor({
                 label={t('logs.evening')}
                 value={fwEvening}
                 onChange={setFwEvening}
-                maxLiters={tankCapacities.freshwaterCapacityL}
+                maxLiters={fwEveningMax}
                 disabled={saving || readOnly}
                 titleTooltip={tankCapacityTooltip}
               />
@@ -1298,7 +1366,7 @@ export default function LogEntryEditor({
                 label={t('logs.refilled')}
                 value={fuelRefilled}
                 onChange={setFuelRefilled}
-                maxLiters={tankCapacities.fuelCapacityL}
+                maxLiters={fuelRefilledMax ?? tankCapacities.fuelCapacityL}
                 disabled={saving || readOnly}
                 titleTooltip={tankCapacityTooltip}
               />
@@ -1307,7 +1375,7 @@ export default function LogEntryEditor({
                 label={t('logs.evening')}
                 value={fuelEvening}
                 onChange={setFuelEvening}
-                maxLiters={tankCapacities.fuelCapacityL}
+                maxLiters={fuelEveningMax}
                 disabled={saving || readOnly}
                 titleTooltip={tankCapacityTooltip}
               />

@@ -50,6 +50,47 @@ export function extractTankCapacitiesFromYacht(decrypted: unknown): VesselTankCa
   return capacities
 }
 
+/** Parse a liter amount from form state (string). */
+export function parseTankLitersFromInput(input: string): number {
+  const trimmed = input.trim().replace(',', '.')
+  if (!trimmed) return 0
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+}
+
+/**
+ * Max for refilled amount: remaining capacity after morning level.
+ * Returns undefined when no positive max (no slider).
+ */
+export function computeRefilledTankMaxLiters(
+  morningInput: string,
+  tankCapacityL?: number
+): number | undefined {
+  if (tankCapacityL == null || tankCapacityL <= 0) return undefined
+  const remaining = tankCapacityL - parseTankLitersFromInput(morningInput)
+  if (remaining <= 0) return undefined
+  return remaining
+}
+
+/**
+ * Max for evening fill level: morning + refilled, capped by tank capacity when known.
+ * Returns undefined when no positive max (no slider).
+ */
+export function computeEveningTankMaxLiters(
+  morningInput: string,
+  refilledInput: string,
+  tankCapacityL?: number
+): number | undefined {
+  const sum = parseTankLitersFromInput(morningInput) + parseTankLitersFromInput(refilledInput)
+  if (sum <= 0) return undefined
+
+  if (tankCapacityL != null && tankCapacityL > 0) {
+    return Math.min(tankCapacityL, sum)
+  }
+
+  return sum
+}
+
 /** Clamp numeric liter value to [0, max] when max is known. */
 export function clampTankLiters(value: number, maxLiters?: number): number {
   const clamped = Math.max(0, value)

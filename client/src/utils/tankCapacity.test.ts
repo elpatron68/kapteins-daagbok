@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   clampTankLiters,
+  computeEveningTankMaxLiters,
+  computeRefilledTankMaxLiters,
   extractTankCapacitiesFromYacht,
   formatTankLitersForInput,
   parseOptionalTankLiters,
@@ -43,5 +45,18 @@ describe('tankCapacity', () => {
     expect(clampTankLiters(250, 200)).toBe(200)
     expect(clampTankLiters(-5, 200)).toBe(0)
     expect(clampTankLiters(50)).toBe(50)
+  })
+
+  it('computes refilled max as capacity minus morning', () => {
+    expect(computeRefilledTankMaxLiters('10', 60)).toBe(50)
+    expect(computeRefilledTankMaxLiters('60', 60)).toBeUndefined()
+    expect(computeRefilledTankMaxLiters('10', undefined)).toBeUndefined()
+  })
+
+  it('computes evening max as morning plus refilled capped by capacity', () => {
+    expect(computeEveningTankMaxLiters('10', '20', 60)).toBe(30)
+    expect(computeEveningTankMaxLiters('40', '40', 60)).toBe(60)
+    expect(computeEveningTankMaxLiters('10', '20')).toBe(30)
+    expect(computeEveningTankMaxLiters('0', '0', 60)).toBeUndefined()
   })
 })
