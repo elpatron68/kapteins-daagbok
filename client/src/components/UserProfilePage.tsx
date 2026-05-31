@@ -106,12 +106,16 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     setLoading(true)
     setError(null)
     try {
-      const [profileData, stats] = await Promise.all([
-        fetchUserProfile(),
-        loadAccountStats(false)
-      ])
+      const profileData = await fetchUserProfile()
       setProfile(profileData)
-      setAccountStats(stats)
+
+      try {
+        const stats = await loadAccountStats(false)
+        setAccountStats(stats)
+      } catch (statsErr) {
+        console.error('Failed to load account stats for profile:', statsErr)
+        setAccountStats(null)
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('profile.load_error'))
     } finally {
@@ -124,6 +128,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   }, [loadData])
 
   const statsTotals = accountStats?.totals
+  const logbookCount =
+    accountStats?.logbooks.length ?? profile?.serverMeta.ownedLogbookCount ?? 0
 
   const accountAgeLabel = useMemo(() => {
     if (!profile?.createdAt) return '—'
@@ -420,51 +426,55 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 </div>
               </div>
 
-              {statsTotals && (
+              {(statsTotals || profile) && (
                 <div className="stats-kpi-grid">
                   <KpiCard
                     icon={<BookOpen size={20} />}
                     label={t('profile.stats_logbooks')}
-                    value={String(accountStats?.logbooks.length ?? profile.serverMeta.ownedLogbookCount)}
+                    value={String(logbookCount)}
                   />
-                  <KpiCard
-                    icon={<Anchor size={20} />}
-                    label={t('stats.travel_days')}
-                    value={String(statsTotals.travelDayCount)}
-                  />
-                  <KpiCard
-                    icon={<Gauge size={20} />}
-                    label={t('stats.total_distance')}
-                    value={formatNm(statsTotals.totalDistanceNm)}
-                    unit={t('stats.unit_nm')}
-                  />
-                  <KpiCard
-                    icon={<Sailboat size={20} />}
-                    label={t('stats.sail_distance')}
-                    value={formatNm(statsTotals.sailDistanceNm)}
-                    unit={t('stats.unit_nm')}
-                  />
-                  <KpiCard
-                    icon={<Gauge size={20} />}
-                    label={t('stats.motor_distance')}
-                    value={formatNm(statsTotals.motorDistanceNm)}
-                    unit={t('stats.unit_nm')}
-                  />
-                  <KpiCard
-                    icon={<Timer size={20} />}
-                    label={t('stats.motor_hours_total')}
-                    value={formatHours(statsTotals.totalMotorHours)}
-                    unit={t('stats.unit_h')}
-                  />
+                  {statsTotals && (
+                    <>
+                      <KpiCard
+                        icon={<Anchor size={20} />}
+                        label={t('stats.travel_days')}
+                        value={String(statsTotals.travelDayCount)}
+                      />
+                      <KpiCard
+                        icon={<Gauge size={20} />}
+                        label={t('stats.total_distance')}
+                        value={formatNm(statsTotals.totalDistanceNm)}
+                        unit={t('stats.unit_nm')}
+                      />
+                      <KpiCard
+                        icon={<Sailboat size={20} />}
+                        label={t('stats.sail_distance')}
+                        value={formatNm(statsTotals.sailDistanceNm)}
+                        unit={t('stats.unit_nm')}
+                      />
+                      <KpiCard
+                        icon={<Gauge size={20} />}
+                        label={t('stats.motor_distance')}
+                        value={formatNm(statsTotals.motorDistanceNm)}
+                        unit={t('stats.unit_nm')}
+                      />
+                      <KpiCard
+                        icon={<Timer size={20} />}
+                        label={t('stats.motor_hours_total')}
+                        value={formatHours(statsTotals.totalMotorHours)}
+                        unit={t('stats.unit_h')}
+                      />
+                      <KpiCard
+                        icon={<Share2 size={20} />}
+                        label={t('profile.stats_shared_logbooks')}
+                        value={String(sharedLogbookCount)}
+                      />
+                    </>
+                  )}
                   <KpiCard
                     icon={<Calendar size={20} />}
                     label={t('profile.stats_account_since')}
                     value={accountAgeLabel}
-                  />
-                  <KpiCard
-                    icon={<Share2 size={20} />}
-                    label={t('profile.stats_shared_logbooks')}
-                    value={String(sharedLogbookCount)}
                   />
                 </div>
               )}
