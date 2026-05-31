@@ -108,6 +108,7 @@ export async function seedDemoLogbookIfNeeded(): Promise<DemoSeedResult | null> 
       const title = i18n.t('demo.logbook_title')
       return { logbookId: existingId, title, firstEntryId }
     }
+    clearDemoLogbookRefs(userId, existingId)
   }
 
   if (!shouldSeed) return null
@@ -151,4 +152,67 @@ export function getStoredDemoFirstEntryId(): string | null {
   const userId = localStorage.getItem('active_userid')
   if (!userId) return null
   return localStorage.getItem(getDemoFirstEntryStorageKey(userId))
+}
+
+/** Remove persisted demo logbook pointers when the logbook no longer exists. */
+export function clearDemoLogbookRefs(userId: string, logbookId?: string): void {
+  const storedId = localStorage.getItem(getDemoLogbookStorageKey(userId))
+  if (logbookId && storedId && storedId !== logbookId) return
+  localStorage.removeItem(getDemoLogbookStorageKey(userId))
+  localStorage.removeItem(getDemoFirstEntryStorageKey(userId))
+}
+
+export async function entryExistsInLogbook(logbookId: string, entryId: string): Promise<boolean> {
+  const entry = await db.entries.get(entryId)
+  return entry?.logbookId === logbookId
+}
+
+export interface TourLogbookContext {
+  logbookId: string
+  title: string
+  firstEntryId: string | null
+}
+
+/** Pick a logbook + first entry for the onboarding tour (handles deleted demo data). */
+export async function resolveTourLogbookContext(
+  preferLogbookId?: string | null
+): Promise<TourLogbookContext | null> {
+  const userId = localStorage.getItem('active_userid')
+  if (!userId || !getActiveMasterKey()) return null
+
+  const demoId = localStorage.getItem(getDemoLogbookStorageKey(userId))
+  if (demoId && !(await db.logbooks.get(demoId))) {
+    clearDemoLogbookRefs(userId, demoId)
+  }
+
+  const { fetchLogbooks } = await import('./logbook.js')
+  const books = await fetchLogbooks()
+  if (books.length === 0) return null
+
+  const activeId = localStorage.getItem('active_logbook_id')
+  const pick =
+    (preferLogbookId ? books.find((b) => b.id === preferLogbookId) : undefined) ??
+    (activeId ? books.find((b) => b.id === activeId) : undefined) ??
+    (demoId ? books.find((b) => b.id === demoId) : undefined) ??
+    books[0]
+
+  const firstEntryId = await resolveTourFirstEntryId(pick.id, userId)
+  return { logbookId: pick.id, title: pick.title, firstEntryId }
+}
+
+async function resolveTourFirstEntryId(logbookId: string, userId: string): Promise<string | null> {
+  const stored = localStorage.getItem(getDemoFirstEntryStorageKey(userId))
+  if (stored && (await entryExistsInLogbook(logbookId, stored))) {
+    return stored
+  }
+
+  if (stored) {
+    localStorage.removeItem(getDemoFirstEntryStorageKey(userId))
+  }
+
+  const localEntries = await db.entries.where({ logbookId }).toArray()
+  if (localEntries.length === 0) return null
+
+  localEntries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  return localEntries[0]?.payloadId ?? null
 }

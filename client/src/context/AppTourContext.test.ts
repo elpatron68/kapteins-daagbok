@@ -3,6 +3,8 @@ import {
   DEMO_EXCLUDED_STEPS,
   DEMO_STEP_ORDER,
   FULL_STEP_ORDER,
+  getTourScrollRetryDelays,
+  getTourTargetRetryDelay,
   tourStepOpensEntry
 } from './AppTourContext.tsx'
 
@@ -30,5 +32,10 @@ describe('AppTourContext step order', () => {
     expect(tourStepOpensEntry('entry_open')).toBe(false)
     expect(tourStepOpensEntry('entry_list')).toBe(false)
     expect(tourStepOpensEntry('entry_track')).toBe(true)
+  })
+
+  it('retries scroll for entry_track while editor mounts', () => {
+    expect(getTourTargetRetryDelay('entry_track')).toBeGreaterThanOrEqual(400)
+    expect(getTourScrollRetryDelays('entry_track').length).toBeGreaterThan(1)
   })
 })

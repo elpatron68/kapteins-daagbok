@@ -39,6 +39,7 @@ interface TourNavigation {
   setFeedbackOpen: (open: boolean) => void
   setLogbookActive: (active: boolean) => void
   setProfileOpen: (open: boolean) => void
+  ensureLogbookForTour?: () => Promise<void>
 }
 
 interface DemoTourContext {
@@ -124,9 +125,17 @@ export function tourStepOpensEntry(stepId: TourStepId): boolean {
 }
 
 export function getTourTargetDelay(stepId: TourStepId): number {
+  if (stepId === 'entry_track') return 400
   if (stepId === 'nav_feedback') return 180
   if (stepId === 'nav_profile' || stepId === 'profile_preferences') return 250
   return 0
+}
+
+/** Extra scroll attempts while async UI (e.g. entry editor) mounts. */
+export function getTourScrollRetryDelays(stepId: TourStepId): number[] {
+  if (stepId === 'entry_track') return [400, 700, 1100, 1600]
+  const initial = getTourTargetDelay(stepId)
+  return initial > 0 ? [initial] : [0]
 }
 
 const AppTourContext = createContext<AppTourContextValue | null>(null)
@@ -203,13 +212,19 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     if (!stepId) return
     const selector = TARGET_BY_STEP[stepId]
     if (!selector) return
-    const delayMs = getTourTargetDelay(stepId)
-    window.setTimeout(() => {
-      window.requestAnimationFrame(() => {
-        const el = document.querySelector(selector)
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
-      })
-    }, delayMs)
+
+    for (const delayMs of getTourScrollRetryDelays(stepId)) {
+      window.setTimeout(() => {
+        window.requestAnimationFrame(() => {
+          const el = document.querySelector(selector)
+          el?.scrollIntoView({
+            behavior: stepId === 'entry_track' ? 'instant' : 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          })
+        })
+      }, delayMs)
+    }
   }, [])
 
   const startTour = useCallback((options?: { force?: boolean; demoMode?: boolean }) => {
@@ -276,10 +291,25 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     if (!isActive) return
     const stepId = getStepOrder(isDemoTour)[stepIndex]
     if (!stepId) return
-    applyStepSideEffects(stepId)
-    scrollToCurrentTarget(stepId)
-    const timer = window.setTimeout(() => setLayoutTick((tick) => tick + 1), 0)
-    return () => window.clearTimeout(timer)
+
+    let cancelled = false
+    const run = async () => {
+      if (LOGBOOK_TOUR_STEPS.has(stepId) && !isDemoTour) {
+        await navigationRef.current?.ensureLogbookForTour?.()
+      }
+      if (cancelled) return
+      applyStepSideEffects(stepId)
+      scrollToCurrentTarget(stepId)
+      setLayoutTick((tick) => tick + 1)
+      window.setTimeout(() => {
+        if (!cancelled) setLayoutTick((tick) => tick + 1)
+      }, 150)
+    }
+    void run()
+
+    return () => {
+      cancelled = true
+    }
   }, [isActive, isDemoTour, stepIndex, applyStepSideEffects, scrollToCurrentTarget])
 
   const restartTour = useCallback(() => {
@@ -390,6 +420,7 @@ export function isCenteredTourStep(stepId: TourStepId | null): boolean {
 }
 
 export function getTourTargetRetryDelay(stepId: TourStepId | null): number {
+  if (stepId === 'entry_track') return 400
   if (stepId === 'profile_preferences') return 300
   if (stepId === 'nav_profile') return 200
   return 120

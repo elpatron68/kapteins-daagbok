@@ -365,6 +365,11 @@ export default function LogEntriesList({
     )
   }
 
+  const tourFirstEntryId =
+    highlightEntryId && entries.some((e) => e.id === highlightEntryId)
+      ? highlightEntryId
+      : entries[0]?.id ?? null
+
   return (
     <div className="form-card">
       <div className="section-title-bar mb-6">
@@ -402,7 +407,7 @@ export default function LogEntriesList({
             <div
               key={item.id}
               className="logbook-card glass"
-              data-tour={highlightEntryId === item.id ? 'entry-first' : undefined}
+              data-tour={tourFirstEntryId === item.id ? 'entry-first' : undefined}
               onClick={() => setSelectedEntryId(item.id)}
             >
               <div className="card-icon">

@@ -4,6 +4,7 @@ import { encryptJson, decryptJson, encryptBuffer, decryptBuffer } from './crypto
 import { getLogbookKey, saveLogbookKey, generateLogbookKey } from './logbookKeys.js'
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 import { apiFetch } from './api.js'
+import { clearDemoLogbookRefs, getDemoLogbookStorageKey } from './demoLogbook.js'
 
 const API_BASE = '/api/logbooks'
 
@@ -320,6 +321,9 @@ export async function deleteLogbook(id: string): Promise<void> {
 
   // Perform local cascading cleanup
   await deleteLocalLogbookCache(id)
+  if (userId && id === localStorage.getItem(getDemoLogbookStorageKey(userId))) {
+    clearDemoLogbookRefs(userId, id)
+  }
   trackPlausibleEvent(PlausibleEvents.LOGBOOK_DELETED)
 }
 

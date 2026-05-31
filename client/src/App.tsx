@@ -46,7 +46,7 @@ import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
 import {
-  getStoredDemoFirstEntryId,
+  resolveTourLogbookContext,
   seedDemoLogbookIfNeeded
 } from './services/demoLogbook.js'
 import { fetchLogbooks, parseCollaborationRole } from './services/logbook.js'
@@ -57,7 +57,7 @@ const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 function App() {
   const { t, i18n } = useTranslation()
   const { confirmLeave } = useUnsavedChangesContext()
-  const { registerNavigation, requestStartAfterLogin, isActive, currentStepId } = useAppTour()
+  const { registerNavigation, registerDemoTourContext, requestStartAfterLogin, isActive, currentStepId } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeLogbookId, setActiveLogbookId] = useState<string | null>(null)
   const [activeLogbookTitle, setActiveLogbookTitle] = useState<string | null>(null)
@@ -315,23 +315,39 @@ function App() {
     setIsAcceptingInvite(false)
   }, [])
 
+  const selectLogbook = useCallback((id: string, title: string) => {
+    setActiveLogbookId(id)
+    setActiveLogbookTitle(title)
+    setActiveTab('logs')
+    setTourSelectedEntryId(null)
+    localStorage.setItem('active_logbook_id', id)
+    localStorage.setItem('active_logbook_title', title)
+  }, [])
+
+  const ensureTourLogbookOpen = useCallback(async () => {
+    const ctx = await resolveTourLogbookContext(tourLogbookRef.current?.id)
+    if (!ctx) return
+
+    if (activeLogbookRef.current.id !== ctx.logbookId) {
+      selectLogbook(ctx.logbookId, ctx.title)
+    }
+
+    if (ctx.firstEntryId) {
+      setDemoHighlightEntryId(ctx.firstEntryId)
+      registerDemoTourContext({ firstEntryId: ctx.firstEntryId })
+    }
+  }, [registerDemoTourContext, selectLogbook])
+
   useEffect(() => {
     registerNavigation({
       setActiveTab,
       setSelectedEntryId: setTourSelectedEntryId,
       setFeedbackOpen: setTourFeedbackOpen,
       setProfileOpen: setShowUserProfile,
+      ensureLogbookForTour: ensureTourLogbookOpen,
       setLogbookActive: (active) => {
         if (active) {
-          const saved = tourLogbookRef.current
-          const id = saved?.id ?? localStorage.getItem('active_logbook_id')
-          const title = saved?.title ?? localStorage.getItem('active_logbook_title')
-          if (id && title) {
-            setActiveLogbookId(id)
-            setActiveLogbookTitle(title)
-            localStorage.setItem('active_logbook_id', id)
-            localStorage.setItem('active_logbook_title', title)
-          }
+          void ensureTourLogbookOpen()
           return
         }
 
@@ -346,22 +362,19 @@ function App() {
         localStorage.removeItem('active_logbook_title')
       }
     })
-  }, [registerNavigation])
+  }, [ensureTourLogbookOpen, registerNavigation])
 
   useEffect(() => {
-    if (isAuthenticated && activeLogbookId) {
-      setDemoHighlightEntryId(getStoredDemoFirstEntryId())
-    }
-  }, [isAuthenticated, activeLogbookId])
-
-  const selectLogbook = (id: string, title: string) => {
-    setActiveLogbookId(id)
-    setActiveLogbookTitle(title)
-    setActiveTab('logs')
-    setTourSelectedEntryId(null)
-    localStorage.setItem('active_logbook_id', id)
-    localStorage.setItem('active_logbook_title', title)
-  }
+    if (!isAuthenticated || !activeLogbookId) return
+    void (async () => {
+      const ctx = await resolveTourLogbookContext()
+      if (!ctx || ctx.logbookId !== activeLogbookId) return
+      if (ctx.firstEntryId) {
+        setDemoHighlightEntryId(ctx.firstEntryId)
+        registerDemoTourContext({ firstEntryId: ctx.firstEntryId })
+      }
+    })()
+  }, [isAuthenticated, activeLogbookId, registerDemoTourContext])
 
   const openLogbookById = useCallback(
     async (logbookId: string) => {
@@ -377,7 +390,7 @@ function App() {
       }
       selectLogbook(logbookId, `${logbookId.slice(0, 8)}…`)
     },
-    []
+    [selectLogbook]
   )
 
   const consumePendingPushLogbook = useCallback(() => {
@@ -429,8 +442,20 @@ function App() {
     const savedLogbookId = localStorage.getItem('active_logbook_id')
     const savedLogbookTitle = localStorage.getItem('active_logbook_title')
     if (savedLogbookId && savedLogbookTitle) {
-      setActiveLogbookId(savedLogbookId)
-      setActiveLogbookTitle(savedLogbookTitle)
+      try {
+        const books = await fetchLogbooks()
+        const match = books.find((b) => b.id === savedLogbookId)
+        if (match) {
+          setActiveLogbookId(match.id)
+          setActiveLogbookTitle(match.title)
+        } else {
+          localStorage.removeItem('active_logbook_id')
+          localStorage.removeItem('active_logbook_title')
+        }
+      } catch {
+        setActiveLogbookId(savedLogbookId)
+        setActiveLogbookTitle(savedLogbookTitle)
+      }
     }
     consumePendingPushLogbook()
   }

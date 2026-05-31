@@ -19,6 +19,12 @@ interface SpotlightRect {
 const TOOLTIP_EDGE_MARGIN = 16
 const TOOLTIP_ESTIMATED_HEIGHT = 240
 const TOOLTIP_WIDTH = 420
+const TARGET_VIEWPORT_MARGIN = 24
+
+function clampTooltipTop(preferred: number): number {
+  const maxTop = window.innerHeight - TOOLTIP_EDGE_MARGIN - TOOLTIP_ESTIMATED_HEIGHT
+  return Math.max(TOOLTIP_EDGE_MARGIN, Math.min(preferred, maxTop))
+}
 
 function computeTooltipLeft(spotlight: SpotlightRect): number {
   const tooltipWidth = Math.min(TOOLTIP_WIDTH, window.innerWidth - TOOLTIP_EDGE_MARGIN * 2)
@@ -37,18 +43,34 @@ function computeTooltipTop(spotlight: SpotlightRect): number {
   const viewportBottom = window.innerHeight - TOOLTIP_EDGE_MARGIN
   const below = spotlight.top + spotlight.height + 12
   if (below + TOOLTIP_ESTIMATED_HEIGHT <= viewportBottom) {
-    return below
+    return clampTooltipTop(below)
   }
 
   const above = spotlight.top - 12 - TOOLTIP_ESTIMATED_HEIGHT
   if (above >= TOOLTIP_EDGE_MARGIN) {
-    return above
+    return clampTooltipTop(above)
   }
 
-  return Math.max(
-    TOOLTIP_EDGE_MARGIN,
-    Math.min(below, viewportBottom - TOOLTIP_ESTIMATED_HEIGHT)
+  return clampTooltipTop(below)
+}
+
+function isTargetVisibleInViewport(rect: DOMRect): boolean {
+  return (
+    rect.top >= TARGET_VIEWPORT_MARGIN &&
+    rect.bottom <= window.innerHeight - TARGET_VIEWPORT_MARGIN
   )
+}
+
+function measureSpotlight(el: Element): SpotlightRect | null {
+  const rect = el.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return null
+  const padding = 8
+  return {
+    top: Math.max(8, rect.top - padding),
+    left: Math.max(8, rect.left - padding),
+    width: rect.width + padding * 2,
+    height: rect.height + padding * 2
+  }
 }
 
 export default function AppTourOverlay() {
@@ -89,25 +111,29 @@ export default function AppTourOverlay() {
         setSpotlight(null)
         return
       }
+
       const rect = el.getBoundingClientRect()
-      if (rect.width <= 0 || rect.height <= 0) {
-        setSpotlight(null)
+      if (!isTargetVisibleInViewport(rect)) {
+        el.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' })
+        window.requestAnimationFrame(() => {
+          if (cancelled) return
+          const next = measureSpotlight(el)
+          setSpotlight(next)
+        })
         return
       }
-      const padding = 8
-      setSpotlight({
-        top: Math.max(8, rect.top - padding),
-        left: Math.max(8, rect.left - padding),
-        width: rect.width + padding * 2,
-        height: rect.height + padding * 2
-      })
+
+      setSpotlight(measureSpotlight(el))
     }
 
     updateSpotlight()
     window.addEventListener('resize', updateSpotlight)
     window.addEventListener('scroll', updateSpotlight, true)
 
-    const retryDelays = [getTourTargetRetryDelay(currentStepId), 120, 280, 480]
+    const retryDelays =
+      currentStepId === 'entry_track'
+        ? [400, 700, 1100, 1600]
+        : [getTourTargetRetryDelay(currentStepId), 120, 280, 480]
     const timers = retryDelays.map((delay) => window.setTimeout(updateSpotlight, delay))
 
     return () => {
