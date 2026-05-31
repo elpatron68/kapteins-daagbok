@@ -64,6 +64,15 @@ export interface LocalGpsTrack {
   updatedAt: string
 }
 
+export interface LocalNmeaArchive {
+  entryId: string
+  logbookId: string
+  encryptedData: string
+  iv: string
+  tag: string
+  updatedAt: string
+}
+
 export interface LocalLogbookKey {
   logbookId: string
   encryptedKey: string
@@ -89,6 +98,7 @@ class DaagboxDatabase extends Dexie {
   entries!: Table<LocalEntry>
   photos!: Table<LocalPhoto>
   gpsTracks!: Table<LocalGpsTrack>
+  nmeaArchives!: Table<LocalNmeaArchive>
   logbookKeys!: Table<LocalLogbookKey>
   syncQueue!: Table<SyncQueueItem>
 
@@ -143,6 +153,18 @@ class DaagboxDatabase extends Dexie {
       syncQueue: '++id, action, type, payloadId, logbookId',
       photos: 'payloadId, entryId, logbookId, updatedAt',
       gpsTracks: 'entryId, logbookId, updatedAt',
+      logbookKeys: 'logbookId'
+    })
+    this.version(6).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced, isShared, isDemo',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt',
+      nmeaArchives: 'entryId, logbookId, updatedAt',
       logbookKeys: 'logbookId'
     })
   }

@@ -1,6 +1,6 @@
 # NMEA-Import — Recherche & Entscheidungsnotizen
 
-Stand: 2026-05-31 · Status: **Backlog / später prüfen**
+Stand: 2026-05-31 · Status: **In Umsetzung** (`feature/nmea-journal-import`)
 
 Anlass: Nutzeranfrage, ob Kapteins Daagbok um NMEA-Empfang erweiterbar sei.
 

@@ -37,8 +37,16 @@ import {
   deleteTrack,
   downloadTrackFile,
   parseTrackFile,
-  type SavedTrack
+  type SavedTrack,
+  type TrackWaypoint
 } from '../services/trackUpload.js'
+import NmeaImportWizard from './NmeaImportWizard.tsx'
+import {
+  deleteNmeaArchive,
+  downloadNmeaArchive,
+  getNmeaArchive,
+  type NmeaArchiveRecord
+} from '../services/nmeaArchive.js'
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
@@ -210,6 +218,8 @@ export default function LogEntryEditor({
   const [savedTrack, setSavedTrack] = useState<SavedTrack | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [nmeaWizardOpen, setNmeaWizardOpen] = useState(false)
+  const [nmeaArchive, setNmeaArchive] = useState<NmeaArchiveRecord | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const lockedContentHashRef = useRef<string | null>(null)
   const contentReadyRef = useRef(false)
@@ -761,6 +771,45 @@ export default function LogEntryEditor({
   useEffect(() => {
     loadTrack()
   }, [entryId, preloadedTrack])
+
+  const loadNmeaArchive = async () => {
+    if (readOnly) return
+    try {
+      const archive = await getNmeaArchive(entryId)
+      setNmeaArchive(archive)
+    } catch {
+      setNmeaArchive(null)
+    }
+  }
+
+  useEffect(() => {
+    loadNmeaArchive()
+  }, [entryId, readOnly])
+
+  const handleNmeaImport = async (importedEvents: LogEventPayload[], waypoints?: TrackWaypoint[]) => {
+    setEvents((prev) => sortLogEventsByTime([...prev, ...importedEvents]))
+    if (waypoints && waypoints.length > 0) {
+      try {
+        const gpxLike = waypoints
+          .map((wp) => `        <trkpt lat="${wp.lat}" lon="${wp.lng}"><time>${new Date(wp.timestamp).toISOString()}</time></trkpt>`)
+          .join('\n')
+        const content = `<?xml version="1.0"?><gpx><trk><trkseg>\n${gpxLike}\n</trkseg></trk></gpx>`
+        await saveUploadedTrack(logbookId, entryId, content, waypoints, 'imported-from-nmea.nmea', 'nmea')
+        applyTrackStats(waypoints)
+        await loadTrack()
+        trackPlausibleEvent(PlausibleEvents.GPS_TRACK_UPLOADED)
+      } catch (err: unknown) {
+        console.warn('Failed to save NMEA track:', err)
+      }
+    }
+    await loadNmeaArchive()
+  }
+
+  const handleDeleteNmeaArchive = async () => {
+    if (!window.confirm(t('logs.nmea_archive_delete_confirm'))) return
+    await deleteNmeaArchive(entryId)
+    setNmeaArchive(null)
+  }
 
   useEffect(() => {
     if (!savedTrack || savedTrack.waypoints.length < 2) return
@@ -1925,6 +1974,31 @@ export default function LogEntryEditor({
             </>
           )}
 
+          {!readOnly && (
+            <div className="nmea-import-section" style={{ marginTop: '12px' }}>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => setNmeaWizardOpen(true)}
+                style={{ width: 'auto', padding: '8px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <FileText size={16} />
+                {t('logs.nmea_import_btn')}
+              </button>
+              {nmeaArchive && (
+                <div className="nmea-archive-info" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span>{t('logs.nmea_archive_stored', { name: nmeaArchive.filename })}</span>
+                  <button type="button" className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: '13px' }} onClick={() => downloadNmeaArchive(nmeaArchive)}>
+                    <Download size={14} />
+                  </button>
+                  <button type="button" className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: '13px' }} onClick={handleDeleteNmeaArchive}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {(savedTrack || trackDistanceNm || trackSpeedMaxKn || trackSpeedAvgKn) && (
             <div className="form-grid track-stats-grid">
               <div className="input-group">
@@ -2030,6 +2104,19 @@ export default function LogEntryEditor({
           </div>
         )}
       </form>
+
+      <NmeaImportWizard
+        open={nmeaWizardOpen}
+        onClose={() => {
+          setNmeaWizardOpen(false)
+          void loadNmeaArchive()
+        }}
+        logbookId={logbookId}
+        entryId={entryId}
+        entryDate={date}
+        nmeaArchive={nmeaArchive}
+        onImport={handleNmeaImport}
+      />
     </div>
   )
 }

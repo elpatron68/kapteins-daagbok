@@ -21,6 +21,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Travel Day Saved | Reisetag gespeichert (`LogEntryEditor.tsx`) | — |
 | Entry Signed | Passkey-Signatur Skipper oder Crew (`LogEntryEditor.tsx`) | `role`: `skipper` \| `crew` |
 | GPS Track Uploaded | GPX/KML/GeoJSON hochgeladen (`LogEntryEditor.tsx`) | — |
+| NMEA Imported | NMEA-Protokoll in Journal übernommen (`NmeaImportWizard.tsx`) | `mode`: `interval` \| `change` \| `both`, `events`, `track` (Anzahlen/Flags, keine Koordinaten) |
 | Vessel Saved | Schiffsdaten gespeichert (`VesselForm.tsx`) | — |
 | Crew Saved | Skipper- oder Crew-Profil gespeichert (`CrewForm.tsx`) | `role`: `skipper` \| `crew`, `action`: `create` \| `update` |
 | Account Deleted | Konto erfolgreich gelöscht (`auth.ts`) | — |
@@ -72,6 +73,7 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 6. **Datensicherung:** Backup Exported → Backup Restored
 7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
+9. **NMEA-Import:** NMEA Imported (Modus, Anzahl übernommener Ereignisse, optional Track)
 
 ## Entwicklung
 

@@ -35,7 +35,8 @@ export const PlausibleEvents = {
   LOCAL_PIN_REMOVED: 'Local PIN Removed',
   DEVICE_FORGOTTEN: 'Device Forgotten',
   RECOVERY_ROTATED: 'Recovery Rotated',
-  LANGUAGE_CHANGED: 'Language Changed'
+  LANGUAGE_CHANGED: 'Language Changed',
+  NMEA_IMPORTED: 'NMEA Imported'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
