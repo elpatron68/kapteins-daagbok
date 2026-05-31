@@ -115,14 +115,12 @@ export function usePwaUpdate() {
   setNeedRefreshRef.current = setNeedRefresh
 
   useEffect(() => {
-    if (pendingNeedRefreshRef.current !== null) {
+    if (isUpdateSuppressed()) {
+      setNeedRefresh(false)
+    } else if (pendingNeedRefreshRef.current !== null) {
       const pending = pendingNeedRefreshRef.current
       pendingNeedRefreshRef.current = null
       setNeedRefresh(pending)
-    }
-
-    if (isUpdateSuppressed()) {
-      setNeedRefresh(false)
     }
 
     void isDeployedVersionNewer().then((outdated) => {
