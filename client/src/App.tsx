@@ -15,12 +15,7 @@ import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
 import { UnsavedChangesProvider, useUnsavedChangesContext } from './context/UnsavedChangesContext.tsx'
-import {
-  getActiveMasterKey,
-  logoutUser,
-  checkServerSession,
-  hasUnlockedLocalSession
-} from './services/auth.js'
+import { logoutUser, checkServerSession, hasUnlockedLocalSession } from './services/auth.js'
 import AppErrorBoundary from './components/AppErrorBoundary.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
