@@ -33,7 +33,8 @@ export const PlausibleEvents = {
   LAST_PASSKEY_REMOVE_HINTED: 'Last Passkey Remove Hinted',
   LOCAL_PIN_SET: 'Local PIN Set',
   LOCAL_PIN_REMOVED: 'Local PIN Removed',
-  DEVICE_FORGOTTEN: 'Device Forgotten'
+  DEVICE_FORGOTTEN: 'Device Forgotten',
+  RECOVERY_ROTATED: 'Recovery Rotated'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]

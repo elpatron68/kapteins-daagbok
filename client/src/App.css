@@ -997,6 +997,27 @@ html.scheme-dark .themed-select-option.is-selected {
   font-size: 12px;
 }
 
+.profile-recovery-actions {
+  margin-top: 16px;
+  justify-content: flex-start;
+}
+
+.profile-recovery-actions .btn {
+  width: auto;
+}
+
+.profile-recovery-card .phrase-grid {
+  margin-bottom: 24px;
+}
+
+.profile-recovery-warning {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #fbbf24;
+  text-align: left;
+}
+
 .profile-device-status {
   display: inline-flex;
   align-items: center;

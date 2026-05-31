@@ -395,6 +395,37 @@ router.post('/enroll-prf', requireReauth, async (req: any, res) => {
   }
 })
 
+router.post('/rotate-recovery', requireReauth, async (req: any, res) => {
+  try {
+    const { encryptedMasterKeyRec, encryptedMasterKeyRecIv, encryptedMasterKeyRecTag } = req.body
+    if (!encryptedMasterKeyRec || !encryptedMasterKeyRecIv || !encryptedMasterKeyRecTag) {
+      return res.status(400).json({ error: 'Missing required recovery key fields' })
+    }
+
+    if (
+      typeof encryptedMasterKeyRec !== 'string' ||
+      typeof encryptedMasterKeyRecIv !== 'string' ||
+      typeof encryptedMasterKeyRecTag !== 'string'
+    ) {
+      return res.status(400).json({ error: 'Invalid recovery key fields format' })
+    }
+
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        encryptedMasterKeyRec,
+        encryptedMasterKeyRecIv,
+        encryptedMasterKeyRecTag
+      }
+    })
+
+    return res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error rotating recovery key:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
 router.get('/profile', requireUser, async (req: any, res) => {
   try {
     const user = await prisma.user.findUnique({

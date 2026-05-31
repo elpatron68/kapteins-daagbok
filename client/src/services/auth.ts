@@ -651,3 +651,27 @@ export async function renamePasskey(credentialDbId: string, label: string): Prom
     body: JSON.stringify({ label })
   })
 }
+
+export async function rotateRecoveryPhrase(): Promise<string> {
+  const masterKey = getActiveMasterKey()
+  if (!masterKey) {
+    throw new Error('NO_ACTIVE_MASTER_KEY')
+  }
+
+  await reauthWithPasskey()
+
+  const recoveryPhrase = generateRecoveryPhrase()
+  const recoveryKey = await deriveKeyFromPhrase(recoveryPhrase)
+  const encryptedRecovery = await encryptBuffer(masterKey, recoveryKey)
+
+  await apiJson(`${API_BASE}/rotate-recovery`, {
+    method: 'POST',
+    body: JSON.stringify({
+      encryptedMasterKeyRec: encryptedRecovery.ciphertext,
+      encryptedMasterKeyRecIv: encryptedRecovery.iv,
+      encryptedMasterKeyRecTag: encryptedRecovery.tag
+    })
+  })
+
+  return recoveryPhrase
+}

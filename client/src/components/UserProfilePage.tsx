@@ -40,6 +40,7 @@ import {
   removeLocalPin,
   removePasskey,
   renamePasskey,
+  rotateRecoveryPhrase,
   setLocalPin,
   type UserProfile
 } from '../services/auth.js'
@@ -122,6 +123,9 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   const [isKnownDevice, setIsKnownDevice] = useState(() =>
     getKnownUsernames().some((u) => u.toLowerCase() === username.toLowerCase())
   )
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
+  const [pendingRecoveryPhrase, setPendingRecoveryPhrase] = useState<string | null>(null)
+  const [recoveryCopied, setRecoveryCopied] = useState(false)
 
   const pendingSyncCount = useLiveQuery(() => db.syncQueue.count()) ?? 0
 
@@ -327,6 +331,53 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     trackPlausibleEvent(PlausibleEvents.LOCAL_PIN_REMOVED)
   }
 
+  const handleRotateRecovery = async () => {
+    const confirmed = await showConfirm(
+      t('profile.recovery_rotate_confirm_desc'),
+      t('profile.recovery_rotate_confirm_title'),
+      t('profile.recovery_rotate_confirm_yes'),
+      t('profile.remove_passkey_confirm_no')
+    )
+    if (!confirmed) return
+
+    if (!getActiveMasterKey()) {
+      setError(t('profile.recovery_rotate_no_session'))
+      return
+    }
+
+    setRecoveryBusy(true)
+    setError(null)
+    try {
+      const phrase = await rotateRecoveryPhrase()
+      setPendingRecoveryPhrase(phrase)
+      trackPlausibleEvent(PlausibleEvents.RECOVERY_ROTATED)
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'NO_ACTIVE_MASTER_KEY') {
+        setError(t('profile.recovery_rotate_no_session'))
+      } else {
+        setError(err instanceof Error ? err.message : t('profile.recovery_rotate_failed'))
+      }
+    } finally {
+      setRecoveryBusy(false)
+    }
+  }
+
+  const handleCopyRecoveryPhrase = async () => {
+    if (!pendingRecoveryPhrase) return
+    try {
+      await navigator.clipboard.writeText(pendingRecoveryPhrase)
+      setRecoveryCopied(true)
+      window.setTimeout(() => setRecoveryCopied(false), 2000)
+    } catch {
+      showAlert(t('profile.copy_failed'))
+    }
+  }
+
+  const handleConfirmRecoverySaved = () => {
+    setPendingRecoveryPhrase(null)
+    setRecoveryCopied(false)
+  }
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header dashboard-header--profile">
@@ -359,6 +410,30 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
             <User className="header-logo spin" size={48} />
             <p>{t('profile.loading')}</p>
           </div>
+        ) : pendingRecoveryPhrase ? (
+          <section className="form-card profile-recovery-card">
+            <div className="form-header">
+              <KeyRound size={24} className="form-icon" />
+              <h2>{t('auth.recovery_title')}</h2>
+            </div>
+            <p className="profile-recovery-warning">{t('profile.recovery_rotate_new_warning')}</p>
+            <div className="phrase-grid">
+              {pendingRecoveryPhrase.split(' ').map((word, idx) => (
+                <div key={idx} className="phrase-word">
+                  <span className="word-num">{idx + 1}</span>
+                  {word}
+                </div>
+              ))}
+            </div>
+            <div className="form-actions profile-recovery-actions">
+              <button type="button" className="btn secondary" onClick={() => void handleCopyRecoveryPhrase()}>
+                {recoveryCopied ? t('auth.copied') : t('auth.copy_phrase')}
+              </button>
+              <button type="button" className="btn primary" onClick={handleConfirmRecoverySaved}>
+                {t('auth.confirm_recovery')}
+              </button>
+            </div>
+          </section>
         ) : profile ? (
           <>
             <section className="form-card">
@@ -431,6 +506,16 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 <SecurityCheckItem ok label={t('profile.security_recovery_ok')} />
               </ul>
               <p className="profile-section-desc profile-recovery-hint">{t('profile.security_recovery_hint')}</p>
+              <div className="form-actions profile-recovery-actions">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void handleRotateRecovery()}
+                  disabled={recoveryBusy || passkeyBusy || pinBusy}
+                >
+                  {recoveryBusy ? t('profile.processing') : t('profile.recovery_rotate_btn')}
+                </button>
+              </div>
             </section>
 
             <section className="member-editor-card glass">

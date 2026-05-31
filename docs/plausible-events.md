@@ -48,6 +48,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Local PIN Set | Lokaler PIN gesetzt oder geändert (`UserProfilePage.tsx`) | `action`: `set` \| `change` |
 | Local PIN Removed | Lokaler PIN entfernt (`UserProfilePage.tsx`) | — |
 | Device Forgotten | Account aus Schnell-Login-Liste dieses Geräts entfernt (`UserProfilePage.tsx`) | — |
+| Recovery Rotated | Neuer 12-Wörter-Wiederherstellungsschlüssel erstellt (`UserProfilePage.tsx`) | — |
 
 ## Bewusst nicht getrackt
 
@@ -67,7 +68,7 @@ Empfohlene Goal-Ketten für Auswertung:
 4. **Öffentliche Freigabe:** Logbook Shared → Public Link Opened
 5. **Export:** Travel Day Saved → PDF Exported / CSV Exported
 6. **Datensicherung:** Backup Exported → Backup Restored
-7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
+7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 
 ## Entwicklung
 
