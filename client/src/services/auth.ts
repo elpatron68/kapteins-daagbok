@@ -33,11 +33,26 @@ export function setActiveMasterKey(key: ArrayBuffer | null) {
 }
 
 export async function checkServerSession(): Promise<{ authenticated: boolean; userId?: string }> {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
   try {
-    return await apiJson<{ authenticated: boolean; userId?: string }>(`${API_BASE}/session`)
+    return await apiJson<{ authenticated: boolean; userId?: string }>(`${API_BASE}/session`, {
+      signal: controller.signal
+    })
   } catch {
     return { authenticated: false }
+  } finally {
+    window.clearTimeout(timeoutId)
   }
+}
+
+/** Master key is memory-only; after process kill the HTTP session may outlive local crypto state. */
+export function hasUnlockedLocalSession(): boolean {
+  return !!(
+    getActiveMasterKey() &&
+    localStorage.getItem('active_username') &&
+    localStorage.getItem('active_userid')
+  )
 }
 
 export async function reauthWithPasskey(): Promise<boolean> {

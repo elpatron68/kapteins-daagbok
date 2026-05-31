@@ -6,6 +6,8 @@ const UPDATE_SUPPRESS_KEY = 'pwa_update_suppress_until'
 const UPDATE_SUPPRESS_MS = 30_000
 const UPDATE_DISMISS_SUPPRESS_MS = 60 * 60 * 1000
 const UPDATE_RELOAD_FALLBACK_MS = 2000
+/** Prevent Android PWA cold-start reload loops from onNeedReload. */
+const PWA_INITIAL_RELOAD_KEY = 'pwa_sw_initial_reload_done'
 
 function isUpdateSuppressed(): boolean {
   const suppressUntil = Number(sessionStorage.getItem(UPDATE_SUPPRESS_KEY) || '0')
@@ -50,6 +52,11 @@ export function usePwaUpdate() {
   } = useRegisterSW({
     immediate: !import.meta.env.DEV,
     onNeedReload() {
+      // First SW takeover requires one reload; guard against repeated reloads on Android PWA resume.
+      if (sessionStorage.getItem(PWA_INITIAL_RELOAD_KEY)) {
+        return
+      }
+      sessionStorage.setItem(PWA_INITIAL_RELOAD_KEY, '1')
       clearUpdateSuppression()
       setNeedRefresh(false)
       window.location.reload()

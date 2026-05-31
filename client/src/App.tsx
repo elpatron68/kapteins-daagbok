@@ -15,7 +15,13 @@ import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
 import { UnsavedChangesProvider, useUnsavedChangesContext } from './context/UnsavedChangesContext.tsx'
-import { getActiveMasterKey, logoutUser, checkServerSession } from './services/auth.js'
+import {
+  getActiveMasterKey,
+  logoutUser,
+  checkServerSession,
+  hasUnlockedLocalSession
+} from './services/auth.js'
+import AppErrorBoundary from './components/AppErrorBoundary.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
   applyAppearanceToDocument,
@@ -208,6 +214,52 @@ function App() {
     }
   }, [])
 
+  const clearAuthenticatedAppState = useCallback(() => {
+    setIsAuthenticated(false)
+    setActiveLogbookId(null)
+    setActiveLogbookTitle(null)
+    setShowUserProfile(false)
+    setTourSelectedEntryId(null)
+    setDemoHighlightEntryId(null)
+  }, [])
+
+  /** After PWA/bfcache resume, React state may still say "logged in" while the master key is gone. */
+  const enforceUnlockedSession = useCallback(() => {
+    if (isViewerMode || isDemoMode || isAcceptingInvite) return
+    if (isAuthenticated && !hasUnlockedLocalSession()) {
+      clearAuthenticatedAppState()
+    }
+  }, [
+    isAuthenticated,
+    isViewerMode,
+    isDemoMode,
+    isAcceptingInvite,
+    clearAuthenticatedAppState
+  ])
+
+  useEffect(() => {
+    enforceUnlockedSession()
+  }, [enforceUnlockedSession])
+
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        enforceUnlockedSession()
+      }
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        enforceUnlockedSession()
+      }
+    }
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [enforceUnlockedSession])
+
   useEffect(() => {
     let cancelled = false
 
@@ -220,9 +272,7 @@ function App() {
           localStorage.setItem('active_userid', session.userId)
         }
 
-        const savedUser = localStorage.getItem('active_username')
-        const key = getActiveMasterKey()
-        if (session.authenticated && savedUser && key) {
+        if (session.authenticated && hasUnlockedLocalSession()) {
           setIsAuthenticated(true)
           const savedLogbookId = localStorage.getItem('active_logbook_id')
           const savedLogbookTitle = localStorage.getItem('active_logbook_title')
@@ -230,6 +280,8 @@ function App() {
             setActiveLogbookId(savedLogbookId)
             setActiveLogbookTitle(savedLogbookTitle)
           }
+        } else if (session.authenticated) {
+          clearAuthenticatedAppState()
         }
       } catch (err) {
         if (!cancelled) {
@@ -241,7 +293,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [clearAuthenticatedAppState])
 
   useEffect(() => {
     syncRouteFromLocation()
@@ -630,15 +682,17 @@ function App() {
 
 export default function AppWrapper() {
   return (
-    <DialogProvider>
-      <UnsavedChangesProvider>
-        <AppTourProvider>
-          <PwaUpdatePrompt />
-          <App />
-          <AppTourOverlay />
-        </AppTourProvider>
-        <AppFooter />
-      </UnsavedChangesProvider>
-    </DialogProvider>
+    <AppErrorBoundary>
+      <DialogProvider>
+        <UnsavedChangesProvider>
+          <AppTourProvider>
+            <PwaUpdatePrompt />
+            <App />
+            <AppTourOverlay />
+          </AppTourProvider>
+          <AppFooter />
+        </UnsavedChangesProvider>
+      </DialogProvider>
+    </AppErrorBoundary>
   )
 }
