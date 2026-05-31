@@ -69,4 +69,28 @@ describe('appearancePrefs', () => {
     await saveAppearancePrefsToServer('ocean', 'light')
     expect(mockedApiJson).not.toHaveBeenCalled()
   })
+
+  it('syncAppearancePrefs skips server sync when userId does not match active session', async () => {
+    localStorage.setItem('active_userid', 'session-user')
+    setThemePreference('other-user', 'ocean')
+    mockedApiJson.mockResolvedValue({
+      theme: 'material',
+      colorScheme: 'dark',
+      persisted: true
+    })
+
+    await syncAppearancePrefs('other-user')
+
+    expect(mockedApiJson).not.toHaveBeenCalled()
+    expect(localStorage.getItem('user_pref_theme_other-user')).toBe('ocean')
+  })
+
+  it('syncAppearancePrefs skips server sync when active session is missing', async () => {
+    setThemePreference(USER_ID, 'ocean')
+
+    await syncAppearancePrefs(USER_ID)
+
+    expect(mockedApiJson).not.toHaveBeenCalled()
+    expect(localStorage.getItem(`user_pref_theme_${USER_ID}`)).toBe('ocean')
+  })
 })
