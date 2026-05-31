@@ -46,7 +46,7 @@ router.post('/push', async (req: any, res) => {
         // Authorize: Check if logbook belongs to user
         // Exception: If action is create logbook, the logbook might not exist yet,
         // so we authorize based on user creating a logbook with their userId.
-        if (type === 'logbook' && action === 'create') {
+        if (type === 'logbook' && (action === 'create' || action === 'update')) {
           const existing = await prisma.logbook.findUnique({
             where: { id: logbookId }
           })
@@ -69,9 +69,9 @@ router.post('/push', async (req: any, res) => {
             },
             update: {
               encryptedTitle: parsed.encryptedTitle,
-              encryptedKey: parsed.encryptedKey || null,
-              iv: parsed.iv || null,
-              tag: parsed.tag || null,
+              ...(parsed.encryptedKey !== undefined ? { encryptedKey: parsed.encryptedKey } : {}),
+              ...(parsed.iv !== undefined ? { iv: parsed.iv } : {}),
+              ...(parsed.tag !== undefined ? { tag: parsed.tag } : {}),
               updatedAt: itemUpdatedAt
             }
           })

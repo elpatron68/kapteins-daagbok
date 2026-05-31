@@ -131,4 +131,41 @@ router.delete('/:id', async (req: any, res) => {
   }
 })
 
+// 5. Update a logbook title
+router.put('/:id', async (req: any, res) => {
+  try {
+    const { id } = req.params
+    const { encryptedTitle } = req.body
+
+    if (!encryptedTitle) {
+      return res.status(400).json({ error: 'encryptedTitle is required' })
+    }
+
+    const logbook = await prisma.logbook.findUnique({
+      where: { id }
+    })
+
+    if (!logbook) {
+      return res.status(404).json({ error: 'Logbook not found' })
+    }
+
+    if (logbook.userId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden: Access denied' })
+    }
+
+    const updatedLogbook = await prisma.logbook.update({
+      where: { id },
+      data: {
+        encryptedTitle,
+        updatedAt: new Date()
+      }
+    })
+
+    return res.json(updatedLogbook)
+  } catch (error: any) {
+    console.error('Error updating logbook:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
 export default router

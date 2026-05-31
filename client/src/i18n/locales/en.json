@@ -270,7 +270,11 @@
       "role_crew_hint": "Invited logbook — you can collaborate and sign as crew",
       "role_read": "Read only",
       "role_read_hint": "Shared logbook — view only, no editing",
-      "open_profile": "Open profile for {{name}}"
+      "open_profile": "Open profile for {{name}}",
+      "edit_title": "Rename Logbook",
+      "edit_placeholder": "New name of the logbook",
+      "edit_success": "Logbook renamed successfully",
+      "edit_btn": "Rename"
     },
     "profile": {
       "title": "User profile",

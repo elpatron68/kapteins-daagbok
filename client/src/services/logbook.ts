@@ -322,3 +322,64 @@ export async function deleteLogbook(id: string): Promise<void> {
   await deleteLocalLogbookCache(id)
   trackPlausibleEvent(PlausibleEvents.LOGBOOK_DELETED)
 }
+
+// Update the title of a logbook. Encrypts the title and updates locally + on server
+export async function updateLogbookTitle(id: string, newTitle: string): Promise<void> {
+  const userId = localStorage.getItem('active_userid')
+  if (!userId) {
+    throw new Error('User not authenticated')
+  }
+
+  const masterKey = getActiveMasterKey()
+  if (!masterKey) {
+    throw new Error('Master key not found. User must log in.')
+  }
+
+  const logbookKey = await getLogbookKey(id) || masterKey
+
+  // E2E Encrypt the new title using the Logbook Key (or master key fallback)
+  const encrypted = await encryptJson(newTitle, logbookKey)
+  const encryptedTitleStr = JSON.stringify(encrypted)
+  const now = new Date().toISOString()
+
+  const payloadData = {
+    encryptedTitle: encryptedTitleStr
+  }
+
+  if (navigator.onLine) {
+    try {
+      const response = await apiFetch(`${API_BASE}/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payloadData)
+      })
+
+      if (response.ok) {
+        // Update local IndexedDB cache as synced
+        await db.logbooks.update(id, {
+          encryptedTitle: encryptedTitleStr,
+          updatedAt: now,
+          isSynced: 1
+        })
+        return
+      }
+    } catch (error) {
+      console.warn('Failed to update logbook on server, saving locally instead:', error)
+    }
+  }
+
+  // If offline or request failed, store locally as unsynced and add to queue
+  await db.logbooks.update(id, {
+    encryptedTitle: encryptedTitleStr,
+    updatedAt: now,
+    isSynced: 0
+  })
+
+  await db.syncQueue.put({
+    action: 'update',
+    type: 'logbook',
+    payloadId: id,
+    logbookId: id,
+    data: JSON.stringify(payloadData),
+    updatedAt: now
+  })
+}

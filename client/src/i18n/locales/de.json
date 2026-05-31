@@ -270,7 +270,11 @@
       "role_crew_hint": "Eingeladenes Logbuch — du kannst als Crew mitarbeiten und signieren",
       "role_read": "Nur Lesen",
       "role_read_hint": "Geteiltes Logbuch — nur Ansicht, keine Bearbeitung",
-      "open_profile": "Profil von {{name}} öffnen"
+      "open_profile": "Profil von {{name}} öffnen",
+      "edit_title": "Logbuch umbenennen",
+      "edit_placeholder": "Neuer Name des Logbuchs",
+      "edit_success": "Logbuch erfolgreich umbenannt",
+      "edit_btn": "Umbenennen"
     },
     "profile": {
       "title": "Benutzerprofil",

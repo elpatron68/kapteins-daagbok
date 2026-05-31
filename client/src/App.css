@@ -1418,6 +1418,32 @@ html.scheme-dark .themed-select-option.is-selected {
   background: rgba(244, 63, 94, 0.1);
 }
 
+.btn-edit {
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  position: absolute;
+  top: 12px;
+  right: 48px;
+}
+
+.logbook-card:hover .btn-edit {
+  opacity: 1;
+}
+
+.btn-edit:hover {
+  color: var(--app-accent-light);
+  background: var(--app-accent-bg);
+}
+
 .btn-pdf {
   background: none;
   border: none;
