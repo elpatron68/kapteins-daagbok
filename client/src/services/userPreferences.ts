@@ -35,7 +35,7 @@ function migrateLegacyPrefs(userId: string): void {
 }
 
 function resolveUserId(userId?: string | null): string | null {
-  const id = userId ?? getActiveUserId()
+  const id = (userId?.trim() || getActiveUserId()?.trim()) || null
   if (!id) return null
   migrateLegacyPrefs(id)
   return id
@@ -73,6 +73,11 @@ export function getOwmApiKey(userId?: string | null): string {
     return localStorage.getItem(owmKey(id)) ?? localStorage.getItem(LEGACY_OWM_KEY) ?? ''
   }
   return localStorage.getItem(LEGACY_OWM_KEY) ?? ''
+}
+
+/** OWM key for the signed-in user (`active_userid`). Prefer this over a bare `getOwmApiKey()` call. */
+export function getOwmApiKeyForActiveUser(): string {
+  return getOwmApiKey(getActiveUserId())
 }
 
 export function setOwmApiKey(userId: string, value: string): void {

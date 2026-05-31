@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   getColorSchemePreference,
   getOwmApiKey,
+  getOwmApiKeyForActiveUser,
   getThemePreference,
   setColorSchemePreference,
   setOwmApiKey,
@@ -31,6 +32,24 @@ describe('userPreferences', () => {
     expect(getOwmApiKey(USER_ID)).toBe('secret-key')
     setOwmApiKey(USER_ID, '  ')
     expect(getOwmApiKey(USER_ID)).toBe('')
+  })
+
+  it('reads namespaced OWM key via active user id', () => {
+    setOwmApiKey(USER_ID, 'namespaced-only')
+    localStorage.setItem('active_userid', USER_ID)
+    localStorage.removeItem('owm_api_key')
+
+    expect(getOwmApiKeyForActiveUser()).toBe('namespaced-only')
+    expect(getOwmApiKey()).toBe('namespaced-only')
+  })
+
+  it('does not read namespaced OWM key without active user id', () => {
+    setOwmApiKey(USER_ID, 'namespaced-only')
+    localStorage.removeItem('active_userid')
+    localStorage.removeItem('owm_api_key')
+
+    expect(getOwmApiKeyForActiveUser()).toBe('')
+    expect(getOwmApiKey()).toBe('')
   })
 
   it('writes theme preferences to namespaced keys', () => {
