@@ -403,3 +403,12 @@ html.scheme-light.theme-cupertino {
 html.scheme-light #root {
   border-inline-color: var(--app-border-subtle);
 }
+
+/* Bridge legacy index.css tokens to appearance (avoids system color-scheme drift) */
+html.scheme-light,
+html.scheme-dark {
+  --text: var(--app-text);
+  --text-h: var(--app-text-heading);
+  --code-bg: var(--app-icon-btn-bg);
+  --border: var(--app-border-subtle);
+}

@@ -8,6 +8,18 @@ body {
   color: var(--app-text);
 }
 
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  color: var(--app-input-text);
+  background: var(--app-icon-btn-bg);
+  border: 1px solid var(--app-icon-btn-border);
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+}
+
 #root:has(.auth-screen) {
   width: 100%;
   max-width: none;
@@ -1046,6 +1058,7 @@ html.scheme-dark .themed-select-option.is-selected {
 .profile-dl-row dd {
   margin: 0;
   font-size: 14px;
+  color: var(--app-text);
   word-break: break-word;
   text-align: left;
   justify-self: start;
@@ -1059,8 +1072,6 @@ html.scheme-dark .themed-select-option.is-selected {
 
 .profile-user-id code {
   font-size: 12px;
-  background: rgba(148, 163, 184, 0.08);
-  padding: 4px 8px;
   border-radius: 6px;
   word-break: break-all;
 }
@@ -1127,8 +1138,8 @@ html.scheme-dark .themed-select-option.is-selected {
   gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
-  background: rgba(148, 163, 184, 0.06);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: var(--app-icon-btn-bg);
+  border: 1px solid var(--app-icon-btn-border);
 }
 
 .profile-passkey-main {
@@ -1241,6 +1252,7 @@ html.scheme-dark .themed-select-option.is-selected {
   display: block;
   font-family: ui-monospace, monospace;
   font-size: 13px;
+  color: var(--app-input-text);
 }
 
 .profile-passkey-transports {
