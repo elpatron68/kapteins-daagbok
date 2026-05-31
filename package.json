@@ -1,0 +1,10 @@
+{
+  "name": "kapteins-daagbok",
+  "private": true,
+  "description": "Root scripts — run from repo root. Client scripts also work via: cd client && npm run …",
+  "scripts": {
+    "translate:locales": "node scripts/translate-locales.mjs",
+    "translate:flyer": "node scripts/translate-flyer.mjs",
+    "validate:i18n": "node scripts/validate-i18n-keys.mjs"
+  }
+}
