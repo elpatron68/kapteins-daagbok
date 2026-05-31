@@ -1248,7 +1248,7 @@ html.scheme-dark .themed-select-option.is-selected {
   border-radius: var(--app-radius-card);
   padding: 20px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   cursor: pointer;
   position: relative;
@@ -1292,10 +1292,44 @@ html.scheme-dark .themed-select-option.is-selected {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .card-title-row h3 {
   margin: 0;
+  flex: 1 1 8rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.card-title-row .role-badge {
+  flex-shrink: 0;
+}
+
+.logbook-card-actions {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  margin-top: -2px;
+}
+
+.logbook-card-actions .btn-delete {
+  position: static;
+  top: auto;
+  right: auto;
+  opacity: 0;
+}
+
+.logbook-card:hover .logbook-card-actions .btn-delete,
+.logbook-card:focus-within .logbook-card-actions .btn-delete {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .logbook-card-actions .btn-delete {
+    opacity: 1;
+  }
 }
 
 .logbook-title-editable {
@@ -1309,8 +1343,9 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .logbook-title-inline-edit {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
+  max-width: 100%;
   margin: 0;
   padding: 2px 8px;
   font-size: 16px;
@@ -2071,13 +2106,26 @@ html.scheme-dark .themed-select-option.is-selected {
   }
 
   .logbook-card {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding: 16px;
     gap: 12px;
   }
 
+  .logbook-card-actions {
+    margin-top: 0;
+  }
+
+  .logbook-card-actions .btn-delete {
+    opacity: 1;
+  }
+
   .card-meta {
     flex-wrap: wrap;
+  }
+
+  .card-title-row h3,
+  .logbook-title-inline-edit {
+    flex-basis: 100%;
   }
 
   .card-info h3 {

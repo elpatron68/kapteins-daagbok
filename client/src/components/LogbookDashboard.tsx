@@ -222,14 +222,19 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
         </div>
       </div>
 
-      <button
-        className="btn-delete"
-        onClick={(e) => handleDelete(lb.id, e)}
-        title={t('dashboard.delete_btn')}
-        style={{ visibility: lb.isShared ? 'hidden' : 'visible' }}
-      >
-        <Trash2 size={18} />
-      </button>
+      {!lb.isShared && (
+        <div className="logbook-card-actions">
+          <button
+            type="button"
+            className="btn-delete"
+            onClick={(e) => handleDelete(lb.id, e)}
+            title={t('dashboard.delete_btn')}
+            aria-label={t('dashboard.delete_btn')}
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      )}
     </div>
     )
   }
