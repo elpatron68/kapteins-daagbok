@@ -23,7 +23,7 @@
     },
     "auth": {
       "welcome": "Willkommen bei Kapteins Daagbok",
-      "tagline": "Sicheres, E2E-verschlüsseltes maritimes Logbuch.",
+      "tagline": "Dein sicheres, E2E-verschlüsseltes maritimes Logbuch.",
       "register": "Mit Passkey registrieren",
       "login": "Mit Passkey anmelden",
       "login_as": "Anmelden als {{name}}",
