@@ -6,7 +6,7 @@ import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import SignatureSection from './SignatureSection.tsx'
 import TrackMap from './TrackMap.tsx'
@@ -176,6 +176,7 @@ export default function LogEntryEditor({
   const [evCurrent, setEvCurrent] = useState('')
   const [evHeel, setEvHeel] = useState('')
   const [evSailsOrMotor, setEvSailsOrMotor] = useState('')
+  const [sailsPickerExpanded, setSailsPickerExpanded] = useState(false)
   const [evLogReading, setEvLogReading] = useState('')
   const [evDistance, setEvDistance] = useState('')
   const [evGpsLat, setEvGpsLat] = useState('')
@@ -842,6 +843,9 @@ export default function LogEntryEditor({
     ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
     : ['Mainsail', 'Genoa', 'Jib', 'Spinnaker', 'Gennaker']
 
+  const eventSailOptions = yachtSails.length > 0 ? yachtSails : defaultSails
+  const showSailsPickerToggle = eventSailOptions.length + 1 > 6
+
   const toggleSailOrMotor = (item: string) => {
     let currentItems = evSailsOrMotor
       .split(/\s*(?:\+|\bplus\b|,)\s*/i)
@@ -864,6 +868,15 @@ export default function LogEntryEditor({
       .filter(Boolean)
     return currentItems.includes(item.toLowerCase())
   }
+
+  const motorPropulsionLabel = t('logs.motor_propulsion')
+  const sortedEventSailOptions = [...eventSailOptions].sort((a, b) => {
+    const aActive = isItemActive(a)
+    const bActive = isItemActive(b)
+    if (aActive === bActive) return 0
+    return aActive ? -1 : 1
+  })
+  const isMotorActive = isItemActive(motorPropulsionLabel)
 
   const clearEventForm = () => {
     setEvTime(currentLocalTimeHHMM())
@@ -1573,9 +1586,23 @@ export default function LogEntryEditor({
                 />
               </div>
 
-              <div className="sails-picker-container grid-span-2">
+              <div
+                className={[
+                  'sails-picker-container grid-span-2',
+                  showSailsPickerToggle ? 'is-collapsible' : '',
+                  showSailsPickerToggle && !sailsPickerExpanded ? 'is-collapsed' : '',
+                ].filter(Boolean).join(' ')}
+              >
                 <div className="sails-picker-pills">
-                  {(yachtSails.length > 0 ? yachtSails : defaultSails).map((sail) => (
+                  {isMotorActive && (
+                    <span
+                      className={`sail-pill motor-pill active`}
+                      onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
+                    >
+                      {motorPropulsionLabel}
+                    </span>
+                  )}
+                  {sortedEventSailOptions.map((sail) => (
                     <span
                       key={sail}
                       className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
@@ -1584,13 +1611,35 @@ export default function LogEntryEditor({
                       {sail}
                     </span>
                   ))}
-                  <span
-                    className={`sail-pill motor-pill ${isItemActive(t('logs.motor_propulsion')) ? 'active' : ''}`}
-                    onClick={() => toggleSailOrMotor(t('logs.motor_propulsion'))}
-                  >
-                    {t('logs.motor_propulsion')}
-                  </span>
+                  {!isMotorActive && (
+                    <span
+                      className="sail-pill motor-pill"
+                      onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
+                    >
+                      {motorPropulsionLabel}
+                    </span>
+                  )}
                 </div>
+                {showSailsPickerToggle && (
+                  <button
+                    type="button"
+                    className="sails-picker-toggle"
+                    onClick={() => setSailsPickerExpanded((prev) => !prev)}
+                    aria-expanded={sailsPickerExpanded}
+                  >
+                    {sailsPickerExpanded ? (
+                      <>
+                        <ChevronUp size={14} aria-hidden="true" />
+                        {t('logs.sails_picker_show_less')}
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown size={14} aria-hidden="true" />
+                        {t('logs.sails_picker_show_more')}
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
               <div className="input-group grid-span-2">

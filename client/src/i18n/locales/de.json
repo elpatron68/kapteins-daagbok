@@ -222,6 +222,8 @@
       "event_heel": "Krängung (°)",
       "event_sails": "Segelführung / Motor",
       "motor_propulsion": "Maschinenfahrt",
+      "sails_picker_show_more": "Alle Segel anzeigen",
+      "sails_picker_show_less": "Weniger anzeigen",
       "motor_hours": "Maschinenstunden (gesamt)",
       "fuel_per_motor_hour": "Verbrauch pro Maschinenstunde",
       "event_distance": "Distanz (sm)",

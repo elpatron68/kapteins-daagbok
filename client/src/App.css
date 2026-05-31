@@ -2435,15 +2435,29 @@ html.scheme-dark .themed-select-option.is-selected {
   }
 
   .sails-picker-pills {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
-    gap: 6px;
+    gap: 4px;
+  }
+
+  .sails-picker-container.is-collapsible .sails-picker-toggle {
+    display: inline-flex;
   }
 
   .sail-pill {
-    text-align: center;
     padding: 3px 8px;
     font-size: 11px;
+    border-radius: 12px;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 480px) {
+  .sails-picker-container.is-collapsible.is-collapsed .sails-picker-pills {
+    max-height: 3.25rem;
+  }
+
+  .sail-pill {
+    padding: 2px 7px;
+    font-size: 10px;
   }
 }
 
@@ -2706,12 +2720,47 @@ html.theme-cupertino .events-scroll-container {
 /* Event Editor Interactive Sails Picker */
 .sails-picker-container {
   grid-column: 1 / -1;
+  margin-top: -4px;
 }
 
 .sails-picker-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  position: relative;
+}
+
+.sails-picker-container.is-collapsible.is-collapsed .sails-picker-pills {
+  max-height: 3.75rem;
+  overflow: hidden;
+}
+
+.sails-picker-container.is-collapsible.is-collapsed .sails-picker-pills::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1.25rem;
+  background: linear-gradient(to bottom, transparent, var(--app-surface, #0f172a));
+  pointer-events: none;
+}
+
+.sails-picker-toggle {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin: 4px auto 0;
+  padding: 2px 8px;
+  background: none;
+  border: none;
+  color: var(--app-text-muted, #94a3b8);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sails-picker-toggle:hover {
+  color: var(--app-accent, #fbbf24);
 }
 
 .sail-pill {

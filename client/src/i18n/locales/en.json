@@ -222,6 +222,8 @@
       "event_heel": "Heel Angle (°)",
       "event_sails": "Sails / Motor Status",
       "motor_propulsion": "Engine Propulsion",
+      "sails_picker_show_more": "Show all sails",
+      "sails_picker_show_less": "Show less",
       "motor_hours": "Engine hours (total)",
       "fuel_per_motor_hour": "Consumption per engine hour",
       "event_distance": "Distance (nm)",
