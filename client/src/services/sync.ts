@@ -6,6 +6,7 @@ import { getLogbookAccess } from './logbookAccess.js'
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
 const pendingResync = new Set<string>()
+let syncAllInFlight = 0
 
 let isSyncing = false
 const listeners = new Set<(syncing: boolean) => void>()
@@ -18,7 +19,8 @@ export function subscribeToSyncState(listener: (syncing: boolean) => void) {
   }
 }
 
-function setSyncing(syncing: boolean) {
+function recomputeSyncingState() {
+  const syncing = syncingLogbooks.size > 0 || syncAllInFlight > 0
   if (isSyncing !== syncing) {
     isSyncing = syncing
     listeners.forEach((l) => l(isSyncing))
@@ -205,6 +207,54 @@ async function flushPushQueue(logbookId: string): Promise<boolean> {
   return ok
 }
 
+type PulledServerPayload = {
+  yacht?: { updatedAt: string } | null
+  deviation?: { updatedAt: string } | null
+  crews?: Array<{ payloadId: string; updatedAt: string }>
+  entries?: Array<{ payloadId: string; updatedAt: string }>
+  photos?: Array<{ payloadId: string; updatedAt: string }>
+  gpsTracks?: Array<{ entryId: string; updatedAt: string }>
+}
+
+/** Drop queue rows already reflected on the server (e.g. after direct API save). */
+async function pruneAcknowledgedQueueItems(
+  logbookId: string,
+  server: PulledServerPayload
+): Promise<void> {
+  const pending = await db.syncQueue.where({ logbookId }).toArray()
+  if (pending.length === 0) return
+
+  const serverTimes = new Map<string, string>()
+  if (server.yacht) serverTimes.set('yacht:' + logbookId, server.yacht.updatedAt)
+  if (server.deviation) serverTimes.set('deviation:' + logbookId, server.deviation.updatedAt)
+  for (const c of server.crews ?? []) serverTimes.set('crew:' + c.payloadId, c.updatedAt)
+  for (const e of server.entries ?? []) serverTimes.set('entry:' + e.payloadId, e.updatedAt)
+  for (const p of server.photos ?? []) serverTimes.set('photo:' + p.payloadId, p.updatedAt)
+  for (const gt of server.gpsTracks ?? []) serverTimes.set('gpsTrack:' + gt.entryId, gt.updatedAt)
+
+  const localLogbook = await db.logbooks.get(logbookId)
+  const staleIds: number[] = []
+
+  for (const item of pending) {
+    if (item.type === 'logbook') {
+      if (localLogbook?.isSynced === 1) {
+        if (item.id !== undefined) staleIds.push(item.id)
+      }
+      continue
+    }
+
+    const key = item.type === 'yacht' ? 'yacht:' + logbookId : `${item.type}:${item.payloadId}`
+    const serverUpdatedAt = serverTimes.get(key)
+    if (serverUpdatedAt && !isNewer(item.updatedAt, serverUpdatedAt)) {
+      if (item.id !== undefined) staleIds.push(item.id)
+    }
+  }
+
+  if (staleIds.length > 0) {
+    await db.syncQueue.bulkDelete(staleIds)
+  }
+}
+
 // Pull updates from the server and apply last-write-wins
 async function pullChanges(logbookId: string): Promise<boolean> {
   if (!localStorage.getItem('active_userid')) return false
@@ -220,6 +270,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
     }
 
     const { yacht, deviation, crews, entries, photos, gpsTracks } = await response.json()
+    const serverSnapshot: PulledServerPayload = { yacht, deviation, crews, entries, photos, gpsTracks }
 
     // 1. Sync Yacht Payload
     if (yacht) {
@@ -380,6 +431,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       }
     }
 
+    await pruneAcknowledgedQueueItems(logbookId, serverSnapshot)
     return true
   } catch (error) {
     console.error('Error during sync pull:', error)
@@ -400,7 +452,7 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
   }
 
   syncingLogbooks.add(logbookId)
-  setSyncing(true)
+  recomputeSyncingState()
 
   try {
     const pushed = await flushPushQueue(logbookId)
@@ -410,7 +462,7 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
     return pushed && pulled && pushedAfterPull
   } finally {
     syncingLogbooks.delete(logbookId)
-    setSyncing(syncingLogbooks.size > 0)
+    recomputeSyncingState()
   }
 }
 
@@ -421,8 +473,9 @@ export async function syncAllLogbooks(): Promise<void> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) return
 
+  syncAllInFlight++
+  recomputeSyncingState()
   try {
-    setSyncing(true)
     // 1. Fetch latest logbook lists first (synchronizes db.logbooks index)
     const logbooks = await db.logbooks.toArray()
 
@@ -446,7 +499,8 @@ export async function syncAllLogbooks(): Promise<void> {
   } catch (error) {
     console.error('Error synchronizing all logbooks:', error)
   } finally {
-    setSyncing(syncingLogbooks.size > 0)
+    syncAllInFlight = Math.max(0, syncAllInFlight - 1)
+    recomputeSyncingState()
   }
 }
 

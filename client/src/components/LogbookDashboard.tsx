@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../services/db.js'
+import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type DecryptedLogbook } from '../services/logbook.js'
 import LogbookRoleBadge from './LogbookRoleBadge.tsx'
 import BetaBadge from './BetaBadge.tsx'
@@ -32,8 +31,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [online, setOnline] = useState(navigator.onLine)
   const [username] = useState(localStorage.getItem('active_username') || 'Skipper')
 
-  // Reactive sync queue count
-  const pendingCount = useLiveQuery(() => db.syncQueue.count()) || 0
+  const { pendingCount, showSpinner, showPendingWarning } = useSyncIndicator()
 
   // Listen to connectivity changes
   useEffect(() => {
@@ -272,11 +270,27 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
 
         <div className="header-actions">
           {/* Connection Indicator */}
-          <div className={`conn-status ${online ? (pendingCount > 0 ? 'unsynced' : 'online') : 'offline'}`} title={online ? (pendingCount > 0 ? 'Pending Sync' : 'Synced') : 'Offline'}>
+          <div
+            className={`conn-status ${online ? (pendingCount > 0 ? 'unsynced' : 'online') : 'offline'}`}
+            title={
+              online
+                ? showSpinner
+                  ? 'Syncing'
+                  : pendingCount > 0
+                    ? 'Pending Sync'
+                    : 'Synced'
+                : 'Offline'
+            }
+          >
             {online ? (
-              pendingCount > 0 ? (
+              showSpinner ? (
                 <>
                   <RefreshCw size={18} className="spin" />
+                  <span>{t('sync.status_syncing')}</span>
+                </>
+              ) : showPendingWarning ? (
+                <>
+                  <RefreshCw size={18} />
                   <span>{t('sync.status_unsynced')} ({pendingCount})</span>
                 </>
               ) : (

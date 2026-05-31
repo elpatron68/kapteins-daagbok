@@ -84,6 +84,7 @@
     },
     "sync": {
       "status_synced": "Synchronisiert",
+      "status_syncing": "Synchronisiere…",
       "status_offline": "Offline-Cache",
       "status_unsynced": "Unsynchronisierte Änderungen"
     },

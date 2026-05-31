@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import {
   User,
   ChevronLeft,
@@ -128,7 +129,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   const [pendingRecoveryPhrase, setPendingRecoveryPhrase] = useState<string | null>(null)
   const [recoveryCopied, setRecoveryCopied] = useState(false)
 
-  const pendingSyncCount = useLiveQuery(() => db.syncQueue.count()) ?? 0
+  const { pendingCount: pendingSyncCount, showSpinner, showPendingWarning } = useSyncIndicator()
 
   const sharedLogbookCount = useLiveQuery(
     () => db.logbooks.filter((lb) => lb.isShared === 1).count(),
@@ -529,9 +530,14 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
               <p className="profile-section-desc">{t('profile.device_desc')}</p>
               <div className={`profile-device-status conn-status ${online ? (pendingSyncCount > 0 ? 'warning' : 'online') : 'offline'}`}>
                 {online ? (
-                  pendingSyncCount > 0 ? (
+                  showSpinner ? (
                     <>
                       <RefreshCw size={16} className="spin" aria-hidden="true" />
+                      <span>{t('sync.status_syncing')}</span>
+                    </>
+                  ) : showPendingWarning ? (
+                    <>
+                      <RefreshCw size={16} aria-hidden="true" />
                       <span>{t('profile.device_sync_pending', { count: pendingSyncCount })}</span>
                     </>
                   ) : (
