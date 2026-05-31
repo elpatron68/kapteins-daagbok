@@ -47,6 +47,9 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       registerType: 'prompt',
+      devOptions: {
+        enabled: false
+      },
       includeAssets: ['favicon.ico', 'logo.png'],
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}']

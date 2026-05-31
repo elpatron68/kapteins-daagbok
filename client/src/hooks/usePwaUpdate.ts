@@ -48,7 +48,7 @@ export function usePwaUpdate() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker
   } = useRegisterSW({
-    immediate: true,
+    immediate: !import.meta.env.DEV,
     onNeedReload() {
       clearUpdateSuppression()
       setNeedRefresh(false)
