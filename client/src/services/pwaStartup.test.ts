@@ -54,6 +54,12 @@ describe('forcePwaRecovery stale counter reset', () => {
     expect(sessionStorage.getItem(STALE_RECOVERY_LAST_KEY)).toBeNull()
     expect(reload).toHaveBeenCalledOnce()
   })
+
+  it('returns false when hard recovery was just attempted', async () => {
+    sessionStorage.setItem('pwa_hard_recovery_ts', String(Date.now()))
+    const result = await forcePwaRecovery()
+    expect(result).toBe(false)
+  })
 })
 
 describe('reconcileServiceWorkerOnStartup', () => {
@@ -84,6 +90,34 @@ describe('reconcileServiceWorkerOnStartup', () => {
     })
 
     await expect(reconcileServiceWorkerOnStartup()).resolves.toBe(false)
+  })
+
+  it('returns false when waiting worker activation never takes over', async () => {
+    vi.useFakeTimers()
+    const postMessage = vi.fn()
+    const addEventListener = vi.fn()
+    vi.stubEnv('DEV', false)
+
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        controller: { scriptURL: '/sw.js?v=1' },
+        getRegistration: vi.fn().mockResolvedValue({
+          waiting: { postMessage },
+          installing: null,
+          update: vi.fn().mockResolvedValue(undefined),
+          addEventListener: vi.fn()
+        }),
+        addEventListener
+      }
+    })
+
+    const reconcilePromise = reconcileServiceWorkerOnStartup()
+    await vi.advanceTimersByTimeAsync(4_000)
+
+    await expect(reconcilePromise).resolves.toBe(false)
+    expect(postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' })
+    vi.useRealTimers()
   })
 })
 

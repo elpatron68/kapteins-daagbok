@@ -91,7 +91,8 @@ export function usePwaUpdate() {
   } = useRegisterSW({
     immediate: !import.meta.env.DEV,
     onNeedReload() {
-      reloadForServiceWorkerTakeover()
+      if (isUpdateSuppressed()) return
+      applyNeedRefresh(true)
     },
     onNeedRefresh() {
       if (isUpdateSuppressed()) return

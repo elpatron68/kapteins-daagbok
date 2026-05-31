@@ -90,14 +90,15 @@ export async function clearPwaCachesAndWorkers(): Promise<void> {
  * Last-resort recovery when soft reloads cannot escape a stale precache.
  * Equivalent to manually clearing site data / reinstalling the PWA.
  */
-export async function forcePwaRecovery(): Promise<void> {
-  if (recentlyAttemptedHardRecovery()) return
+export async function forcePwaRecovery(): Promise<boolean> {
+  if (recentlyAttemptedHardRecovery()) return false
 
   markHardRecoveryAttempt()
   markReloadAttempt()
   resetStaleRecoveryCount()
   await clearPwaCachesAndWorkers()
   window.location.reload()
+  return true
 }
 
 async function waitForWaitingWorker(
@@ -163,21 +164,21 @@ export async function triggerServiceWorkerUpdate(timeoutMs = 5_000): Promise<boo
 }
 
 async function activateWaitingWorker(waiting: ServiceWorker): Promise<boolean> {
+  const currentController = navigator.serviceWorker.controller?.scriptURL ?? null
   waiting.postMessage({ type: 'SKIP_WAITING' })
 
-  await new Promise<void>((resolve) => {
-    const timeoutId = window.setTimeout(resolve, 4_000)
+  return new Promise<boolean>((resolve) => {
+    const timeoutId = window.setTimeout(() => resolve(false), 4_000)
     navigator.serviceWorker.addEventListener(
       'controllerchange',
       () => {
         window.clearTimeout(timeoutId)
-        resolve()
+        const nextController = navigator.serviceWorker.controller?.scriptURL ?? null
+        resolve(nextController !== null && nextController !== currentController)
       },
       { once: true }
     )
   })
-
-  return true
 }
 
 /**
@@ -205,8 +206,11 @@ export async function reconcileServiceWorkerOnStartup(): Promise<boolean> {
     return false
   }
 
-  markColdStartUpdateAttempt()
-  return activateWaitingWorker(waiting)
+  const activated = await activateWaitingWorker(waiting)
+  if (activated) {
+    markColdStartUpdateAttempt()
+  }
+  return activated
 }
 
 /**
@@ -233,15 +237,19 @@ export async function reconcileVersionOnStartup(): Promise<'reload' | 'recovered
     const registration = await navigator.serviceWorker.getRegistration()
     const waiting = registration?.waiting
     if (waiting) {
-      markColdStartUpdateAttempt()
-      await activateWaitingWorker(waiting)
-      return 'reload'
+      const activated = await activateWaitingWorker(waiting)
+      if (activated) {
+        markColdStartUpdateAttempt()
+        return 'reload'
+      }
     }
   }
 
   if (!recentlyAttemptedHardRecovery()) {
-    await forcePwaRecovery()
-    return 'recovered'
+    const recovered = await forcePwaRecovery()
+    if (recovered) {
+      return 'recovered'
+    }
   }
 
   return 'noop'
