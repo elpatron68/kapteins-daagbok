@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  forcePwaRecovery,
   markReloadAttempt,
   recentlyAttemptedReload,
   reconcileServiceWorkerOnStartup,
   reconcileVersionOnStartup
 } from './pwaStartup.js'
+
+const STALE_RECOVERY_COUNT_KEY = 'pwa_stale_recovery_count'
+const STALE_RECOVERY_LAST_KEY = 'pwa_stale_recovery_last_ts'
 
 describe('pwaStartup reload guards', () => {
   beforeEach(() => {
@@ -16,6 +20,39 @@ describe('pwaStartup reload guards', () => {
     markReloadAttempt(10_000)
     expect(recentlyAttemptedReload(12_000)).toBe(true)
     expect(recentlyAttemptedReload(15_000)).toBe(false)
+  })
+})
+
+describe('forcePwaRecovery stale counter reset', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it('clears stale recovery counter before hard recovery reload', async () => {
+    vi.stubEnv('DEV', false)
+    sessionStorage.setItem(STALE_RECOVERY_COUNT_KEY, '2')
+    sessionStorage.setItem(STALE_RECOVERY_LAST_KEY, String(Date.now()))
+
+    const reload = vi.fn()
+    vi.stubGlobal('location', { reload })
+    vi.stubGlobal('caches', {
+      keys: vi.fn().mockResolvedValue([]),
+      delete: vi.fn()
+    })
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistrations: vi.fn().mockResolvedValue([])
+      }
+    })
+
+    await forcePwaRecovery()
+
+    expect(sessionStorage.getItem(STALE_RECOVERY_COUNT_KEY)).toBeNull()
+    expect(sessionStorage.getItem(STALE_RECOVERY_LAST_KEY)).toBeNull()
+    expect(reload).toHaveBeenCalledOnce()
   })
 })
 

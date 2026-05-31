@@ -4,6 +4,8 @@ const RELOAD_ATTEMPT_KEY = 'pwa_reload_attempt_ts'
 const COLD_START_UPDATE_KEY = 'pwa_coldstart_update_ts'
 const HARD_RECOVERY_KEY = 'pwa_hard_recovery_ts'
 const STALE_RECOVERY_COUNT_KEY = 'pwa_stale_recovery_count'
+const STALE_RECOVERY_LAST_KEY = 'pwa_stale_recovery_last_ts'
+const STALE_RECOVERY_WINDOW_MS = 60_000
 const RELOAD_DEBOUNCE_MS = 4_000
 const COLD_START_UPDATE_DEBOUNCE_MS = 15_000
 const HARD_RECOVERY_DEBOUNCE_MS = 30_000
@@ -35,9 +37,22 @@ function markHardRecoveryAttempt(now = Date.now()): void {
   sessionStorage.setItem(HARD_RECOVERY_KEY, String(now))
 }
 
-function incrementStaleRecoveryCount(): number {
-  const next = Number(sessionStorage.getItem(STALE_RECOVERY_COUNT_KEY) || '0') + 1
+function resetStaleRecoveryCount(): void {
+  sessionStorage.removeItem(STALE_RECOVERY_COUNT_KEY)
+  sessionStorage.removeItem(STALE_RECOVERY_LAST_KEY)
+}
+
+function incrementStaleRecoveryCount(now = Date.now()): number {
+  const last = Number(sessionStorage.getItem(STALE_RECOVERY_LAST_KEY) || '0')
+  let current = Number(sessionStorage.getItem(STALE_RECOVERY_COUNT_KEY) || '0')
+
+  if (now - last > STALE_RECOVERY_WINDOW_MS) {
+    current = 0
+  }
+
+  const next = current + 1
   sessionStorage.setItem(STALE_RECOVERY_COUNT_KEY, String(next))
+  sessionStorage.setItem(STALE_RECOVERY_LAST_KEY, String(now))
   return next
 }
 
@@ -80,6 +95,7 @@ export async function forcePwaRecovery(): Promise<void> {
 
   markHardRecoveryAttempt()
   markReloadAttempt()
+  resetStaleRecoveryCount()
   await clearPwaCachesAndWorkers()
   window.location.reload()
 }

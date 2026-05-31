@@ -57,8 +57,9 @@ function scheduleUpdateChecks(
     registration.update().catch(() => {})
   }, UPDATE_CHECK_INTERVAL_MS)
   const versionIntervalId = window.setInterval(() => {
+    if (isUpdateSuppressed()) return
     void isDeployedVersionNewer().then((outdated) => {
-      if (outdated) onOutdated()
+      if (outdated && !isUpdateSuppressed()) onOutdated()
     })
   }, VERSION_CHECK_INTERVAL_MS)
 
@@ -81,8 +82,18 @@ function reloadForServiceWorkerTakeover(): void {
 
 export function usePwaUpdate() {
   const cleanupRef = useRef<(() => void) | null>(null)
-  const hardRecoveryTimerRef = useRef<number | null>(null)
-  const setNeedRefreshRef = useRef<(value: boolean) => void>(() => {})
+  const reloadFallbackTimerRef = useRef<number | null>(null)
+  const forceRecoveryTimerRef = useRef<number | null>(null)
+  const setNeedRefreshRef = useRef<((value: boolean) => void) | null>(null)
+  const pendingNeedRefreshRef = useRef<boolean | null>(null)
+
+  const applyNeedRefresh = (value: boolean) => {
+    if (setNeedRefreshRef.current) {
+      setNeedRefreshRef.current(value)
+      return
+    }
+    pendingNeedRefreshRef.current = value
+  }
 
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -94,23 +105,28 @@ export function usePwaUpdate() {
     },
     onNeedRefresh() {
       if (isUpdateSuppressed()) return
-      setNeedRefreshRef.current(true)
+      applyNeedRefresh(true)
     },
     onRegisteredSW(_swUrl: string, registration: ServiceWorkerRegistration | undefined) {
       if (!registration) return
 
       if (isUpdateSuppressed() || !registration.waiting) {
-        setNeedRefreshRef.current(false)
+        applyNeedRefresh(false)
       }
 
       cleanupRef.current?.()
       cleanupRef.current = scheduleUpdateChecks(registration, () => {
-        setNeedRefreshRef.current(true)
+        if (isUpdateSuppressed()) return
+        applyNeedRefresh(true)
       })
     }
   })
 
   setNeedRefreshRef.current = setNeedRefresh
+  if (pendingNeedRefreshRef.current !== null) {
+    setNeedRefresh(pendingNeedRefreshRef.current)
+    pendingNeedRefreshRef.current = null
+  }
 
   useEffect(() => {
     if (isUpdateSuppressed()) {
@@ -126,9 +142,13 @@ export function usePwaUpdate() {
     return () => {
       cleanupRef.current?.()
       cleanupRef.current = null
-      if (hardRecoveryTimerRef.current !== null) {
-        window.clearTimeout(hardRecoveryTimerRef.current)
-        hardRecoveryTimerRef.current = null
+      if (reloadFallbackTimerRef.current !== null) {
+        window.clearTimeout(reloadFallbackTimerRef.current)
+        reloadFallbackTimerRef.current = null
+      }
+      if (forceRecoveryTimerRef.current !== null) {
+        window.clearTimeout(forceRecoveryTimerRef.current)
+        forceRecoveryTimerRef.current = null
       }
     }
   }, [setNeedRefresh])
@@ -140,11 +160,20 @@ export function usePwaUpdate() {
     await updateServiceWorker(true)
     await triggerServiceWorkerUpdate()
 
-    hardRecoveryTimerRef.current = window.setTimeout(() => {
+    if (reloadFallbackTimerRef.current !== null) {
+      window.clearTimeout(reloadFallbackTimerRef.current)
+    }
+    if (forceRecoveryTimerRef.current !== null) {
+      window.clearTimeout(forceRecoveryTimerRef.current)
+    }
+
+    reloadFallbackTimerRef.current = window.setTimeout(() => {
+      reloadFallbackTimerRef.current = null
       reloadForServiceWorkerTakeover()
     }, UPDATE_RELOAD_FALLBACK_MS)
 
-    window.setTimeout(() => {
+    forceRecoveryTimerRef.current = window.setTimeout(() => {
+      forceRecoveryTimerRef.current = null
       void forcePwaRecovery()
     }, UPDATE_HARD_RECOVERY_MS)
   }
