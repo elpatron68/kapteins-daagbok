@@ -379,16 +379,37 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
           {t('auth.recovery_fallback_warning')}
         </p>
 
-        <form onSubmit={handleRecoverySubmit} className="auth-form">
-          <textarea
-            className="input-textarea"
-            placeholder={t('auth.recovery_placeholder')}
-            value={recoveryInput}
-            onChange={(e) => setRecoveryInput(e.target.value)}
-            disabled={loading}
-            rows={3}
-            required
-          />
+        <form onSubmit={handleRecoverySubmit} className="auth-form" autoComplete="on">
+          {(username.trim() || encryptedPayloads?.username) && (
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={username.trim() || encryptedPayloads?.username || ''}
+              readOnly
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+            />
+          )}
+          <div className="input-group">
+            <label htmlFor="recovery-key" className="input-label" style={{ display: 'block', marginBottom: '8px', color: '#94a3b8' }}>
+              {t('auth.enter_recovery')}
+            </label>
+            <input
+              id="recovery-key"
+              name="recovery-key"
+              type="password"
+              className="input-text"
+              placeholder={t('auth.recovery_placeholder')}
+              value={recoveryInput}
+              onChange={(e) => setRecoveryInput(e.target.value)}
+              disabled={loading}
+              required
+              autoComplete="current-password"
+              style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
 
           {error && <div className="auth-error">{error}</div>}
 

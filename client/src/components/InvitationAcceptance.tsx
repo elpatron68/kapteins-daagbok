@@ -344,15 +344,36 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
           <h2>{t('auth.enter_recovery')}</h2>
         </div>
         <p className="recovery-warning">{t('auth.recovery_fallback_warning')}</p>
-        <form onSubmit={handleRecoverySubmit}>
-          <textarea
-            className="input-text"
-            placeholder={t('auth.recovery_placeholder')}
-            value={recoveryInput}
-            onChange={(e) => setRecoveryInput(e.target.value)}
-            rows={3}
-            required
-          />
+        <form onSubmit={handleRecoverySubmit} autoComplete="on">
+          {(username.trim() || encryptedPayloads?.username) && (
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={username.trim() || encryptedPayloads?.username || ''}
+              readOnly
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+            />
+          )}
+          <div className="input-group">
+            <label htmlFor="invitation-recovery-key" className="input-label" style={{ display: 'block', marginBottom: '8px', color: '#94a3b8' }}>
+              {t('auth.enter_recovery')}
+            </label>
+            <input
+              id="invitation-recovery-key"
+              name="recovery-key"
+              type="password"
+              className="input-text"
+              placeholder={t('auth.recovery_placeholder')}
+              value={recoveryInput}
+              onChange={(e) => setRecoveryInput(e.target.value)}
+              required
+              autoComplete="current-password"
+              style={{ width: '100%', padding: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
           <div className="auth-actions mt-4">
             <button type="button" className="btn secondary" onClick={() => setShowRecoveryFallback(false)}>
               {t('auth.back')}
