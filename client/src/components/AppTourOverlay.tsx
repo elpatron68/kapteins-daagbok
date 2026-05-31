@@ -18,6 +18,14 @@ interface SpotlightRect {
 
 const TOOLTIP_EDGE_MARGIN = 16
 const TOOLTIP_ESTIMATED_HEIGHT = 240
+const TOOLTIP_WIDTH = 420
+
+function computeTooltipLeft(spotlight: SpotlightRect): number {
+  const tooltipWidth = Math.min(TOOLTIP_WIDTH, window.innerWidth - TOOLTIP_EDGE_MARGIN * 2)
+  const ideal = spotlight.left + spotlight.width / 2 - tooltipWidth / 2
+  const maxLeft = window.innerWidth - TOOLTIP_EDGE_MARGIN - tooltipWidth
+  return Math.max(TOOLTIP_EDGE_MARGIN, Math.min(ideal, maxLeft))
+}
 
 function buildCutoutClipPath(rect: SpotlightRect): string {
   const right = rect.left + rect.width
@@ -51,6 +59,7 @@ export default function AppTourOverlay() {
     currentStepId,
     currentStepIndex,
     totalSteps,
+    layoutTick,
     nextStep,
     prevStep,
     skipTour
@@ -66,7 +75,10 @@ export default function AppTourOverlay() {
       return
     }
 
+    let cancelled = false
+
     const updateSpotlight = () => {
+      if (cancelled) return
       const selector = getTourTargetSelector(currentStepId)
       if (!selector) {
         setSpotlight(null)
@@ -78,6 +90,10 @@ export default function AppTourOverlay() {
         return
       }
       const rect = el.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) {
+        setSpotlight(null)
+        return
+      }
       const padding = 8
       setSpotlight({
         top: Math.max(8, rect.top - padding),
@@ -90,19 +106,17 @@ export default function AppTourOverlay() {
     updateSpotlight()
     window.addEventListener('resize', updateSpotlight)
     window.addEventListener('scroll', updateSpotlight, true)
-    const retryDelay = getTourTargetRetryDelay(currentStepId)
-    const timer = window.setTimeout(updateSpotlight, retryDelay)
-    const retryTimer = retryDelay > 120
-      ? window.setTimeout(updateSpotlight, retryDelay + 180)
-      : undefined
+
+    const retryDelays = [getTourTargetRetryDelay(currentStepId), 120, 280, 480]
+    const timers = retryDelays.map((delay) => window.setTimeout(updateSpotlight, delay))
 
     return () => {
-      window.clearTimeout(timer)
-      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+      cancelled = true
+      for (const timer of timers) window.clearTimeout(timer)
       window.removeEventListener('resize', updateSpotlight)
       window.removeEventListener('scroll', updateSpotlight, true)
     }
-  }, [currentStepId, isActive])
+  }, [currentStepId, isActive, layoutTick])
 
   useEffect(() => {
     if (!isActive) return
@@ -138,8 +152,16 @@ export default function AppTourOverlay() {
   const tooltipStyle = centered
     ? undefined
     : spotlight
-      ? { top: computeTooltipTop(spotlight) }
+      ? { top: computeTooltipTop(spotlight), left: computeTooltipLeft(spotlight) }
       : { top: '20%' }
+
+  const tooltipClassName = [
+    'app-tour-tooltip',
+    centered ? 'centered' : '',
+    !centered && spotlight ? 'app-tour-tooltip--anchored' : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   const backdropStyle = spotlight && !centered
     ? { clipPath: buildCutoutClipPath(spotlight) }
@@ -165,7 +187,7 @@ export default function AppTourOverlay() {
         />
       )}
 
-      <div className={`app-tour-tooltip${centered ? ' centered' : ''}`} style={tooltipStyle}>
+      <div className={tooltipClassName} style={tooltipStyle}>
         <button type="button" className="app-tour-close" onClick={skipTour} aria-label={t('tour.skip')}>
           <X size={18} />
         </button>

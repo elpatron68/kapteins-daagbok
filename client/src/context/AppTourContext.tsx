@@ -51,6 +51,7 @@ interface AppTourContextValue {
   currentStepId: TourStepId | null
   currentStepIndex: number
   totalSteps: number
+  layoutTick: number
   startTour: (options?: { force?: boolean; demoMode?: boolean }) => void
   stopTour: () => void
   restartTour: () => void
@@ -135,6 +136,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
   const [stepIndex, setStepIndex] = useState(0)
   const [pendingAfterLogin, setPendingAfterLogin] = useState(false)
   const [isDemoTour, setIsDemoTour] = useState(false)
+  const [layoutTick, setLayoutTick] = useState(0)
   const navigationRef = useRef<TourNavigation | null>(null)
   const demoContextRef = useRef<DemoTourContext | null>(null)
   const tourModeRef = useRef<{ demoMode: boolean }>({ demoMode: false })
@@ -276,6 +278,8 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     if (!stepId) return
     applyStepSideEffects(stepId)
     scrollToCurrentTarget(stepId)
+    const timer = window.setTimeout(() => setLayoutTick((tick) => tick + 1), 0)
+    return () => window.clearTimeout(timer)
   }, [isActive, isDemoTour, stepIndex, applyStepSideEffects, scrollToCurrentTarget])
 
   const restartTour = useCallback(() => {
@@ -318,6 +322,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       currentStepId,
       currentStepIndex: stepIndex,
       totalSteps: stepOrder.length,
+      layoutTick,
       startTour,
       stopTour,
       restartTour,
@@ -342,6 +347,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       startTour,
       stepIndex,
       stepOrder.length,
+      layoutTick,
       stopTour
     ]
   )

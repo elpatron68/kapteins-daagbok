@@ -4276,10 +4276,12 @@ body.app-tour-active .app-tour-target-active {
 }
 
 .app-tour-tooltip:not(.centered) {
-  left: max(16px, env(safe-area-inset-left, 0px));
-  right: max(16px, env(safe-area-inset-right, 0px));
-  width: auto;
-  max-width: none;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.app-tour-tooltip:not(.centered).app-tour-tooltip--anchored {
+  transform: none;
 }
 
 .app-tour-tooltip.centered {
