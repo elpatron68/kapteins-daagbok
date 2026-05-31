@@ -574,13 +574,23 @@ export default function LogEntryEditor({
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
 
+  const fwRefilledNoCapacity =
+    (tankCapacities.freshwaterCapacityL ?? 0) > 0 && fwRefilledMax == null
+  const fuelRefilledNoCapacity =
+    (tankCapacities.fuelCapacityL ?? 0) > 0 && fuelRefilledMax == null
+
   useEffect(() => {
-    if (fwRefilledMax == null) return
     const refilled = parseFloat(fwRefilled) || 0
+    if (fwRefilledMax == null) {
+      if (fwRefilledNoCapacity && refilled > 0) {
+        setFwRefilled(formatTankLitersForInput(0))
+      }
+      return
+    }
     if (refilled > fwRefilledMax) {
       setFwRefilled(formatTankLitersForInput(fwRefilledMax))
     }
-  }, [fwRefilledMax, fwMorning])
+  }, [fwRefilledMax, fwRefilled, fwRefilledNoCapacity])
 
   useEffect(() => {
     if (fwEveningMax == null) return
@@ -588,15 +598,20 @@ export default function LogEntryEditor({
     if (evening > fwEveningMax) {
       setFwEvening(formatTankLitersForInput(fwEveningMax))
     }
-  }, [fwEveningMax, fwMorning, fwRefilled])
+  }, [fwEveningMax, fwEvening])
 
   useEffect(() => {
-    if (fuelRefilledMax == null) return
     const refilled = parseFloat(fuelRefilled) || 0
+    if (fuelRefilledMax == null) {
+      if (fuelRefilledNoCapacity && refilled > 0) {
+        setFuelRefilled(formatTankLitersForInput(0))
+      }
+      return
+    }
     if (refilled > fuelRefilledMax) {
       setFuelRefilled(formatTankLitersForInput(fuelRefilledMax))
     }
-  }, [fuelRefilledMax, fuelMorning])
+  }, [fuelRefilledMax, fuelRefilled, fuelRefilledNoCapacity])
 
   useEffect(() => {
     if (fuelEveningMax == null) return
@@ -604,7 +619,7 @@ export default function LogEntryEditor({
     if (evening > fuelEveningMax) {
       setFuelEvening(formatTankLitersForInput(fuelEveningMax))
     }
-  }, [fuelEveningMax, fuelMorning, fuelRefilled])
+  }, [fuelEveningMax, fuelEvening])
 
   // Load yacht sails and tank capacities
   useEffect(() => {
@@ -1317,8 +1332,8 @@ export default function LogEntryEditor({
                 label={t('logs.refilled')}
                 value={fwRefilled}
                 onChange={setFwRefilled}
-                maxLiters={fwRefilledMax ?? tankCapacities.freshwaterCapacityL}
-                disabled={saving || readOnly}
+                maxLiters={fwRefilledMax}
+                disabled={saving || readOnly || fwRefilledNoCapacity}
                 titleTooltip={tankCapacityTooltip}
               />
               <TankLiterInput
@@ -1366,8 +1381,8 @@ export default function LogEntryEditor({
                 label={t('logs.refilled')}
                 value={fuelRefilled}
                 onChange={setFuelRefilled}
-                maxLiters={fuelRefilledMax ?? tankCapacities.fuelCapacityL}
-                disabled={saving || readOnly}
+                maxLiters={fuelRefilledMax}
+                disabled={saving || readOnly || fuelRefilledNoCapacity}
                 titleTooltip={tankCapacityTooltip}
               />
               <TankLiterInput
