@@ -31,7 +31,9 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
     registerNavigation({
       setActiveTab,
       setSelectedEntryId: setTourSelectedEntryId,
-      setFeedbackOpen: () => {}
+      setFeedbackOpen: () => {},
+      setLogbookActive: () => {},
+      setProfileOpen: () => {}
     })
     registerDemoTourContext({ firstEntryId: fixture.firstEntryId })
 
