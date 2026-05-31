@@ -2,7 +2,7 @@
 
 Digitales Yacht-Logbuch als Progressive Web App (PWA) — **kostenlos**, **werbefrei**, offline-fähig, End-to-End-verschlüsselt und mit Passkey-Anmeldung.
 
-**Live:** [kapteins-daagbok.eu](https://kapteins-daagbok.eu)
+**Live:** [kapteins-daagbok.eu](https://kapteins-daagbok.eu) · **Demo:** [kapteins-daagbok.eu/demo](https://kapteins-daagbok.eu/demo)
 
 ## Überblick
 
@@ -15,19 +15,29 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 - **Passkey-Authentifizierung** (WebAuthn) mit optionaler Recovery-Phrase und lokalem PIN-Fallback
 - **Mehrere Logbücher** pro Benutzerkonto — eigene Logbücher und per Einladung geteilte Logbücher (Crew-Zugang) klar getrennt
 - **Reisetage** mit Hafen, Wetter, Tankständen, Ereignissen und Tagesnummer
+- **Kompass-Dial** für MgK- und RwK-Kurse — Ring-Eingabe, Gradfeld, Schrittweite 1°/5°/10° (maritime Orientierung: 0° = Nord)
 - **GPS-Tracks** (GPX/KML/GeoJSON-Upload, Karte, Statistiken)
 - **Foto-Anhänge** pro Reisetag
 - **Passkey-Signaturen** für Skipper und Crew (hybride elektronische Signatur)
 - **Schiffsdaten** und **Crew-Profile** (Skipper + Mitglieder)
 - **Statistik-Dashboard** — Strecken, Verbrauch, Segel/Motor, Hafenkette (pro Logbuch oder accountweit)
+- **Benutzerprofil** — kontoweite Einstellungen: Darstellung (Theme, Hell/Dunkel), OpenWeatherMap-API-Key, Web Push, PWA-Installation, Onboarding-Tour, Passkey-Verwaltung, Account-Statistik
 - **Kollaboration** — Crew per Einladungslink einladen (Schreib- oder Lesezugriff)
-- **Push-Benachrichtigungen** (optional) — Logbuch-Eigner per Web Push informieren, wenn Crew Änderungen synchronisiert (ohne Klartext-Inhalte; Opt-in in den Einstellungen)
+- **Push-Benachrichtigungen** (optional) — Logbuch-Eigner per Web Push informieren, wenn Crew Änderungen synchronisiert (ohne Klartext-Inhalte; Opt-in im Benutzerprofil)
 - **Read-only-Freigabe** — öffentlicher Lese-Link für Dritte
 - **Export** — PDF pro Reisetag, CSV-Download/-Teilen
 - **Backup & Wiederherstellung** — vollständiges verschlüsseltes Logbuch-Backup (Einträge, Fotos, GPS, Crew, Schiff) als `.daagbok.json`; Restore auf gleichem oder neuem Account
+- **Feedback** — Bug-, Feature- und allgemeine Rückmeldungen aus der App (serverseitig via [Ntfy](https://ntfy.sh) oder self-hosted)
 - **PWA** — installierbar auf iOS/Android, Offline-Modus, Update-Hinweise
 - **Mehrsprachig** — Deutsch und Englisch
-- **Demo-Logbuch & Onboarding-Tour** für neue Nutzer
+- **Demo-Logbuch & Onboarding-Tour** für neue Nutzer (auch unter `/demo` ohne Anmeldung)
+
+### Benutzerprofil vs. Logbuch-Einstellungen
+
+| Bereich | Inhalt |
+|---------|--------|
+| **Benutzerprofil** | Theme, Farbschema, Wetter-API-Key, Push, PWA, Tour, Passkeys, Account löschen |
+| **Logbuch-Einstellungen** | Crew-Einladungen, öffentliche Freigabe, Backup & Wiederherstellung (nur Eigner) |
 
 ## Architektur
 
@@ -48,6 +58,7 @@ Alle sensiblen Inhalte werden **clientseitig verschlüsselt** (Web Crypto API). 
 | Auth | WebAuthn (Passkeys) + signiertes HttpOnly-Session-Cookie (`daagbok_session`) |
 | Krypto | Web Crypto API (AES-GCM), BIP39 Recovery |
 | Push (optional) | Web Push (VAPID), Custom Service Worker (`injectManifest`) |
+| Feedback (optional) | Ntfy (HTTP Publish) |
 
 ### Rollen & Zugriff
 
@@ -73,7 +84,7 @@ Skipper- und Crew-Profile im Logbuch sind **Inhaltsdaten** (verschlüsselt), nic
 
 ## Backup & Wiederherstellung
 
-Nur der **Logbuch-Eigner** kann unter **Einstellungen → Backup & Wiederherstellung** ein vollständiges Backup erstellen:
+Nur der **Logbuch-Eigner** kann unter **Logbuch-Einstellungen → Backup & Wiederherstellung** ein vollständiges Backup erstellen:
 
 1. Backup-Passphrase wählen (min. 8 Zeichen, getrennt von der Datei aufbewahren)
 2. Download als `.daagbok.json` — enthält alle verschlüsselten Payloads inkl. **Fotos** und GPS-Tracks
@@ -83,7 +94,7 @@ Vor dem Löschen eines Logbuchs weist die App auf diese Funktion hin. Crew-Einla
 
 ## Push-Benachrichtigungen (optional)
 
-Logbuch-**Eigner** können unter **Einstellungen** Web Push aktivieren. Sobald ein eingeladenes Crewmitglied mit Schreibrechten (`WRITE`) Änderungen synchronisiert, erhält der Owner eine **generische** Benachrichtigung — der Server kennt keine Logbuch-Inhalte (Zero-Knowledge).
+Logbuch-**Eigner** können im **Benutzerprofil** Web Push aktivieren. Sobald ein eingeladenes Crewmitglied mit Schreibrechten (`WRITE`) Änderungen synchronisiert, erhält der Owner eine **generische** Benachrichtigung — der Server kennt keine Logbuch-Inhalte (Zero-Knowledge).
 
 | Aspekt | Verhalten |
 |--------|-----------|
@@ -102,20 +113,32 @@ Schlüssel erzeugen: `npx web-push generate-vapid-keys` (im `server/`-Verzeichni
 
 Ausführlicher Implementierungs- und Testplan: [docs/push-notifications-plan.md](docs/push-notifications-plan.md).
 
+## Feedback (optional)
+
+Eingeloggte Nutzer können über das Feedback-Formular in der App Rückmeldungen senden. Der Server leitet sie an einen **Ntfy**-Topic weiter (kein Klartext-Logbuch auf dem Server).
+
+| Variable | Bedeutung |
+|----------|-----------|
+| `NTFY_SERVER` | Basis-URL (Standard: `https://ntfy.sh`) |
+| `NTFY_TOPIC` | Topic-Name (ohne URL) |
+| `NTFY_TOKEN` | Optional: Access-Token für geschützte Topics |
+
+Ohne `NTFY_TOPIC` antwortet die API mit „nicht konfiguriert“. Rate-Limiting und einfacher Spam-Schutz sind serverseitig aktiv.
+
 ## Projektstruktur
 
 ```
 kapteins-daagbok/
 ├── client/              # React-PWA (Frontend)
 │   ├── src/
-│   │   ├── components/  # UI-Komponenten
+│   │   ├── components/  # UI (u. a. CourseDialInput, UserProfilePage, FeedbackModal)
 │   │   ├── services/    # Auth, Sync, Krypto, Backup, Push, Analytics, …
 │   │   ├── sw.ts        # Service Worker (Precache + Web Push)
 │   │   └── i18n/        # DE/EN-Übersetzungen
 │   └── Dockerfile       # Nginx-Produktions-Image
 ├── server/              # Express-API + Prisma
-│   ├── src/routes/      # auth, logbooks, sync, collaboration, sign, push
-│   ├── src/services/    # z. B. pushNotify (Web Push)
+│   ├── src/routes/      # auth, logbooks, sync, collaboration, sign, push, feedback, weather
+│   ├── src/services/    # z. B. pushNotify, ntfyNotify
 │   └── prisma/          # Datenbankschema
 ├── docs/                # Projektdokumentation
 ├── scripts/             # Dev- und Deploy-Skripte
@@ -128,8 +151,9 @@ kapteins-daagbok/
 - **Node.js** 20+
 - **npm**
 - **Docker** (für PostgreSQL in der Entwicklung oder den vollständigen Stack)
-- Optional: eigener OpenWeatherMap-API-Key in den Einstellungen (sonst serverseitiger Key aus `.env`)
+- Optional: eigener OpenWeatherMap-API-Key im **Benutzerprofil** (sonst serverseitiger Key aus `.env`)
 - Optional: VAPID-Schlüssel für Web Push (siehe Abschnitt Push-Benachrichtigungen)
+- Optional: Ntfy-Topic für Feedback (siehe Abschnitt Feedback)
 
 ## Lokale Entwicklung
 
@@ -166,6 +190,10 @@ SESSION_SECRET=                 # openssl rand -base64 48 (in Prod Pflicht)
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:support@kapteins-daagbok.eu
+# Optional — Feedback via Ntfy
+NTFY_SERVER=https://ntfy.sh
+NTFY_TOPIC=
+NTFY_TOKEN=
 ```
 
 `./scripts/start-dev.sh` prüft `ORIGIN` und `SESSION_SECRET` beim Start und gibt Hinweise aus.
@@ -189,6 +217,15 @@ cd server && npx prisma db push && cd ..
 | Frontend (Vite) | http://localhost:5173 |
 | Backend API | http://localhost:5000 |
 | Health Check | http://localhost:5000/api/health |
+| Public Demo | http://localhost:5173/demo |
+
+### 5. Tests (Frontend)
+
+```bash
+cd client && npm test
+```
+
+Vitest-Unit-Tests für Utils, i18n und Services (z. B. Kurswinkel, Benutzereinstellungen).
 
 ## Docker (produktionsnah)
 
@@ -198,9 +235,9 @@ Gesamten Stack lokal bauen und starten:
 ./scripts/start-dev-docker.sh
 ```
 
-Frontend: http://localhost · API: http://localhost/api/health
+Frontend: http://localhost · API: http://localhost/api/health · Demo: http://localhost/demo
 
-Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`) und `SESSION_SECRET`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`).
+Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`) und `SESSION_SECRET`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`). Für Feedback `NTFY_*` setzen.
 
 ## Deployment
 
@@ -212,7 +249,7 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
 Standard-Ziel: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
 
-Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN`, `SESSION_SECRET` (≥ 32 Zeichen) und bei Push `VAPID_*` enthalten. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
+Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN`, `SESSION_SECRET` (≥ 32 Zeichen) und bei Push `VAPID_*` enthalten. Optional `NTFY_*` für Feedback. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
 
 ## Dokumentation
 
@@ -220,6 +257,7 @@ Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABA
 |----------|--------|
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
+| [docs/plan-compass-course-dial.md](docs/plan-compass-course-dial.md) | Kompass-Dial: UX- und Implementierungsplan |
 | [docs/marketing/kapteins-daagbok-beta-flyer.pdf](docs/marketing/kapteins-daagbok-beta-flyer.pdf) | Beta-Flyer (DIN A4) zum Ausdrucken — Quelle: `docs/marketing/beta-flyer.html`, neu erzeugen: `cd client && npm run generate:flyer` |
 | [.planning/PROJECT.md](.planning/PROJECT.md) | Produktvision und Anforderungen (GSD) |
 
