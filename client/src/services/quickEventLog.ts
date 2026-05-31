@@ -1,0 +1,242 @@
+import { db } from './db.js'
+import { getActiveMasterKey } from './auth.js'
+import { getLogbookKey } from './logbookKeys.js'
+import { decryptJson, encryptJson } from './crypto.js'
+import { syncLogbook } from './sync.js'
+import {
+  buildLogEntryPayload,
+  normalizeLogEvent,
+  sortLogEventsByTime,
+  currentLocalTimeHHMM,
+  type LogEventPayload
+} from '../utils/logEntryPayload.js'
+import {
+  carryOverFromPreviousDay,
+  compareTravelDaysChronological,
+  getNextTravelDayNumber,
+  type LogEntryTankSource,
+  type TravelDaySortable
+} from '../utils/logEntryTankLevels.js'
+
+export interface LoadedEntry {
+  payloadId: string
+  updatedAt: string
+  data: Record<string, unknown>
+}
+
+async function getMasterKey(logbookId: string): Promise<ArrayBuffer> {
+  const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+  if (!masterKey) throw new Error('Encryption key not found. Please log in.')
+  return masterKey
+}
+
+function tankLevelsFromData(data: Record<string, unknown>) {
+  const fw = (data.freshwater as Record<string, number> | undefined) ?? {
+    morning: 0, refilled: 0, evening: 0, consumption: 0
+  }
+  const fuel = (data.fuel as Record<string, number> | undefined) ?? {
+    morning: 0, refilled: 0, evening: 0, consumption: 0
+  }
+  const gw = data.greywater as { level?: number } | undefined
+  return { fw, fuel, gw }
+}
+
+function buildEncryptedPayload(
+  data: Record<string, unknown>,
+  options: {
+    events: LogEventPayload[]
+    departure?: string
+    destination?: string
+    clearSignatures?: boolean
+  }
+): Record<string, unknown> {
+  const { fw, fuel, gw } = tankLevelsFromData(data)
+  const trackDistance = data.trackDistanceNm
+  const trackSpeedMax = data.trackSpeedMaxKn
+  const trackSpeedAvg = data.trackSpeedAvgKn
+  const motorHoursRaw = data.motorHours
+
+  const payload = buildLogEntryPayload({
+    date: String(data.date || ''),
+    dayOfTravel: String(data.dayOfTravel || ''),
+    departure: options.departure ?? String(data.departure || ''),
+    destination: options.destination ?? String(data.destination || ''),
+    freshwater: {
+      morning: fw.morning || 0,
+      refilled: fw.refilled || 0,
+      evening: fw.evening || 0,
+      consumption: fw.consumption ?? 0
+    },
+    fuel: {
+      morning: fuel.morning || 0,
+      refilled: fuel.refilled || 0,
+      evening: fuel.evening || 0,
+      consumption: fuel.consumption ?? 0
+    },
+    greywater: gw ? { level: gw.level || 0 } : undefined,
+    trackDistanceNm:
+      trackDistance != null && trackDistance !== ''
+        ? parseFloat(String(trackDistance))
+        : undefined,
+    trackSpeedMaxKn:
+      trackSpeedMax != null && trackSpeedMax !== ''
+        ? parseFloat(String(trackSpeedMax))
+        : undefined,
+    trackSpeedAvgKn:
+      trackSpeedAvg != null && trackSpeedAvg !== ''
+        ? parseFloat(String(trackSpeedAvg))
+        : undefined,
+    motorHours:
+      motorHoursRaw != null && motorHoursRaw !== ''
+        ? parseFloat(String(motorHoursRaw))
+        : undefined,
+    events: options.events
+  })
+
+  const clear = options.clearSignatures
+  return {
+    ...payload,
+    signSkipper: clear ? '' : (data.signSkipper ?? ''),
+    signCrew: clear ? '' : (data.signCrew ?? '')
+  }
+}
+
+export async function loadEntry(logbookId: string, entryId: string): Promise<LoadedEntry | null> {
+  const masterKey = await getMasterKey(logbookId)
+  const record = await db.entries.get(entryId)
+  if (!record) return null
+  const data = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
+  if (!data) return null
+  return { payloadId: record.payloadId, updatedAt: record.updatedAt, data }
+}
+
+export async function findTodayEntryId(logbookId: string): Promise<string | null> {
+  const todayStr = new Date().toISOString().substring(0, 10)
+  const masterKey = await getMasterKey(logbookId)
+  const local = await db.entries.where({ logbookId }).toArray()
+
+  for (const entry of local) {
+    const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+    if (decrypted && String(decrypted.date) === todayStr) {
+      return entry.payloadId
+    }
+  }
+  return null
+}
+
+export async function createTodayEntry(logbookId: string): Promise<string> {
+  const masterKey = await getMasterKey(logbookId)
+  const localEntries = await db.entries.where({ logbookId }).toArray()
+  const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
+
+  for (const entry of localEntries) {
+    const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+    if (decrypted) decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+  }
+
+  decryptedEntries.sort(compareTravelDaysChronological)
+  const previousEntry = decryptedEntries.at(-1) ?? null
+  const { freshwater, fuel, greywaterLevel, departure } = carryOverFromPreviousDay(previousEntry)
+
+  const localId = window.crypto.randomUUID()
+  const nowStr = new Date().toISOString()
+  const todayStr = nowStr.substring(0, 10)
+
+  const initialPayload = {
+    date: todayStr,
+    dayOfTravel: getNextTravelDayNumber(decryptedEntries),
+    departure,
+    destination: '',
+    freshwater,
+    fuel,
+    ...(greywaterLevel > 0 ? { greywater: { level: greywaterLevel } } : {}),
+    signSkipper: '',
+    signCrew: '',
+    events: []
+  }
+
+  const encrypted = await encryptJson(initialPayload, masterKey)
+
+  await db.entries.put({
+    payloadId: localId,
+    logbookId,
+    encryptedData: encrypted.ciphertext,
+    iv: encrypted.iv,
+    tag: encrypted.tag,
+    updatedAt: nowStr
+  })
+
+  await db.syncQueue.put({
+    action: 'create',
+    type: 'entry',
+    payloadId: localId,
+    logbookId,
+    data: JSON.stringify(encrypted),
+    updatedAt: nowStr
+  })
+
+  syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+  return localId
+}
+
+export async function findOrCreateTodayEntry(logbookId: string): Promise<string> {
+  const existing = await findTodayEntryId(logbookId)
+  if (existing) return existing
+  return createTodayEntry(logbookId)
+}
+
+export interface AppendQuickEventResult {
+  events: LogEventPayload[]
+  hadSignature: boolean
+}
+
+export async function appendQuickEvent(
+  logbookId: string,
+  entryId: string,
+  partialEvent: Partial<LogEventPayload>,
+  headerPatch?: { departure?: string; destination?: string }
+): Promise<AppendQuickEventResult> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
+  const currentEvents = (loaded.data.events as LogEventPayload[]) || []
+  const newEvent = normalizeLogEvent({
+    time: currentLocalTimeHHMM(),
+    ...partialEvent
+  })
+  const nextEvents = sortLogEventsByTime([...currentEvents, newEvent])
+
+  const entryData = buildEncryptedPayload(loaded.data, {
+    events: nextEvents,
+    departure: headerPatch?.departure,
+    destination: headerPatch?.destination,
+    clearSignatures: hadSignature
+  })
+
+  const masterKey = await getMasterKey(logbookId)
+  const encrypted = await encryptJson(entryData, masterKey)
+  const now = new Date().toISOString()
+
+  await db.entries.put({
+    payloadId: entryId,
+    logbookId,
+    encryptedData: encrypted.ciphertext,
+    iv: encrypted.iv,
+    tag: encrypted.tag,
+    updatedAt: now
+  })
+
+  await db.syncQueue.put({
+    action: 'update',
+    type: 'entry',
+    payloadId: entryId,
+    logbookId,
+    data: JSON.stringify(encrypted),
+    updatedAt: now
+  })
+
+  syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+
+  return { events: nextEvents, hadSignature }
+}

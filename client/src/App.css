@@ -3167,6 +3167,181 @@ html.theme-cupertino .events-scroll-container {
   color: #38bdf8;
 }
 
+/* Live log journal mode */
+.logs-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin-right: 4px;
+}
+
+.logs-view-toggle-btn.is-active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: var(--app-accent-light, #93c5fd);
+}
+
+.live-log-card {
+  min-height: 420px;
+}
+
+.live-log-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+}
+
+.live-log-layout {
+  display: grid;
+  grid-template-columns: minmax(148px, 200px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.live-log-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.live-log-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--app-radius-btn, 10px);
+  border: 1px solid var(--app-border-muted);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.live-log-action-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.live-log-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.live-log-action-btn.is-active {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fbbf24;
+}
+
+.live-log-stream-panel {
+  min-height: 280px;
+  border: 1px solid var(--app-border-muted);
+  border-radius: var(--app-radius-card, 12px);
+  background: rgba(0, 0, 0, 0.12);
+  padding: 16px 18px;
+}
+
+.live-log-stream-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-accent-light);
+}
+
+.live-log-empty {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 14px;
+}
+
+.live-log-stream {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+}
+
+.live-log-entry {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--app-border-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.live-log-entry:last-child {
+  border-bottom: none;
+}
+
+.live-log-time {
+  flex-shrink: 0;
+  min-width: 3.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
+.live-log-summary {
+  flex: 1;
+}
+
+.live-log-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.live-log-modal {
+  width: min(420px, 100%);
+  padding: 20px;
+  border-radius: var(--app-radius-card, 12px);
+}
+
+.live-log-modal h3 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.live-log-sail-pills {
+  margin-bottom: 16px;
+}
+
+.live-log-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+@media (max-width: 720px) {
+  .live-log-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .live-log-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .live-log-action-btn {
+    width: auto;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 140px;
+    justify-content: center;
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
 .grid-span-2 {
   grid-column: span 2;
 }

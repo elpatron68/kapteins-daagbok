@@ -9,10 +9,11 @@ import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
+import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { getSkipperSignStatus, type SkipperSignStatus } from '../utils/signatures.js'
-import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2 } from 'lucide-react'
+import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2, Radio, List } from 'lucide-react'
 import {
   carryOverFromPreviousDay,
   compareTravelDaysChronological,
@@ -35,6 +36,8 @@ interface LogEntriesListProps {
   onSelectedEntryIdChange?: (id: string | null) => void
   highlightEntryId?: string | null
 }
+
+type LogsViewMode = 'list' | 'live'
 
 interface DecryptedEntryItem {
   id: string
@@ -75,6 +78,8 @@ export default function LogEntriesList({
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<LogsViewMode>('list')
+  const [returnToLiveAfterEditor, setReturnToLiveAfterEditor] = useState(false)
   const prevSelectedEntryIdRef = useRef<string | null | undefined>(undefined)
 
   const loadEntries = useCallback(async () => {
@@ -350,11 +355,30 @@ export default function LogEntriesList({
       <LogEntryEditor
         entryId={selectedEntryId}
         logbookId={logbookId}
-        onBack={() => setSelectedEntryId(null)}
+        onBack={() => {
+          setSelectedEntryId(null)
+          if (returnToLiveAfterEditor) {
+            setViewMode('live')
+            setReturnToLiveAfterEditor(false)
+          }
+        }}
         readOnly={readOnly}
         preloadedEntry={preloadedEntries?.find(entry => (entry.payloadId || entry.id) === selectedEntryId)}
         preloadedPhotos={preloadedPhotos}
         preloadedTrack={preloadedGpsTracks?.find(track => track.entryId === selectedEntryId)}
+      />
+    )
+  }
+
+  if (viewMode === 'live' && !readOnly) {
+    return (
+      <LiveLogView
+        logbookId={logbookId}
+        onOpenEditor={(entryId) => {
+          setReturnToLiveAfterEditor(true)
+          setSelectedEntryId(entryId)
+        }}
+        onSwitchToList={() => setViewMode('list')}
       />
     )
   }
@@ -381,6 +405,29 @@ export default function LogEntriesList({
           <h2>{t('logs.title')}</h2>
         </div>
         <div className="section-toolbar">
+          {!readOnly && (
+            <div className="logs-view-toggle" role="group" aria-label={t('logs.view_mode_label')}>
+              <button
+                type="button"
+                className={`btn secondary logs-view-toggle-btn ${viewMode === 'list' ? 'is-active' : ''}`}
+                onClick={() => setViewMode('list')}
+                title={t('logs.view_list')}
+              >
+                <List size={16} />
+                <span className="hide-mobile">{t('logs.view_list')}</span>
+              </button>
+              <button
+                type="button"
+                className={`btn secondary logs-view-toggle-btn ${viewMode === 'live' ? 'is-active' : ''}`}
+                onClick={() => setViewMode('live')}
+                title={t('logs.live_mode')}
+              >
+                <Radio size={16} />
+                <span className="hide-mobile">{t('logs.live_mode')}</span>
+              </button>
+            </div>
+          )}
+
           <button className="btn secondary" onClick={handleDownloadCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.export_csv')}>
             <Download size={16} />
             <span className="hide-mobile">{exporting ? t('logs.exporting') : t('logs.export_csv')}</span>
