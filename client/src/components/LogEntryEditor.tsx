@@ -24,6 +24,8 @@ import {
 import type { SignatureValue } from '../types/signatures.js'
 import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
 import EventTimeInput24h from './EventTimeInput24h.tsx'
+import CourseDialInput from './CourseDialInput.tsx'
+import { degreesToCardinal } from '../utils/courseAngle.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -180,6 +182,7 @@ export default function LogEntryEditor({
   const [evGpsLng, setEvGpsLng] = useState('')
   const [evRemarks, setEvRemarks] = useState('')
   const [evLocationName, setEvLocationName] = useState('')
+  const [activeCourseTab, setActiveCourseTab] = useState<'mgk' | 'rwk'>('mgk')
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -814,10 +817,7 @@ export default function LogEntryEditor({
       
       // Calculate wind compass direction sector
       if (wind?.deg !== undefined) {
-        const deg = wind.deg
-        const sectors = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-        const index = Math.round(deg / 22.5) % 16
-        setEvWindDirection(sectors[index])
+        setEvWindDirection(degreesToCardinal(wind.deg))
       }
 
       if (data.weather && Array.isArray(data.weather) && data.weather[0]) {
@@ -1377,27 +1377,38 @@ export default function LogEntryEditor({
                 />
               </div>
 
-              <div className="input-group">
-                <label>{t('logs.event_mgk')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 180"
-                  className="input-text"
-                  value={evMgk}
-                  onChange={(e) => setEvMgk(e.target.value)}
+              <div className="input-group course-dial-section">
+                <label>
+                  <Compass size={12} style={{ display: 'inline', marginRight: 4 }} />
+                  {t('logs.event_course_section')}
+                </label>
+                <div className="course-dial-tabs" role="tablist" aria-label={t('logs.event_course_section')}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeCourseTab === 'mgk'}
+                    className={`course-dial-tab${activeCourseTab === 'mgk' ? ' is-active' : ''}`}
+                    onClick={() => setActiveCourseTab('mgk')}
+                    disabled={saving}
+                  >
+                    {t('logs.course_tab_mgk')}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeCourseTab === 'rwk'}
+                    className={`course-dial-tab${activeCourseTab === 'rwk' ? ' is-active' : ''}`}
+                    onClick={() => setActiveCourseTab('rwk')}
+                    disabled={saving}
+                  >
+                    {t('logs.course_tab_rwk')}
+                  </button>
+                </div>
+                <CourseDialInput
+                  value={activeCourseTab === 'mgk' ? evMgk : evRwk}
+                  onChange={activeCourseTab === 'mgk' ? setEvMgk : setEvRwk}
                   disabled={saving}
-                />
-              </div>
-
-              <div className="input-group">
-                <label>{t('logs.event_rwk')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 185"
-                  className="input-text"
-                  value={evRwk}
-                  onChange={(e) => setEvRwk(e.target.value)}
-                  disabled={saving}
+                  aria-label={activeCourseTab === 'mgk' ? t('logs.event_mgk') : t('logs.event_rwk')}
                 />
               </div>
 
@@ -1476,15 +1487,16 @@ export default function LogEntryEditor({
             </div>
 
             <div className="form-grid mb-4">
-              <div className="input-group">
+              <div className="input-group course-dial-section">
                 <label>{t('logs.event_wind_direction')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. NNE"
-                  className="input-text"
+                <CourseDialInput
                   value={evWindDirection}
-                  onChange={(e) => setEvWindDirection(e.target.value)}
+                  onChange={setEvWindDirection}
                   disabled={saving || weatherLoading}
+                  allowCardinal
+                  displayMode="auto"
+                  size="sm"
+                  aria-label={t('logs.event_wind_direction')}
                 />
               </div>
 

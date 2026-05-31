@@ -1,3 +1,8 @@
+import {
+  normalizeCourseAngleString,
+  normalizeWindDirectionString
+} from './courseAngle.js'
+
 export interface LogEventPayload {
   time: string
   mgk: string
@@ -79,10 +84,10 @@ export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<strin
   const timeRaw = String(e.time ?? '').trim()
   const normalized: LogEventPayload = {
     time: parseTimeToHHMM(timeRaw) ?? (timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw),
-    mgk: '',
-    rwk: '',
+    mgk: normalizeCourseAngleString(String(e.mgk ?? ''), { allowEmpty: true }),
+    rwk: normalizeCourseAngleString(String(e.rwk ?? ''), { allowEmpty: true }),
     windPressure: '',
-    windDirection: '',
+    windDirection: normalizeWindDirectionString(String(e.windDirection ?? '')),
     windStrength: '',
     seaState: '',
     weatherIcon: '',
@@ -96,7 +101,7 @@ export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<strin
     remarks: ''
   }
   for (const key of LOG_EVENT_FIELDS) {
-    if (key === 'time') continue
+    if (key === 'time' || key === 'mgk' || key === 'rwk' || key === 'windDirection') continue
     normalized[key] = String(e[key] ?? '').trim()
   }
   return normalized

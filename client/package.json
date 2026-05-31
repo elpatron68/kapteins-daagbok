@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "generate:flyer": "node ../scripts/generate-beta-flyer.mjs",
     "generate:flyer:setup": "playwright install chromium"
@@ -36,12 +37,14 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "happy-dom": "^20.9.0",
     "playwright": "^1.51.0",
     "qrcode": "^1.5.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^6.3.5",
-    "vite-plugin-pwa": "^1.0.1"
+    "vite-plugin-pwa": "^1.0.1",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=20.0.0"
