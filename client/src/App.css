@@ -4127,6 +4127,26 @@ html.theme-cupertino .events-scroll-container {
   border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
+.backup-panel {
+  text-align: left;
+}
+
+.backup-export-form,
+.backup-import-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.backup-panel .input-group label {
+  display: block;
+  font-size: 13.5px;
+  color: var(--app-text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+  text-align: left;
+}
+
 .backup-panel .backup-section {
   margin-bottom: 28px;
   padding-bottom: 24px;
