@@ -43,6 +43,18 @@ async function fetchVapidPublicKey(): Promise<string | null> {
   }
 }
 
+/** True when crew-change push is enabled and notification permission is granted. */
+export async function isCollaboratorPushActive(): Promise<boolean> {
+  if (!isPushSupported()) return false
+  if (getNotificationPermission() !== 'granted') return false
+  try {
+    const prefs = await fetchPushPrefs()
+    return prefs.collaboratorChangesEnabled
+  } catch {
+    return false
+  }
+}
+
 export async function fetchPushPrefs(): Promise<{ collaboratorChangesEnabled: boolean }> {
   if (!localStorage.getItem('active_userid')) {
     return { collaboratorChangesEnabled: false }

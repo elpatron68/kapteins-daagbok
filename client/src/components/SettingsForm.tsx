@@ -6,6 +6,12 @@ import LogbookBackupPanel from './LogbookBackupPanel.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { apiFetch } from '../services/api.js'
+import {
+  enableCollaboratorChangePush,
+  isCollaboratorPushActive,
+  isPushSupported
+} from '../services/pushNotifications.js'
+import { isIosDevice, isRunningStandalone } from '../hooks/usePwaInstall.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
@@ -151,6 +157,43 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
     }
   }
 
+  const promptPushAfterInviteCreated = async () => {
+    if (!isPushSupported()) return
+    if (await isCollaboratorPushActive()) return
+
+    const iosNeedsInstall = isIosDevice() && !isRunningStandalone()
+
+    if (iosNeedsInstall) {
+      await showAlert(
+        t('settings.invite_push_prompt_ios_message'),
+        t('settings.invite_push_prompt_title'),
+        t('settings.invite_push_prompt_later')
+      )
+      return
+    }
+
+    const enable = await showConfirm(
+      t('settings.invite_push_prompt_message'),
+      t('settings.invite_push_prompt_title'),
+      t('settings.invite_push_prompt_enable'),
+      t('settings.invite_push_prompt_later')
+    )
+
+    if (!enable) return
+
+    try {
+      await enableCollaboratorChangePush()
+      await showAlert(
+        t('settings.invite_push_prompt_success'),
+        t('settings.invite_push_prompt_title')
+      )
+      trackPlausibleEvent(PlausibleEvents.PUSH_ENABLED)
+    } catch (err: unknown) {
+      console.error('Failed to enable push after invite:', err)
+      showAlert(err instanceof Error ? err.message : t('profile.push_error'))
+    }
+  }
+
   const handleGenerateInvite = async () => {
     if (!logbookId) return
     setGeneratingInvite(true)
@@ -175,6 +218,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
 
       setInviteLink(link)
       trackPlausibleEvent(PlausibleEvents.INVITE_GENERATED)
+      await promptPushAfterInviteCreated()
     } catch (err: unknown) {
       console.error('Failed to generate invite:', err)
       showAlert(err instanceof Error ? err.message : 'Failed to generate invite link.')
