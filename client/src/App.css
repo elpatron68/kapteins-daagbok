@@ -3292,8 +3292,10 @@ html.theme-cupertino .events-scroll-container {
 .live-log-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.55);
+  z-index: 10050;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3304,6 +3306,9 @@ html.theme-cupertino .events-scroll-container {
   width: min(420px, 100%);
   padding: 20px;
   border-radius: var(--app-radius-card, 12px);
+  background: var(--app-surface-alt);
+  border: 1px solid var(--app-border-muted);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
 }
 
 .live-log-modal--dial {
@@ -3315,6 +3320,10 @@ html.theme-cupertino .events-scroll-container {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
+  padding: 12px;
+  border-radius: var(--app-radius-input, 8px);
+  background: var(--app-surface-inset);
+  border: 1px solid var(--app-border-subtle);
 }
 
 .live-log-dial-field label {
@@ -3414,7 +3423,7 @@ html.theme-cupertino .events-scroll-container {
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  z-index: 900;
+  z-index: 10060;
   display: flex;
   align-items: center;
   gap: 12px;

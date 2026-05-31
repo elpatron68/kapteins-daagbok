@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Anchor,
@@ -474,6 +475,7 @@ export default function LiveLogView({
   }
 
   return (
+    <>
     <div className="form-card live-log-card">
       <div className="section-title-bar mb-4">
         <div className="form-header" style={{ margin: 0 }}>
@@ -602,7 +604,10 @@ export default function LiveLogView({
           )}
         </section>
       </div>
+    </div>
 
+    {((undoVisible && events.length > 0) || modal !== 'none') && createPortal(
+      <>
       {undoVisible && events.length > 0 && (
         <div className="live-log-undo-bar" role="status">
           <span>{t('logs.live_undo_hint')}</span>
@@ -615,7 +620,7 @@ export default function LiveLogView({
 
       {modal === 'sails' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_sails_pick')}</h3>
             <div className="sails-picker-pills live-log-sail-pills">
               {sailOptions.map((sail) => (
@@ -639,7 +644,7 @@ export default function LiveLogView({
 
       {modal === 'comment' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_comment_btn')}</h3>
             <input type="text" className="input-text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder={t('logs.live_comment_placeholder')} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') confirmComment() }} />
             <div className="live-log-modal-actions">
@@ -652,7 +657,7 @@ export default function LiveLogView({
 
       {modal === 'wind' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal live-log-modal--dial glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal live-log-modal--dial" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_wind_btn')}</h3>
             <div className="live-log-dial-field">
               <label>{t('logs.event_wind_direction')}</label>
@@ -686,7 +691,7 @@ export default function LiveLogView({
 
       {modal === 'course' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal live-log-modal--dial glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal live-log-modal--dial" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_course_btn')}</h3>
             <div className="live-log-dial-field">
               <label>{t('logs.event_mgk')}</label>
@@ -708,7 +713,7 @@ export default function LiveLogView({
 
       {['pressure', 'temp', 'precip', 'sea_state', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>
               {modal === 'pressure' && t('logs.live_pressure_btn')}
               {modal === 'temp' && t('logs.live_temp_btn')}
@@ -748,6 +753,9 @@ export default function LiveLogView({
           </div>
         </div>
       )}
-    </div>
+      </>,
+      document.body
+    )}
+    </>
   )
 }
