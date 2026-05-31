@@ -111,6 +111,27 @@ export function logEventsEqual(a: LogEventPayload, b: LogEventPayload): boolean 
   return LOG_EVENT_FIELDS.every((key) => a[key] === b[key])
 }
 
+const LOG_EVENT_CONTENT_FIELDS = LOG_EVENT_FIELDS.filter((key) => key !== 'time')
+
+/** Draft with only a time (or empty fields) — not an unsaved log entry change. */
+export function isLogEventDraftEmpty(event: LogEventPayload): boolean {
+  return LOG_EVENT_CONTENT_FIELDS.every((key) => !event[key]?.trim())
+}
+
+/** Whether the event form holds unsaved changes worth merging on page save. */
+export function hasUnsavedEventDraft(
+  draft: LogEventPayload,
+  editingEventIndex: number | null,
+  events: LogEventPayload[]
+): boolean {
+  if (!isValidTimeHHMM(draft.time)) return false
+  if (editingEventIndex !== null) {
+    const original = events[editingEventIndex]
+    return original ? !logEventsEqual(draft, original) : false
+  }
+  return !isLogEventDraftEmpty(draft)
+}
+
 /** Chronological order: earliest time first (HH:MM). */
 export function sortLogEventsByTime<T extends LogEventPayload>(events: T[]): T[] {
   return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))

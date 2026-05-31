@@ -22,7 +22,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
 import EventTimeInput24h from './EventTimeInput24h.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
 import { degreesToCardinal } from '../utils/courseAngle.js'
@@ -202,6 +202,7 @@ export default function LogEntryEditor({
   const contentReadyRef = useRef(false)
   const lastSignatureAlertHashRef = useRef<string | null>(null)
   const skipCrewSignClearRef = useRef(false)
+  const entryHashSeqRef = useRef(0)
   const [editingEventIndex, setEditingEventIndex] = useState<number | null>(null)
 
   const applyTrackStats = (waypoints: SavedTrack['waypoints']) => {
@@ -304,13 +305,7 @@ export default function LogEntryEditor({
   }
 
   const hasPendingEventForm = useMemo(() => {
-    if (!evTime.trim()) return false
-    const draft = buildEventFromForm()
-    if (editingEventIndex !== null) {
-      const original = events[editingEventIndex]
-      return original ? !logEventsEqual(draft, original) : false
-    }
-    return true
+    return hasUnsavedEventDraft(buildEventFromForm(), editingEventIndex, events)
   }, [
     evTime, evMgk, evRwk, evWindPressure, evWindDirection, evWindStrength, evSeaState,
     evWeatherIcon, evCurrent, evHeel, evSailsOrMotor, evLogReading, evDistance,
@@ -331,16 +326,27 @@ export default function LogEntryEditor({
     onBack()
   }
 
-  const persistEntryToDb = useCallback(async (eventsOverride?: LogEvent[]) => {
+  const persistEntryToDb = useCallback(async (
+    options?: LogEvent[] | {
+      eventsOverride?: LogEvent[]
+      signSkipper?: SignatureValue | ''
+      signCrew?: SignatureValue | ''
+    }
+  ) => {
     if (readOnly) return
+
+    const normalized = Array.isArray(options) ? { eventsOverride: options } : (options ?? {})
+    const eventsOverride = normalized.eventsOverride
+    const skipperToSave = normalized.signSkipper !== undefined ? normalized.signSkipper : signSkipper
+    const crewToSave = normalized.signCrew !== undefined ? normalized.signCrew : signCrew
 
     const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
     if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
     const entryData = {
       ...buildPayloadForSigning(eventsOverride),
-      signSkipper: normalizedSerializedSignature(signSkipper),
-      signCrew: normalizedSerializedSignature(signCrew)
+      signSkipper: normalizedSerializedSignature(skipperToSave),
+      signCrew: normalizedSerializedSignature(crewToSave)
     }
 
     const encrypted = await encryptJson(entryData, masterKey)
@@ -368,9 +374,14 @@ export default function LogEntryEditor({
 
     setSavedFingerprint(JSON.stringify({
       ...buildPayloadForSigning(eventsOverride),
-      signSkipper: fingerprintSignature(signSkipper),
-      signCrew: fingerprintSignature(signCrew)
+      signSkipper: fingerprintSignature(skipperToSave),
+      signCrew: fingerprintSignature(crewToSave)
     }))
+
+    const hash = await hashEntryForSigning(buildPayloadForSigning(eventsOverride))
+    entryHashSeqRef.current += 1
+    setEntryHash(hash)
+    lockedContentHashRef.current = hasAnySignature(skipperToSave, crewToSave) ? hash : null
   }, [
     readOnly, logbookId, entryId, events, buildPayloadForSigning, signSkipper, signCrew
   ])
@@ -398,9 +409,11 @@ export default function LogEntryEditor({
   }, [logbookId])
 
   useEffect(() => {
+    const seq = ++entryHashSeqRef.current
     let cancelled = false
     hashEntryForSigning(buildPayloadForSigning()).then((hash) => {
-      if (!cancelled) setEntryHash(hash)
+      if (cancelled || seq !== entryHashSeqRef.current) return
+      setEntryHash(hash)
     })
     return () => { cancelled = true }
   }, [buildPayloadForSigning])
@@ -471,6 +484,7 @@ export default function LogEntryEditor({
       role: 'skipper'
     })
     setSignSkipper(signature)
+    entryHashSeqRef.current += 1
     setEntryHash(hash)
     lockedContentHashRef.current = hash
     trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'skipper' })
@@ -489,6 +503,7 @@ export default function LogEntryEditor({
       role: 'crew'
     })
     setSignCrew(signature)
+    entryHashSeqRef.current += 1
     setEntryHash(hash)
     lockedContentHashRef.current = hash
     trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'crew' })
@@ -921,10 +936,23 @@ export default function LogEntryEditor({
     setEvLocationName('')
   }
 
+  const resolveSignaturesAfterContentChange = (skipperOnly = false) => {
+    const hadSkipper = !!signSkipper
+    const hadCrew = !!signCrew
+    const cleared = hadSkipper || (hadCrew && !skipperOnly)
+    skipCrewSignClearRef.current = skipperOnly
+    const nextSkipper: SignatureValue | '' = hadSkipper ? '' : signSkipper
+    const nextCrew: SignatureValue | '' = hadCrew && !skipperOnly ? '' : signCrew
+    if (cleared) {
+      if (hadSkipper) setSignSkipper('')
+      if (hadCrew && !skipperOnly) setSignCrew('')
+      lockedContentHashRef.current = null
+    }
+    return { signSkipper: nextSkipper, signCrew: nextCrew, cleared }
+  }
+
   const markSkipperSignatureClearedForEventChange = () => {
-    if (!signSkipper) return
-    skipCrewSignClearRef.current = true
-    setSignSkipper('')
+    resolveSignaturesAfterContentChange(true)
   }
 
   const handleEditEvent = (index: number) => {
@@ -1014,11 +1042,20 @@ export default function LogEntryEditor({
     if (readOnly) return
 
     let eventsToSave = events
+    let signaturesForSave: { signSkipper: SignatureValue | ''; signCrew: SignatureValue | '' } | undefined
 
     if (hasPendingEventForm) {
       const isEdit = editingEventIndex !== null
-      if (isEdit && signSkipper) {
-        markSkipperSignatureClearedForEventChange()
+      const resolved = resolveSignaturesAfterContentChange(isEdit)
+      signaturesForSave = {
+        signSkipper: resolved.signSkipper,
+        signCrew: resolved.signCrew
+      }
+      if (resolved.cleared) {
+        void showAlertRef.current(
+          isEdit ? t('logs.sign_cleared_skipper_re_sign') : t('logs.sign_cleared_re_sign'),
+          isEdit ? t('logs.sign_cleared_skipper_re_sign_title') : t('logs.sign_cleared_re_sign_title')
+        )
       }
       eventsToSave = applyEventFormToEvents(buildEventFromForm())
       setEvents(eventsToSave)
@@ -1032,7 +1069,10 @@ export default function LogEntryEditor({
     setSuccess(false)
 
     try {
-      await persistEntryToDb(eventsToSave)
+      await persistEntryToDb({
+        eventsOverride: eventsToSave,
+        ...signaturesForSave
+      })
 
       setSuccess(true)
       trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
