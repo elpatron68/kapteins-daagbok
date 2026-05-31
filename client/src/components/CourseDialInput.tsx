@@ -55,6 +55,7 @@ export default function CourseDialInput({
   const svgRef = useRef<SVGSVGElement>(null)
   const [step, setStep] = useState<CourseStep>(() => stepProp ?? loadCourseDialStep())
   const [inputDraft, setInputDraft] = useState<string | null>(null)
+  const [inputError, setInputError] = useState<string | null>(null)
   const [outputModeOverride, setOutputModeOverride] = useState<CourseOutputMode | null>(null)
 
   const effectiveStep = stepProp ?? step
@@ -72,10 +73,22 @@ export default function CourseDialInput({
     [value, allowCardinal]
   )
 
+  const tickLabel = useCallback(
+    (degrees: number) => {
+      if (degrees === 0) return t('logs.compass_n')
+      if (degrees === 90) return t('logs.compass_e')
+      if (degrees === 180) return t('logs.compass_s')
+      if (degrees === 270) return t('logs.compass_w')
+      return String(degrees).padStart(3, '0')
+    },
+    [t]
+  )
+
   const applyDegrees = useCallback(
     (degrees: number) => {
       onChange(dialDegreesToStorageValue(degrees, outputMode, effectiveStep))
       setInputDraft(null)
+      setInputError(null)
     },
     [onChange, outputMode, effectiveStep]
   )
@@ -120,15 +133,21 @@ export default function CourseDialInput({
     setInputDraft(null)
     if (!draft) {
       onChange('')
+      setInputError(null)
       return
     }
     if (allowCardinal && outputMode === 'cardinal' && isCardinalDirection(draft)) {
       onChange(draft.toUpperCase())
+      setInputError(null)
       return
     }
     const parsed = parseCourseAngle(draft)
-    if (parsed === null) return
+    if (parsed === null) {
+      setInputError(t('logs.course_invalid'))
+      return
+    }
     onChange(formatCourseAngle(snapDegrees(parsed, effectiveStep)))
+    setInputError(null)
   }
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -170,7 +189,7 @@ export default function CourseDialInput({
       className={`course-dial course-dial--${size}${disabled ? ' course-dial--disabled' : ''}`}
     >
       {!stepProp && (
-        <div className="course-dial__step-toolbar" role="group" aria-label={ariaLabel}>
+        <div className="course-dial__step-toolbar" role="group" aria-label={t('logs.course_dial_step_label')}>
           {([1, 5, 10] as const).map((s) => (
             <button
               key={s}
@@ -213,7 +232,7 @@ export default function CourseDialInput({
               <g key={deg}>
                 <line className="course-dial__tick" x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} />
                 <text className="course-dial__label" x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle">
-                  {String(deg).padStart(3, '0')}
+                  {tickLabel(deg)}
                 </text>
               </g>
             )
@@ -240,9 +259,16 @@ export default function CourseDialInput({
         onBlur={commitInput}
         onKeyDown={handleInputKeyDown}
         disabled={disabled}
-        placeholder={outputMode === 'cardinal' ? 'NW' : '180'}
+        placeholder={
+          outputMode === 'cardinal'
+            ? t('logs.course_placeholder_cardinal')
+            : t('logs.course_placeholder_degrees')
+        }
         aria-label={ariaLabel}
+        aria-invalid={inputError ? true : undefined}
       />
+
+      {inputError && <p className="course-dial__error">{inputError}</p>}
 
       {allowCardinal && displayMode === 'auto' && (
         <button
