@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, Compass } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import LogbookBackupPanel from './LogbookBackupPanel.tsx'
-import AccountDangerZone from './AccountDangerZone.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import PushNotificationSettings from './PushNotificationSettings.tsx'
 import { useDialog } from './ModalDialog.tsx'
@@ -541,8 +540,6 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           )}
         </div>
       )}
-      {/* Danger Zone / Account Deletion */}
-      <AccountDangerZone className="mt-6" />
     </div>
   )
 }

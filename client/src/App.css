@@ -742,8 +742,21 @@ html.scheme-dark .themed-select-option.is-selected {
   background: rgba(148, 163, 184, 0.08);
   border: 1px solid rgba(148, 163, 184, 0.18);
   color: var(--app-text-muted);
-  cursor: default;
+  cursor: pointer;
   user-select: none;
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.skipper-badge:hover {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: var(--app-text);
+}
+
+.skipper-badge:focus-visible {
+  outline: 2px solid var(--app-accent, #38bdf8);
+  outline-offset: 2px;
 }
 
 .skipper-badge__name {
@@ -798,6 +811,128 @@ html.scheme-dark .themed-select-option.is-selected {
   max-width: 720px;
   margin: 40px auto 48px;
   padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.profile-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-back-btn {
+  margin-right: 12px;
+}
+
+.profile-dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-dl-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) 1fr;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.profile-dl-row dt {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+}
+
+.profile-dl-row dd {
+  margin: 0;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.profile-user-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-user-id code {
+  font-size: 12px;
+  background: rgba(148, 163, 184, 0.08);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.profile-copy-btn {
+  flex-shrink: 0;
+}
+
+.profile-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.profile-section-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.profile-section-desc,
+.profile-pin-status,
+.profile-empty {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  line-height: 1.5;
+}
+
+.profile-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-passkey-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-passkey-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.profile-passkey-id {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.profile-passkey-transports {
+  display: block;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .profile-dl-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .account-danger-zone {

@@ -543,3 +543,99 @@ export async function deleteAccount(): Promise<boolean> {
   }
   return false
 }
+
+export interface UserProfileCredential {
+  id: string
+  credentialIdPreview: string
+  transports: string[]
+}
+
+export interface UserProfile {
+  userId: string
+  username: string
+  createdAt: string
+  hasPrfEncryption: boolean
+  credentials: UserProfileCredential[]
+  serverMeta: {
+    ownedLogbookCount: number
+    collaborationCount: number
+  }
+}
+
+export async function fetchUserProfile(): Promise<UserProfile> {
+  return apiJson<UserProfile>(`${API_BASE}/profile`)
+}
+
+async function enrollPrfFromMasterKey(masterKey: ArrayBuffer, prfFirst: ArrayBuffer): Promise<void> {
+  const prfKey = await deriveKeyFromPrf(prfFirst)
+  const encryptedPrf = await encryptBuffer(masterKey, prfKey)
+  await apiJson(`${API_BASE}/enroll-prf`, {
+    method: 'POST',
+    body: JSON.stringify({
+      encryptedMasterKeyPrf: encryptedPrf.ciphertext,
+      encryptedMasterKeyPrfIv: encryptedPrf.iv,
+      encryptedMasterKeyPrfTag: encryptedPrf.tag
+    })
+  })
+}
+
+export async function addPasskey(): Promise<void> {
+  await reauthWithPasskey()
+
+  const options = await apiJson<any>(`${API_BASE}/add-credential-options`, {
+    method: 'POST'
+  })
+
+  if (!options.extensions) {
+    options.extensions = {}
+  }
+  options.extensions.prf = { eval: { first: PRF_SALT.buffer } }
+
+  let credentialResponse
+  const prfRequested = !!options.extensions?.prf
+  try {
+    credentialResponse = await startRegistration({ optionsJSON: options })
+  } catch (err: any) {
+    const isOptionError = err.name === 'NotSupportedError' ||
+      err.message?.toLowerCase().includes('options') ||
+      err.message?.toLowerCase().includes('process') ||
+      err.message?.toLowerCase().includes('unable to')
+    if (prfRequested && isOptionError) {
+      console.warn('Add passkey with PRF extension failed, retrying without PRF:', err)
+      if (options.extensions) {
+        delete options.extensions.prf
+      }
+      credentialResponse = await startRegistration({ optionsJSON: options })
+    } else {
+      throw err
+    }
+  }
+
+  await apiJson(`${API_BASE}/add-credential-verify`, {
+    method: 'POST',
+    body: JSON.stringify({ credentialResponse })
+  })
+
+  const masterKey = getActiveMasterKey()
+  const prfFirstBuffer = extractPrfFirst(credentialResponse.clientExtensionResults || {})
+  if (masterKey && prfFirstBuffer) {
+    try {
+      await enrollPrfFromMasterKey(masterKey, prfFirstBuffer)
+    } catch (err) {
+      console.error('Failed to enroll PRF after adding passkey:', err)
+    }
+  }
+}
+
+export async function removePasskey(credentialDbId: string): Promise<void> {
+  await reauthWithPasskey()
+
+  const res = await apiFetch(`${API_BASE}/credentials/${credentialDbId}`, {
+    method: 'DELETE'
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || 'Failed to remove passkey')
+  }
+}

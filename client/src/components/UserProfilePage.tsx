@@ -1,0 +1,479 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  User,
+  ChevronLeft,
+  LogOut,
+  KeyRound,
+  Copy,
+  Check,
+  Plus,
+  Trash2,
+  BookOpen,
+  Anchor,
+  Gauge,
+  Sailboat,
+  Timer,
+  Share2,
+  Calendar,
+  Lock,
+  BarChart2
+} from 'lucide-react'
+import AccountDangerZone from './AccountDangerZone.tsx'
+import BetaBadge from './BetaBadge.tsx'
+import { useDialog } from './ModalDialog.tsx'
+import {
+  addPasskey,
+  fetchUserProfile,
+  getActiveMasterKey,
+  hasLocalPin,
+  removeLocalPin,
+  removePasskey,
+  setLocalPin,
+  type UserProfile
+} from '../services/auth.js'
+import {
+  formatHours,
+  formatNm,
+  loadAccountStats,
+  type AccountStatsSummary
+} from '../services/statsAggregation.js'
+import { db } from '../services/db.js'
+
+interface UserProfilePageProps {
+  onBack: () => void
+  onLogout: () => void
+}
+
+function formatAccountAge(createdAt: string, locale: string): string {
+  const created = new Date(createdAt)
+  if (Number.isNaN(created.getTime())) return createdAt
+  return created.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+function KpiCard({
+  icon,
+  label,
+  value,
+  unit
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  unit?: string
+}) {
+  return (
+    <div className="stats-kpi-card glass">
+      <div className="stats-kpi-icon">{icon}</div>
+      <div className="stats-kpi-body">
+        <span className="stats-kpi-label">{label}</span>
+        <span className="stats-kpi-value">
+          {value}
+          {unit ? <span className="stats-kpi-unit">{unit}</span> : null}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+export default function UserProfilePage({ onBack, onLogout }: UserProfilePageProps) {
+  const { t, i18n } = useTranslation()
+  const { showConfirm, showAlert } = useDialog()
+  const username = localStorage.getItem('active_username') || 'Skipper'
+
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [accountStats, setAccountStats] = useState<AccountStatsSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [copiedUserId, setCopiedUserId] = useState(false)
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
+  const [pinBusy, setPinBusy] = useState(false)
+  const [pinInput, setPinInput] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [pinActive, setPinActive] = useState(() => hasLocalPin(username))
+
+  const sharedLogbookCount = useLiveQuery(
+    () => db.logbooks.filter((lb) => lb.isShared === 1).count(),
+    []
+  ) ?? 0
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [profileData, stats] = await Promise.all([
+        fetchUserProfile(),
+        loadAccountStats(false)
+      ])
+      setProfile(profileData)
+      setAccountStats(stats)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('profile.load_error'))
+    } finally {
+      setLoading(false)
+    }
+  }, [t])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
+
+  const statsTotals = accountStats?.totals
+
+  const accountAgeLabel = useMemo(() => {
+    if (!profile?.createdAt) return '—'
+    return formatAccountAge(profile.createdAt, i18n.language)
+  }, [profile?.createdAt, i18n.language])
+
+  const handleCopyUserId = async () => {
+    if (!profile?.userId) return
+    try {
+      await navigator.clipboard.writeText(profile.userId)
+      setCopiedUserId(true)
+      window.setTimeout(() => setCopiedUserId(false), 2000)
+    } catch {
+      showAlert(t('profile.copy_failed'))
+    }
+  }
+
+  const handleAddPasskey = async () => {
+    setPasskeyBusy(true)
+    setError(null)
+    try {
+      await addPasskey()
+      await loadData()
+      showAlert(t('profile.add_passkey_success'))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('profile.add_passkey_failed'))
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  const handleRemovePasskey = async (credentialId: string) => {
+    const confirmed = await showConfirm(
+      t('profile.remove_passkey_confirm_desc'),
+      t('profile.remove_passkey_confirm_title'),
+      t('profile.remove_passkey_confirm_yes'),
+      t('profile.remove_passkey_confirm_no')
+    )
+    if (!confirmed) return
+
+    setPasskeyBusy(true)
+    setError(null)
+    try {
+      await removePasskey(credentialId)
+      await loadData()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('profile.remove_passkey_failed'))
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pinInput.length < 4) {
+      setError(t('profile.pin_length_error'))
+      return
+    }
+    if (pinInput !== pinConfirm) {
+      setError(t('profile.pin_mismatch'))
+      return
+    }
+
+    const masterKey = getActiveMasterKey()
+    if (!masterKey) {
+      setError(t('profile.pin_no_session'))
+      return
+    }
+
+    setPinBusy(true)
+    setError(null)
+    try {
+      await setLocalPin(pinInput.trim(), username, masterKey)
+      setPinActive(true)
+      setPinInput('')
+      setPinConfirm('')
+      showAlert(t('profile.pin_saved'))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('profile.pin_save_failed'))
+    } finally {
+      setPinBusy(false)
+    }
+  }
+
+  const handleRemovePin = async () => {
+    const confirmed = await showConfirm(
+      t('profile.remove_pin_confirm_desc'),
+      t('profile.remove_pin_confirm_title'),
+      t('profile.remove_pin_confirm_yes'),
+      t('profile.remove_pin_confirm_no')
+    )
+    if (!confirmed) return
+
+    removeLocalPin(username)
+    setPinActive(false)
+    setPinInput('')
+    setPinConfirm('')
+  }
+
+  return (
+    <div className="dashboard-container">
+      <header className="dashboard-header">
+        <div className="header-brand">
+          <button className="btn-back profile-back-btn" onClick={onBack} title={t('profile.back')}>
+            <ChevronLeft size={16} />
+            <span>{t('profile.back')}</span>
+          </button>
+          <div>
+            <div className="header-brand-title-row">
+              <h1>{t('profile.title')}</h1>
+              <BetaBadge />
+            </div>
+            <p className="subtitle">{t('profile.subtitle', { name: username })}</p>
+          </div>
+        </div>
+
+        <div className="header-actions">
+          <button className="btn-icon logout" onClick={onLogout} title={t('dashboard.logout')}>
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
+
+      <main className="profile-main">
+        {error && <div className="auth-error mb-4">{error}</div>}
+
+        {loading ? (
+          <div className="tab-placeholder">
+            <User className="header-logo spin" size={48} />
+            <p>{t('profile.loading')}</p>
+          </div>
+        ) : profile ? (
+          <>
+            <section className="form-card">
+              <div className="form-header">
+                <User size={24} className="form-icon" />
+                <h2>{t('profile.identity_title')}</h2>
+              </div>
+
+              <dl className="profile-dl">
+                <div className="profile-dl-row">
+                  <dt>{t('profile.username')}</dt>
+                  <dd>{profile.username}</dd>
+                </div>
+                <div className="profile-dl-row">
+                  <dt>{t('profile.user_id')}</dt>
+                  <dd className="profile-user-id">
+                    <code>{profile.userId}</code>
+                    <button
+                      type="button"
+                      className="btn-icon profile-copy-btn"
+                      onClick={() => void handleCopyUserId()}
+                      title={t('profile.copy_user_id')}
+                    >
+                      {copiedUserId ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                  </dd>
+                </div>
+                <div className="profile-dl-row">
+                  <dt>{t('profile.account_since')}</dt>
+                  <dd>{accountAgeLabel}</dd>
+                </div>
+                <div className="profile-dl-row">
+                  <dt>{t('profile.prf_status')}</dt>
+                  <dd>
+                    {profile.hasPrfEncryption
+                      ? t('profile.prf_active')
+                      : t('profile.prf_inactive')}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="member-editor-card glass">
+              <div className="profile-section-header">
+                <Lock size={20} />
+                <h3>{t('profile.pin_title')}</h3>
+              </div>
+              <p className="profile-section-desc">{t('auth.setup_pin_warning')}</p>
+              <p className="profile-pin-status">
+                {t('profile.pin_status')}:{' '}
+                <strong>{pinActive ? t('profile.pin_active') : t('profile.pin_inactive')}</strong>
+              </p>
+
+              <form onSubmit={(e) => void handleSavePin(e)} className="profile-pin-form">
+                <div className="input-group">
+                  <label htmlFor="profile-pin">{t('auth.pin_label')}</label>
+                  <input
+                    id="profile-pin"
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="new-password"
+                    className="input-text"
+                    placeholder={t('auth.pin_placeholder')}
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value)}
+                    disabled={pinBusy}
+                  />
+                </div>
+                <div className="input-group">
+                  <label htmlFor="profile-pin-confirm">{t('profile.pin_confirm_label')}</label>
+                  <input
+                    id="profile-pin-confirm"
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="new-password"
+                    className="input-text"
+                    placeholder={t('profile.pin_confirm_placeholder')}
+                    value={pinConfirm}
+                    onChange={(e) => setPinConfirm(e.target.value)}
+                    disabled={pinBusy}
+                  />
+                </div>
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn primary"
+                    disabled={pinBusy || pinInput.length < 4 || pinConfirm.length < 4}
+                  >
+                    {pinActive ? t('profile.pin_change_btn') : t('profile.pin_set_btn')}
+                  </button>
+                  {pinActive && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() => void handleRemovePin()}
+                      disabled={pinBusy}
+                    >
+                      {t('profile.pin_remove_btn')}
+                    </button>
+                  )}
+                </div>
+              </form>
+            </section>
+
+            <section className="member-editor-card glass">
+              <div className="profile-section-header">
+                <KeyRound size={20} />
+                <h3>{t('profile.passkeys_title')}</h3>
+              </div>
+              <p className="profile-section-desc">{t('profile.passkeys_desc')}</p>
+
+              {profile.credentials.length === 0 ? (
+                <p className="profile-empty">{t('profile.passkeys_empty')}</p>
+              ) : (
+                <ul className="profile-passkey-list">
+                  {profile.credentials.map((cred) => (
+                    <li key={cred.id} className="profile-passkey-item">
+                      <div>
+                        <span className="profile-passkey-id">{cred.credentialIdPreview}</span>
+                        {cred.transports.length > 0 && (
+                          <span className="profile-passkey-transports">
+                            {cred.transports.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-icon danger"
+                        onClick={() => void handleRemovePasskey(cred.id)}
+                        disabled={passkeyBusy || profile.credentials.length <= 1}
+                        title={
+                          profile.credentials.length <= 1
+                            ? t('profile.remove_passkey_last')
+                            : t('profile.remove_passkey_btn')
+                        }
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="form-actions mt-4">
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={() => void handleAddPasskey()}
+                  disabled={passkeyBusy}
+                >
+                  <Plus size={16} />
+                  {passkeyBusy ? t('profile.processing') : t('profile.add_passkey_btn')}
+                </button>
+              </div>
+            </section>
+
+            <section className="form-card">
+              <div className="form-header">
+                <BarChart2 size={24} className="form-icon" />
+                <div>
+                  <h2>{t('profile.stats_title')}</h2>
+                  <p className="stats-subtitle">{t('profile.stats_subtitle')}</p>
+                </div>
+              </div>
+
+              {statsTotals && (
+                <div className="stats-kpi-grid">
+                  <KpiCard
+                    icon={<BookOpen size={20} />}
+                    label={t('profile.stats_logbooks')}
+                    value={String(accountStats?.logbooks.length ?? profile.serverMeta.ownedLogbookCount)}
+                  />
+                  <KpiCard
+                    icon={<Anchor size={20} />}
+                    label={t('stats.travel_days')}
+                    value={String(statsTotals.travelDayCount)}
+                  />
+                  <KpiCard
+                    icon={<Gauge size={20} />}
+                    label={t('stats.total_distance')}
+                    value={formatNm(statsTotals.totalDistanceNm)}
+                    unit={t('stats.unit_nm')}
+                  />
+                  <KpiCard
+                    icon={<Sailboat size={20} />}
+                    label={t('stats.sail_distance')}
+                    value={formatNm(statsTotals.sailDistanceNm)}
+                    unit={t('stats.unit_nm')}
+                  />
+                  <KpiCard
+                    icon={<Gauge size={20} />}
+                    label={t('stats.motor_distance')}
+                    value={formatNm(statsTotals.motorDistanceNm)}
+                    unit={t('stats.unit_nm')}
+                  />
+                  <KpiCard
+                    icon={<Timer size={20} />}
+                    label={t('stats.motor_hours_total')}
+                    value={formatHours(statsTotals.totalMotorHours)}
+                    unit={t('stats.unit_h')}
+                  />
+                  <KpiCard
+                    icon={<Calendar size={20} />}
+                    label={t('profile.stats_account_since')}
+                    value={accountAgeLabel}
+                  />
+                  <KpiCard
+                    icon={<Share2 size={20} />}
+                    label={t('profile.stats_shared_logbooks')}
+                    value={String(sharedLogbookCount)}
+                  />
+                </div>
+              )}
+            </section>
+
+            <AccountDangerZone className="mt-6" />
+          </>
+        ) : null}
+      </main>
+    </div>
+  )
+}

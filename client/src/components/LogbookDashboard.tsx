@@ -8,7 +8,6 @@ import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import AccountDangerZone from './AccountDangerZone.tsx'
 import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
@@ -16,9 +15,10 @@ import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
   onLogout: () => void
+  onOpenProfile: () => void
 }
 
-export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookDashboardProps) {
+export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProfile }: LogbookDashboardProps) {
   const { t, i18n } = useTranslation()
   const { showConfirm } = useDialog()
   const [logbooks, setLogbooks] = useState<DecryptedLogbook[]>([])
@@ -210,14 +210,16 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           </div>
 
           {/* Skipper profile */}
-          <div
+          <button
+            type="button"
             className="skipper-badge"
-            title={t('dashboard.logged_in_as', { name: username })}
-            aria-label={t('dashboard.logged_in_as', { name: username })}
+            onClick={onOpenProfile}
+            title={t('dashboard.open_profile', { name: username })}
+            aria-label={t('dashboard.open_profile', { name: username })}
           >
             <User size={16} aria-hidden="true" />
             <span className="skipper-badge__name">{username}</span>
-          </div>
+          </button>
 
           {/* Lang toggle */}
           <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
@@ -289,10 +291,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout }: LogbookD
           )}
         </section>
       </main>
-
-      <section className="dashboard-account-section" aria-label={t('settings.danger_zone_title')}>
-        <AccountDangerZone />
-      </section>
     </div>
   )
 }

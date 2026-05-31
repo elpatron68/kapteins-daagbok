@@ -22,7 +22,13 @@ const rpID = process.env.RP_ID || 'localhost'
 const origin = process.env.ORIGIN || 'http://localhost:5173'
 
 const registrationChallenges = new Map<string, string>()
+const addCredentialChallenges = new Map<string, string>()
 const activeChallenges = new Set<string>()
+
+function previewCredentialId(credentialId: string): string {
+  if (credentialId.length <= 16) return credentialId
+  return `${credentialId.slice(0, 8)}…${credentialId.slice(-8)}`
+}
 
 router.post('/register-options', async (req, res) => {
   try {
@@ -377,6 +383,188 @@ router.post('/enroll-prf', requireReauth, async (req: any, res) => {
     return res.json({ success: true })
   } catch (error: any) {
     console.error('Error enrolling PRF key:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.get('/profile', requireUser, async (req: any, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: {
+        credentials: {
+          orderBy: { id: 'asc' }
+        },
+        _count: {
+          select: {
+            logbooks: true,
+            collaborations: true
+          }
+        }
+      }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    return res.json({
+      userId: user.id,
+      username: user.username,
+      createdAt: user.createdAt.toISOString(),
+      hasPrfEncryption: user.encryptedMasterKeyPrf != null,
+      credentials: user.credentials.map((cred) => ({
+        id: cred.id,
+        credentialIdPreview: previewCredentialId(cred.credentialId),
+        transports: cred.transports
+      })),
+      serverMeta: {
+        ownedLogbookCount: user._count.logbooks,
+        collaborationCount: user._count.collaborations
+      }
+    })
+  } catch (error: any) {
+    console.error('Error fetching user profile:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.post('/add-credential-options', requireReauth, async (req: any, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: { credentials: true }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const userID = Buffer.from(user.username, 'utf8').toString('base64url')
+    const excludeCredentials = user.credentials.map((cred) => ({
+      id: Buffer.from(cred.credentialId, 'base64url'),
+      type: 'public-key' as const,
+      transports: cred.transports as any[]
+    }))
+
+    const options = await generateRegistrationOptions({
+      rpName,
+      rpID,
+      userID,
+      userName: user.username,
+      userDisplayName: user.username,
+      attestationType: 'none',
+      authenticatorSelection: {
+        residentKey: 'required',
+        userVerification: 'preferred'
+      },
+      supportedAlgorithmIDs: [-7, -257],
+      excludeCredentials
+    })
+
+    addCredentialChallenges.set(req.userId, options.challenge)
+
+    return res.json(options)
+  } catch (error: any) {
+    console.error('Error generating add-credential options:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
+  try {
+    const { credentialResponse } = req.body
+    if (!credentialResponse) {
+      return res.status(400).json({ error: 'credentialResponse is required' })
+    }
+
+    const expectedChallenge = addCredentialChallenges.get(req.userId)
+    if (!expectedChallenge) {
+      return res.status(400).json({ error: 'Challenge not found or expired' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId }
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const verification = await verifyRegistrationResponse({
+      response: credentialResponse,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID
+    })
+
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ error: 'WebAuthn verification failed' })
+    }
+
+    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo
+    const credentialId = Buffer.from(credentialID).toString('base64url')
+
+    const existing = await prisma.credential.findUnique({
+      where: { credentialId }
+    })
+    if (existing) {
+      return res.status(400).json({ error: 'Credential already registered' })
+    }
+
+    const credential = await prisma.credential.create({
+      data: {
+        userId: req.userId,
+        credentialId,
+        publicKey: Buffer.from(credentialPublicKey),
+        counter: BigInt(counter),
+        transports: credentialResponse.response.transports || []
+      }
+    })
+
+    addCredentialChallenges.delete(req.userId)
+
+    return res.json({
+      verified: true,
+      credential: {
+        id: credential.id,
+        credentialIdPreview: previewCredentialId(credential.credentialId),
+        transports: credential.transports
+      }
+    })
+  } catch (error: any) {
+    console.error('Error verifying add-credential response:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.delete('/credentials/:id', requireReauth, async (req: any, res) => {
+  try {
+    const { id } = req.params
+
+    const credential = await prisma.credential.findUnique({
+      where: { id }
+    })
+
+    if (!credential || credential.userId !== req.userId) {
+      return res.status(404).json({ error: 'Credential not found' })
+    }
+
+    const credentialCount = await prisma.credential.count({
+      where: { userId: req.userId }
+    })
+
+    if (credentialCount <= 1) {
+      return res.status(400).json({ error: 'Cannot remove the last passkey' })
+    }
+
+    await prisma.credential.delete({
+      where: { id }
+    })
+
+    return res.json({ success: true })
+  } catch (error: any) {
+    console.error('Error deleting credential:', error)
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 })

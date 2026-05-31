@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
+import UserProfilePage from './components/UserProfilePage.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
 import VesselForm from './components/VesselForm.tsx'
 import CrewForm from './components/CrewForm.tsx'
@@ -61,6 +62,7 @@ function App() {
   const [online, setOnline] = useState(navigator.onLine)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
+  const [showUserProfile, setShowUserProfile] = useState(false)
 
   // Viewer mode for read-only shared links
   const [isViewerMode, setIsViewerMode] = useState(false)
@@ -361,6 +363,7 @@ function App() {
     setIsAuthenticated(false)
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
+    setShowUserProfile(false)
     setTourSelectedEntryId(null)
     setDemoHighlightEntryId(null)
     localStorage.removeItem('active_logbook_id')
@@ -442,10 +445,18 @@ function App() {
     return (
       <div style={{ display: 'contents' }}>
         {pwaInstallBanner}
-        <LogbookDashboard
-          onSelectLogbook={selectLogbook}
-          onLogout={handleLogout}
-        />
+        {showUserProfile ? (
+          <UserProfilePage
+            onBack={() => setShowUserProfile(false)}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <LogbookDashboard
+            onSelectLogbook={selectLogbook}
+            onLogout={handleLogout}
+            onOpenProfile={() => setShowUserProfile(true)}
+          />
+        )}
       </div>
     )
   }
