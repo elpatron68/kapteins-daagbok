@@ -574,6 +574,7 @@
       "category_general": "Allmänt",
       "category_bug": "Rapportera fel",
       "category_feature": "Begäran om funktion",
+      "category_translation": "Översättningsfel",
       "contact_label": "E-post (valfritt)",
       "contact_placeholder": "deine@email.beispiel",
       "message_label": "Meddelande",

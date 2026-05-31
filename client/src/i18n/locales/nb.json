@@ -574,6 +574,7 @@
       "category_general": "Generelt",
       "category_bug": "Rapporter feil",
       "category_feature": "Forespørsel om funksjonalitet",
+      "category_translation": "Oversettelsesfeil",
       "contact_label": "E-post (valgfritt)",
       "contact_placeholder": "deine@email.beispiel",
       "message_label": "Melding",

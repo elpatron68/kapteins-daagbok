@@ -5,7 +5,7 @@ import { analyzeFeedbackSpam, feedbackLimiter } from '../middleware/feedbackProt
 
 const router = Router()
 
-const VALID_CATEGORIES = new Set(['bug', 'feature', 'general'])
+const VALID_CATEGORIES = new Set(['bug', 'feature', 'general', 'translation'])
 const MAX_MESSAGE_LENGTH = 2000
 const MAX_EMAIL_LENGTH = 254
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

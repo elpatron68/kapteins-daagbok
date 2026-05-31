@@ -1,6 +1,6 @@
 import { apiFetch } from './api.js'
 
-export type FeedbackCategory = 'bug' | 'feature' | 'general'
+export type FeedbackCategory = 'bug' | 'feature' | 'general' | 'translation'
 
 export class FeedbackApiError extends Error {
   code: 'NOT_CONFIGURED' | 'REQUEST_FAILED' | 'INVALID_EMAIL' | 'RATE_LIMITED' | 'SPAM_DETECTED'

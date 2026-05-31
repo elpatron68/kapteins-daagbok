@@ -574,6 +574,7 @@
       "category_general": "General",
       "category_bug": "Bug report",
       "category_feature": "Feature request",
+      "category_translation": "Translation error",
       "contact_label": "Email (optional)",
       "contact_placeholder": "your@email.example",
       "message_label": "Message",

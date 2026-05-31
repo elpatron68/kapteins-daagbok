@@ -172,6 +172,7 @@ export default function FeedbackModal({
                     <option value="general">{t('feedback.category_general')}</option>
                     <option value="bug">{t('feedback.category_bug')}</option>
                     <option value="feature">{t('feedback.category_feature')}</option>
+                    <option value="translation">{t('feedback.category_translation')}</option>
                   </select>
                 </label>
 

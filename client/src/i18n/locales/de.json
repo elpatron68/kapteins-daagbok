@@ -574,6 +574,7 @@
       "category_general": "Allgemein",
       "category_bug": "Fehler melden",
       "category_feature": "Feature-Wunsch",
+      "category_translation": "Übersetzungsfehler",
       "contact_label": "E-Mail (optional)",
       "contact_placeholder": "deine@email.beispiel",
       "message_label": "Nachricht",
