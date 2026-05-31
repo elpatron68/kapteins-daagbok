@@ -1404,25 +1404,21 @@ html.scheme-dark .themed-select-option.is-selected {
 
 .dashboard-sort-group {
   display: flex;
-  flex: 1 1 140px;
+  flex: 0 0 auto;
   gap: 6px;
-  min-width: 0;
 }
 
 .dashboard-sort-btn {
-  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 8px 10px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: 8px;
   border: 1px solid var(--app-border-subtle);
   background: var(--app-surface-alt);
   color: var(--app-text-muted);
-  font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s, color 0.2s;
 }
@@ -1441,10 +1437,6 @@ html.scheme-dark .themed-select-option.is-selected {
 .dashboard-sort-btn:focus-visible {
   outline: 2px solid var(--app-accent-focus-ring);
   outline-offset: 2px;
-}
-
-.dashboard-sort-btn span {
-  white-space: nowrap;
 }
 
 .dashboard-filter-label {

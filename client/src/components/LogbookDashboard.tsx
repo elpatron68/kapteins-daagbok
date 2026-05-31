@@ -490,20 +490,20 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
                         className={`dashboard-sort-btn${sortBy === 'name' ? ' is-active' : ''}`}
                         onClick={() => setSortBy('name')}
                         aria-pressed={sortBy === 'name'}
+                        aria-label={t('dashboard.sort_by_name')}
                         title={t('dashboard.sort_by_name')}
                       >
                         <CaseSensitive size={16} aria-hidden="true" />
-                        <span>{t('dashboard.sort_by_name')}</span>
                       </button>
                       <button
                         type="button"
                         className={`dashboard-sort-btn${sortBy === 'date' ? ' is-active' : ''}`}
                         onClick={() => setSortBy('date')}
                         aria-pressed={sortBy === 'date'}
+                        aria-label={t('dashboard.sort_by_date')}
                         title={t('dashboard.sort_by_date')}
                       >
                         <CalendarDays size={16} aria-hidden="true" />
-                        <span>{t('dashboard.sort_by_date')}</span>
                       </button>
                     </div>
                     <div className="dashboard-sort-group" role="group" aria-label={t('dashboard.sort_dir_label')}>
@@ -512,20 +512,20 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
                         className={`dashboard-sort-btn${sortDirection === 'asc' ? ' is-active' : ''}`}
                         onClick={() => setSortDirection('asc')}
                         aria-pressed={sortDirection === 'asc'}
+                        aria-label={sortBy === 'name' ? t('dashboard.sort_name_asc') : t('dashboard.sort_date_asc')}
                         title={sortBy === 'name' ? t('dashboard.sort_name_asc') : t('dashboard.sort_date_asc')}
                       >
                         <ArrowUp size={16} aria-hidden="true" />
-                        <span>{t('dashboard.sort_asc')}</span>
                       </button>
                       <button
                         type="button"
                         className={`dashboard-sort-btn${sortDirection === 'desc' ? ' is-active' : ''}`}
                         onClick={() => setSortDirection('desc')}
                         aria-pressed={sortDirection === 'desc'}
+                        aria-label={sortBy === 'name' ? t('dashboard.sort_name_desc') : t('dashboard.sort_date_desc')}
                         title={sortBy === 'name' ? t('dashboard.sort_name_desc') : t('dashboard.sort_date_desc')}
                       >
                         <ArrowDown size={16} aria-hidden="true" />
-                        <span>{t('dashboard.sort_desc')}</span>
                       </button>
                     </div>
                   </div>
