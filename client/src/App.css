@@ -2456,12 +2456,35 @@ html.scheme-dark .themed-select-option.is-selected {
     word-break: break-word;
   }
 
+  .dashboard-sort-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dashboard-sort-label {
+    flex-shrink: 0;
+    min-width: 4.75rem;
+  }
+
   .dashboard-sort-row {
-    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 12px;
   }
 
   .dashboard-sort-group {
-    flex: 1 1 100%;
+    flex: 1;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .dashboard-sort-btn {
+    flex: 1;
+    width: auto;
+    min-width: 44px;
+    height: 44px;
   }
 
   .logbooks-grid {
