@@ -9,7 +9,6 @@ import {
 import { isDeployedVersionNewer } from '../services/pwaVersion.js'
 
 const UPDATE_CHECK_INTERVAL_MS = 15 * 60 * 1000
-const VERSION_CHECK_INTERVAL_MS = 10 * 60 * 1000
 const UPDATE_SUPPRESS_KEY = 'pwa_update_suppress_until'
 const UPDATE_SUPPRESS_MS = 30_000
 const UPDATE_DISMISS_SUPPRESS_MS = 15 * 60 * 1000
@@ -53,23 +52,14 @@ function scheduleUpdateChecks(
 
   document.addEventListener('visibilitychange', onVisibilityChange)
   window.addEventListener('online', onOnline)
-  const swIntervalId = window.setInterval(() => {
-    registration.update().catch(() => {})
-  }, UPDATE_CHECK_INTERVAL_MS)
-  const versionIntervalId = window.setInterval(() => {
-    if (isUpdateSuppressed()) return
-    void isDeployedVersionNewer().then((outdated) => {
-      if (outdated && !isUpdateSuppressed()) onOutdated()
-    })
-  }, VERSION_CHECK_INTERVAL_MS)
+  const updateIntervalId = window.setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS)
 
   checkForUpdate()
 
   return () => {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     window.removeEventListener('online', onOnline)
-    window.clearInterval(swIntervalId)
-    window.clearInterval(versionIntervalId)
+    window.clearInterval(updateIntervalId)
   }
 }
 
