@@ -31,6 +31,18 @@ export function resolveAppTheme(): AppTheme {
   return 'ocean'
 }
 
+function updateThemeColorMeta(root: HTMLElement): void {
+  const color = getComputedStyle(root).getPropertyValue('--app-theme-color').trim()
+  if (!color) return
+  let meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', 'theme-color')
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute('content', color)
+}
+
 export function applyAppearanceToDocument(
   theme: AppTheme = resolveAppTheme(),
   scheme: ResolvedColorScheme = resolveColorScheme()
@@ -39,6 +51,7 @@ export function applyAppearanceToDocument(
   root.classList.remove(...THEME_CLASSES, ...SCHEME_CLASSES)
   root.classList.add(`theme-${theme}`, `scheme-${scheme}`)
   root.style.colorScheme = scheme
+  updateThemeColorMeta(root)
 }
 
 export function subscribeToSystemColorScheme(onChange: () => void): () => void {
