@@ -6,6 +6,13 @@
       "beta": "Beta",
       "beta_hint": "Beta release — features may still change"
     },
+    "languages": {
+      "de": "Deutsch",
+      "en": "English",
+      "da": "Dansk",
+      "sv": "Svenska",
+      "nb": "Norsk"
+    },
     "common": {
       "unsaved_changes_title": "Unsaved changes",
       "unsaved_changes_message": "You have unsaved changes. Leave this page anyway? Your changes will be lost.",

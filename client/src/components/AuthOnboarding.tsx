@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getNextLanguage } from '../utils/i18nLanguages.js'
 import { 
   registerUser, 
   loginUser, 
@@ -209,8 +210,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
   }
 
   const toggleLanguage = () => {
-    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
-    i18n.changeLanguage(nextLang)
+    i18n.changeLanguage(getNextLanguage(i18n.language))
   }
 
   const copyToClipboard = () => {
@@ -596,7 +596,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
       <div className="auth-footer">
         <button type="button" className="btn-icon-text" onClick={toggleLanguage}>
           <Languages size={18} />
-          {i18n.language.startsWith('de') ? 'English' : 'Deutsch'}
+          {t(`languages.${getNextLanguage(i18n.language)}`)}
         </button>
         <button
           type="button"

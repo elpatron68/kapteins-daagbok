@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "generate:flyer": "node ../scripts/generate-beta-flyer.mjs",
     "generate:flyer:png": "node ../scripts/generate-beta-flyer.mjs --png",
-    "generate:flyer:setup": "playwright install chromium"
+    "generate:flyer:setup": "playwright install chromium",
+    "translate:locales": "node ../scripts/translate-locales.mjs",
+    "translate:flyer": "node ../scripts/translate-flyer.mjs",
+    "validate:i18n": "node ../scripts/validate-i18n-keys.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

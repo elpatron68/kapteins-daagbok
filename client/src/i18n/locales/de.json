@@ -6,6 +6,13 @@
       "beta": "Beta",
       "beta_hint": "Beta-Version — Funktionen können sich noch ändern"
     },
+    "languages": {
+      "de": "Deutsch",
+      "en": "English",
+      "da": "Dansk",
+      "sv": "Svenska",
+      "nb": "Norsk"
+    },
     "common": {
       "unsaved_changes_title": "Ungespeicherte Änderungen",
       "unsaved_changes_message": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen? Deine Änderungen gehen verloren.",

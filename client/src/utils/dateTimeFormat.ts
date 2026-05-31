@@ -1,7 +1,17 @@
+import { normalizeAppLanguage } from './i18nLanguages.js'
+
+const INTL_LOCALES: Record<string, string> = {
+  de: 'de-DE',
+  en: 'en-GB',
+  da: 'da-DK',
+  sv: 'sv-SE',
+  nb: 'nb-NO'
+}
+
 /** BCP 47 locales that use 24-hour clock for Intl formatting. */
 export function resolveIntlLocale(language?: string): string {
-  const lng = (language ?? 'en').toLowerCase()
-  return lng.startsWith('de') ? 'de-DE' : 'en-GB'
+  const lng = normalizeAppLanguage(language)
+  return INTL_LOCALES[lng] ?? 'en-GB'
 }
 
 const APP_DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {

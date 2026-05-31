@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getNextLanguage } from '../utils/i18nLanguages.js'
 import VesselForm from './VesselForm.tsx'
 import CrewForm from './CrewForm.tsx'
 import LogEntriesList from './LogEntriesList.tsx'
@@ -48,8 +49,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
   }, [registerNavigation, registerDemoTourContext, startTour, fixture.firstEntryId])
 
   const toggleLanguage = () => {
-    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
-    i18n.changeLanguage(nextLang)
+    i18n.changeLanguage(getNextLanguage(i18n.language))
   }
 
   const { title, yacht, crews, entries, gpsTracks, photos, firstEntryId } = fixture
@@ -87,7 +87,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
           </button>
           <button className="btn secondary" onClick={toggleLanguage} style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}>
             <Globe size={14} style={{ marginRight: '4px' }} />
-            {i18n.language.startsWith('de') ? 'English' : 'Deutsch'}
+            {t(`languages.${getNextLanguage(i18n.language)}`)}
           </button>
         </div>
       </header>

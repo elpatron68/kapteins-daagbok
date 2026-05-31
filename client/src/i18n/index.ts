@@ -3,12 +3,19 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import enJson from './locales/en.json'
 import deJson from './locales/de.json'
+import daJson from './locales/da.json'
+import svJson from './locales/sv.json'
+import nbJson from './locales/nb.json'
 import { initSeo } from '../utils/seo.js'
+import { SUPPORTED_LANGUAGES } from '../utils/i18nLanguages.js'
 
 /** JSON files wrap strings in `translation` — register that namespace explicitly. */
 const resources = {
   en: { translation: enJson.translation },
-  de: { translation: deJson.translation }
+  de: { translation: deJson.translation },
+  da: { translation: daJson.translation },
+  sv: { translation: svJson.translation },
+  nb: { translation: nbJson.translation }
 }
 
 i18n
@@ -18,7 +25,7 @@ i18n
     resources,
     defaultNS: 'translation',
     fallbackLng: 'en',
-    supportedLngs: ['de', 'en'],
+    supportedLngs: [...SUPPORTED_LANGUAGES],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     interpolation: {

@@ -1,6 +1,7 @@
 import { parseTrackFile } from './trackUpload.js'
 import { computeTrackStats } from '../utils/trackStats.js'
 import i18n from '../i18n/index.js'
+import { isGermanLocale } from '../utils/i18nLanguages.js'
 
 import kielLaboeGpx from '../assets/demo/kiel-laboe.gpx?raw'
 import laboeDampGpx from '../assets/demo/laboe-damp.gpx?raw'
@@ -59,7 +60,7 @@ export interface PublicDemoFixture {
 }
 
 export function buildDemoDays(): DemoDaySpec[] {
-  const isDe = i18n.language.startsWith('de')
+  const isDe = isGermanLocale(i18n.language)
   return [
     {
       date: '2026-05-29',
@@ -165,7 +166,7 @@ export function buildDemoDays(): DemoDaySpec[] {
 }
 
 export function buildDemoYachtData(): Record<string, unknown> {
-  const isDe = i18n.language.startsWith('de')
+  const isDe = isGermanLocale(i18n.language)
   return {
     name: 'Seeadler',
     vesselType: isDe ? 'Segelyacht' : 'Sailing yacht',
@@ -188,7 +189,7 @@ export function buildDemoYachtData(): Record<string, unknown> {
 }
 
 export function buildDemoCrewRecords(): DemoCrewRecord[] {
-  const isDe = i18n.language.startsWith('de')
+  const isDe = isGermanLocale(i18n.language)
   return [
     {
       payloadId: 'skipper',

@@ -1,13 +1,22 @@
 import type { i18n as I18nInstance } from 'i18next'
+import { normalizeAppLanguage, type AppLanguage } from './i18nLanguages.js'
 
 const SITE_ORIGIN = 'https://kapteins-daagbok.eu'
 
-export type SeoLang = 'de' | 'en'
+export type SeoLang = AppLanguage
+
+const OG_LOCALES: Record<SeoLang, string> = {
+  de: 'de_DE',
+  en: 'en_GB',
+  da: 'da_DK',
+  sv: 'sv_SE',
+  nb: 'nb_NO'
+}
 
 let i18nRef: I18nInstance | null = null
 
 export function normalizeSeoLang(lng: string): SeoLang {
-  return lng.startsWith('de') ? 'de' : 'en'
+  return normalizeAppLanguage(lng)
 }
 
 function setMeta(attr: 'name' | 'property', key: string, content: string) {
@@ -47,8 +56,7 @@ export function updatePageSeo(lng?: string) {
   setMeta('name', 'keywords', keywords)
   setMeta('property', 'og:title', title)
   setMeta('property', 'og:description', description)
-  setMeta('property', 'og:locale', lang === 'de' ? 'de_DE' : 'en_US')
-  setMeta('property', 'og:locale:alternate', lang === 'de' ? 'en_US' : 'de_DE')
+  setMeta('property', 'og:locale', OG_LOCALES[lang])
   setMeta('name', 'twitter:title', title)
   setMeta('name', 'twitter:description', description)
   setMeta('property', 'og:image:alt', imageAlt)

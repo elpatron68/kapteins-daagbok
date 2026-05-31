@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kapteins Daagbok - Beta-flygblad</title>
+  <style>
+    @page {
+      storlek: A4 stående;
+      marginal: 0;
+    }
+
+    * {
+      box-storlek: border-box;
+      marginal: 0;
+      stoppning: 0;
+    }
+
+    html, kropp {
+      bredd: 210 mm;
+      höjd: 297 mm;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      färg: #e2e8f0;
+      bakgrund: #0f172a;
+      -webkit-print-color-adjust: exakt;
+      justering av utskriftsfärg: exakt;
+    }
+
+    .sida {
+      bredd: 210 mm;
+      höjd: 297 mm;
+      max-höjd: 297 mm;
+      stoppning: 12mm 15mm 10mm;
+      display: flex;
+      flex-riktning: kolumn;
+      mellanrum: 5mm;
+      bakgrund:
+        radial-gradient(ellips 120% 80% vid 100% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 55%),
+        radial-gradient(ellips 90% 60% på 0% 100%, rgba(134, 59, 255, 0.14) 0%, transparent 50%),
+        linjär-gradient(165deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
+      position: relativ;
+      överflöd: dold;
+    }
+
+    .page::before {
+      innehåll: "";
+      position: absolut;
+      inskjutet: 8mm;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      gränsradie: 4mm;
+      pekare-händelser: ingen;
+    }
+
+    sidhuvud {
+      display: flex;
+      align-items: center;
+      mellanrum: 5mm;
+      flex-krympning: 0;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .logo {
+      bredd: 16mm;
+      höjd: 16 mm;
+      flex-krympning: 0;
+      objektanpassning: innehålla;
+    }
+
+    .title-block h1 {
+      teckenstorlek: 23pt;
+      typsnittsvikt: 700;
+      bokstavsavstånd: -0,02em;
+      färg: #f8fafc;
+      Linjehöjd: 1.1;
+    }
+
+    .title-block p {
+      teckenstorlek: 12pt;
+      färg: #94a3b8;
+      marginal-topp: 1,5 mm;
+    }
+
+    .badge {
+      marginal-vänster: auto;
+      align-self: flex-start;
+      bakgrund: linjär-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      färg: #1e293b;
+      font-storlek: 11pt;
+      typsnittsvikt: 800;
+      bokstavsavstånd: 0.12em;
+      stoppning: 2,5 mm 4,5 mm;
+      gränsradie: 2mm;
+      text-transform: versaler;
+    }
+
+    .intro {
+      teckenstorlek: 12pt;
+      radhöjd: 1,5;
+      färg: #cbd5e1;
+      flex-krympning: 0;
+      max-bredd: 95%;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .intro strong {
+      färg: #f8fafc;
+    }
+
+    .skärmdumpar {
+      display: rutnät;
+      grid-template-kolumner: repeat(3, 1fr);
+      mellanrum: 3mm;
+      flex-krympning: 0;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .skärmdump-kort {
+      gränsradie: 2,5 mm;
+      överflöde: dold;
+      kant: 1px solid rgba(148, 163, 184, 0.22);
+      bakgrund: rgba(15, 23, 42, 0.55);
+      display: flex;
+      flex-riktning: kolumn;
+      min-bredd: 0;
+    }
+
+    .skärmdumpskort img {
+      bredd: 100%;
+      höjd: 50mm;
+      objektanpassning: innehålla;
+      objekt-position: övre mitten;
+      display: block;
+      bakgrund: #0b1220;
+    }
+
+    .skärmdump-bildtext {
+      teckenstorlek: 9pt;
+      färg: #94a3b8;
+      text-align: center;
+      stoppning: 1,5 mm 2 mm;
+      Linjehöjd: 1,3;
+      flex-krympning: 0;
+    }
+
+    .funktioner {
+      display: rutnät;
+      grid-template-kolumner: 1fr 1fr;
+      mellanrum: 1,8mm 6mm;
+      flex-krympning: 0;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .feature {
+      display: flex;
+      mellanrum: 2,5 mm;
+      linje-objekt: flex-start;
+      teckenstorlek: 10,5pt;
+      radhöjd: 1,28;
+      färg: #e2e8f0;
+    }
+
+    .feature-ikon {
+      färg: #38bdf8;
+      typsnittsvikt: 700;
+      flex-krympning: 0;
+      bredd: 4 mm;
+    }
+
+    .lang-lista {
+      display: inline-flex;
+      flex-wrap: wrap;
+      linje-punkter: mitt;
+      mellanrum: 1,5 mm;
+    }
+
+    .lang-objekt {
+      display: inline-flex;
+      anpassa objekt: mitt;
+      mellanrum: 1,2 mm;
+      white-space: nowrap;
+    }
+
+    .feature-flag {
+      display: inline-block;
+      bredd: 5mm;
+      höjd: 3,5 mm;
+      gränsradie: 0,3 mm;
+      flex-krympning: 0;
+      box-shadow: 0 0 0 0,15mm rgba(0, 0, 0, 0, 0,25);
+    }
+
+    .lang-sep {
+      färg: #94a3b8;
+    }
+
+    .beta-box {
+      bakgrund: rgba(30, 41, 59, 0,85);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      gräns-vänster: 3px solid #fbbf24;
+      gränsradie: 3mm;
+      stoppning: 5mm 6mm;
+      flex-krympning: 0;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .beta-box h2 {
+      teckenstorlek: 12,5pt;
+      färg: #fbbf24;
+      marginal-botten: 2mm;
+      typsnittsvikt: 700;
+    }
+
+    .beta-box p {
+      teckenstorlek: 10,5pt;
+      Linjehöjd: 1,5;
+      färg: #cbd5e1;
+    }
+
+    .cta {
+      display: flex;
+      justera-objekt: mitt;
+      mellanrum: 7mm;
+      bakgrund: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      gränsradie: 4mm;
+      stoppning: 5mm 6mm;
+      flex-krympning: 0;
+      position: relativ;
+      z-index: 1;
+    }
+
+    .qr {
+      bredd: 32mm;
+      höjd: 32 mm;
+      bakgrund: #fff;
+      stoppning: 2mm;
+      gräns-radie: 2mm;
+      flex-krympning: 0;
+    }
+
+    .qr img {
+      bredd: 100%;
+      höjd: 100%;
+      display: block;
+    }
+
+    .cta-text h3 {
+      teckenstorlek: 14,5pt;
+      färg: #38bdf8;
+      typsnittsvikt: 700;
+      marginal-botten: 2mm;
+    }
+
+    .cta-text p {
+      teckenstorlek: 11pt;
+      färg: #94a3b8;
+      Linjehöjd: 1,5;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      mellanrum: 2mm;
+      marginal-topp: 3mm;
+    }
+
+    .tag {
+      teckenstorlek: 9,5pt;
+      typsnittsvikt: 600;
+      bokstavsavstånd: 0.04em;
+      text-transform: versaler;
+      färg: #64748b;
+      border: 1px solid rgba(100, 116, 139, 0.4);
+      gränsradie: 1,5 mm;
+      stoppning: 1 mm 2,5 mm;
+    }
+
+    sidfot {
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+      stoppning-topp: 3mm;
+      marginal-topp: auto;
+      flex-krympning: 0;
+      teckenstorlek: 9,5pt;
+      Linjehöjd: 1,5;
+      färg: #64748b;
+      position: relativ;
+      z-index: 1;
+    }
+
+    sidfot strong {
+      färg: #94a3b8;
+      typsnittsvikt: 600;
+    }
+  </style>
+</head>
+<body>
+  <article class="page">
+    <header>
+      <img class="logo" src="../../client/public/logo.png" alt="Kapteins Daagbok" />
+      <div class="title-block">
+        <h1>Kapteins Daagbok</h1>
+        <p>Digital loggbok för båtar - gratis &amp; reklamfri</p>
+      </div>
+      <span class="badge">Beta</span>
+    </header>
+
+    <p class="intro">
+      Förvara din loggbok ombord digitalt: resdagar, GPS-spår, besättnings- och fartygsdata
+      <strong>End-to-end-kryptering</strong>kan installeras som en app och
+      <strong>också offline</strong> användbar till sjöss.
+    </p>
+
+    <section class="features" aria-label="Funktionen">
+      <div class="feature"><span class="feature-icon">✦</span><span>Resdagar i nautiskt loggboksformat (hamn, väder, segel, besättning, bränslenivåer)</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Offline-kompatibel PWA - körs på alla smartphones och surfplattor</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Enkel lösenordsfri Passkey-inloggning</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>End-to-end-kryptering</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Uppladdning av GPS-spår (GPX/KML) med kartvisning</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Statistik över rutter</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Fotobilagor per resdag</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Fotoavatarbilder för skeppare och besättning</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Bjud in besättningen - arbeta tillsammans med loggboken</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>PDF- &amp; CSV-Export</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Krypterad säkerhetskopiering och återställning</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Dela loggbok med vänner</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Valfritt antal fartyg och loggböcker</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span class="lang-list"><span class="lang-item"><svg class="feature-flag" viewBox="0 0 16 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg>Svenska</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>Engelsk</span></span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>3 teman, vart och ett med en ljus och en mörk variant</span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span>Tillverkad i Kiel.Sailing.City..</span></div>
+    </section>
+
+    <section class="screenshots" aria-label="App-Screenshots">
+      <figure class="screenshot-card">
+        <img src="assets/screenshot-login.png" alt="Anmeldung mit Passkey und Demo" />
+        <figcaption class="screenshot-caption">Registrering &amp; Passkey</figcaption>
+      </figure>
+      <figure class="screenshot-card">
+        <img src="assets/screenshot-logbook.png" alt="Logbuch-Journal mit Reisetagen" />
+        <figcaption class="screenshot-caption">Loggboksjournal</figcaption>
+      </figure>
+      <figure class="screenshot-card">
+        <img src="assets/screenshot-vessel.png" alt="Schiffs-Stammdaten mit Yachtfoto" />
+        <figcaption class="screenshot-caption">Fartygsdata</figcaption>
+      </figure>
+    </section>
+
+    <section class="beta-box">
+      <h2>Betafas - din feedback är viktig</h2>
+      <p>
+        Kapteins Daagbok är en<strong>Privat hobbyprojekt utan vinstsyfte</strong>.
+        Som betatestare hjälper du till att förbättra appen för skeppare och besättning i vardagen - feedback är uttryckligen välkommen.
+        Feedback är uttryckligen välkommen.
+      </p>
+    </section>
+
+    <section class="cta">
+      <div class="qr">
+        <img src="assets/qr-kapteins-daagbok.eu.png" alt="QR-Code: kapteins-daagbok.eu" />
+      </div>
+      <div class="cta-text">
+        <h3>kapteins-daagbok.eu</h3>
+        <p>Öppna i webbläsaren eller lägg till som en app på hemskärmen. Registrera dig med Passkey - ingen appbutik krävs.</p>
+        <div class="tags">
+          <span class="tag">Kostnadsfritt</span>
+          <span class="tag">Reklamfri</span>
+          <span class="tag">E2E-krypterad</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <strong>Avtryck</strong><br />
+      KnorrLabs - Markus F.J. Busche - Knorrstr. 16 · 24106 Kiel - elpatron+kd@mailbox.org
+    </footer>
+  </article>
+</body>
+</html>

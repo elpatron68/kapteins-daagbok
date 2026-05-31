@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getNextLanguage, isGermanLocale } from '../utils/i18nLanguages.js'
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import VesselForm from './VesselForm.tsx'
@@ -48,9 +49,9 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
       const res = await fetch(`/api/collaboration/share-pull?token=${token}`)
       if (!res.ok) {
         if (res.status === 410) {
-          throw new Error(i18n.language.startsWith('de') ? 'Dieser Freigabelink ist abgelaufen.' : 'This share link has expired.')
+          throw new Error(isGermanLocale(i18n.language) ? 'Dieser Freigabelink ist abgelaufen.' : 'This share link has expired.')
         }
-        throw new Error(i18n.language.startsWith('de') ? 'Fehler beim Laden des freigegebenen Logbuchs.' : 'Failed to fetch shared logbook data.')
+        throw new Error(isGermanLocale(i18n.language) ? 'Fehler beim Laden des freigegebenen Logbuchs.' : 'Failed to fetch shared logbook data.')
       }
 
       const data = await res.json()
@@ -136,15 +137,14 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
   }
 
   const toggleLanguage = () => {
-    const nextLang = i18n.language.startsWith('de') ? 'en' : 'de'
-    i18n.changeLanguage(nextLang)
+    i18n.changeLanguage(getNextLanguage(i18n.language))
   }
 
   if (loading) {
     return (
       <div className="tab-placeholder" style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
         <Ship className="header-logo spin" size={48} />
-        <p>{i18n.language.startsWith('de') ? 'Lade freigegebenes Logbuch...' : 'Loading shared logbook...'}</p>
+        <p>{isGermanLocale(i18n.language) ? 'Lade freigegebenes Logbuch...' : 'Loading shared logbook...'}</p>
       </div>
     )
   }
@@ -153,10 +153,10 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px', textAlign: 'center' }}>
         <AlertCircle size={48} style={{ color: '#ef4444', marginBottom: '16px' }} />
-        <h2 style={{ color: '#f1f5f9', marginBottom: '8px' }}>{i18n.language.startsWith('de') ? 'Verbindungsfehler' : 'Access Error'}</h2>
+        <h2 style={{ color: '#f1f5f9', marginBottom: '8px' }}>{isGermanLocale(i18n.language) ? 'Verbindungsfehler' : 'Access Error'}</h2>
         <p style={{ color: '#94a3b8', maxWidth: '400px', marginBottom: '24px' }}>{error}</p>
         <button className="btn primary" onClick={loadData} style={{ width: 'auto' }}>
-          {i18n.language.startsWith('de') ? 'Erneut versuchen' : 'Retry'}
+          {isGermanLocale(i18n.language) ? 'Erneut versuchen' : 'Retry'}
         </button>
       </div>
     )
@@ -173,7 +173,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
             <h2>{logbookTitle}</h2>
             <p className="app-subtitle" style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
-              <span>{i18n.language.startsWith('de') ? 'Schreibgeschützte Ansicht (Ende-zu-Ende verschlüsselt)' : 'Read-Only View (End-to-End Encrypted)'}</span>
+              <span>{isGermanLocale(i18n.language) ? 'Schreibgeschützte Ansicht (Ende-zu-Ende verschlüsselt)' : 'Read-Only View (End-to-End Encrypted)'}</span>
             </p>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
         <div className="header-actions">
           <button className="btn secondary" onClick={toggleLanguage} style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}>
             <Globe size={14} style={{ marginRight: '4px' }} />
-            {i18n.language.startsWith('de') ? 'English' : 'Deutsch'}
+            {t(`languages.${getNextLanguage(i18n.language)}`)}
           </button>
         </div>
       </header>
