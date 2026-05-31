@@ -50,6 +50,9 @@ async function bootstrap(): Promise<void> {
     window.location.reload()
     return
   }
+  if (startupResult === 'recovered') {
+    return
+  }
 
   const rootEl = document.getElementById('root')
   if (!rootEl) {
