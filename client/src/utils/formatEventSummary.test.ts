@@ -20,6 +20,10 @@ const t = (key: string, opts?: Record<string, unknown>) => {
     'logs.live_fix': 'Fix',
     'logs.live_fix_coords': `Fix ${opts?.lat}, ${opts?.lng}`,
     'logs.live_event_generic': 'Event',
+    'logs.live_temp_entry': `Temperature ${opts?.temp} °C`,
+    'logs.live_pressure_entry': `Pressure ${opts?.value} hPa`,
+    'logs.live_wind_entry': `Wind ${opts?.value}`,
+    'logs.live_course_entry': `Course ${opts?.course}`,
     'logs.event_mgk': 'Course',
     'logs.event_wind_pressure': 'Pressure'
   }
@@ -73,5 +77,14 @@ describe('formatEventSummary', () => {
       gpsLng: '10.145000'
     })
     expect(formatEventSummary(event, t)).toBe('Fix 54.323000, 10.145000')
+  })
+
+  it('formats pressure entry', () => {
+    const event = normalizeLogEvent({
+      time: '09:00',
+      remarks: LIVE_EVENT_CODES.PRESSURE,
+      windPressure: '1013'
+    })
+    expect(formatEventSummary(event, t)).toBe('Pressure 1013 hPa')
   })
 })

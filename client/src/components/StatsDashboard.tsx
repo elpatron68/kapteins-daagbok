@@ -14,6 +14,11 @@ import {
 } from '../services/statsAggregation.js'
 import { compareTravelDaysChronological } from '../utils/logEntryTankLevels.js'
 import { formatFuelPerMotorHour } from '../utils/fuelStats.js'
+import {
+  loadLogbookEventSeries,
+  type EventSeriesPoint,
+  type EventSeriesSummary
+} from '../services/eventSeriesAggregation.js'
 
 interface StatsDashboardProps {
   logbookId: string
@@ -217,7 +222,62 @@ function PropulsionBreakdown({ totals }: { totals: StatsTotals }) {
   )
 }
 
-function LogbookScopeView({ summary }: { summary: LogbookStatsSummary }) {
+function EventSeriesList({ title, points, emptyLabel }: { title: string; points: EventSeriesPoint[]; emptyLabel: string }) {
+  if (points.length === 0) {
+    return (
+      <div className="stats-event-series-block">
+        <h4 className="stats-section-subtitle">{title}</h4>
+        <p className="stats-section-sub">{emptyLabel}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="stats-event-series-block">
+      <h4 className="stats-section-subtitle">{title}</h4>
+      <ul className="stats-event-series-list">
+        {points.map((point, idx) => (
+          <li key={`${point.entryId}-${point.time}-${idx}`} className="stats-event-series-item">
+            <span className="stats-event-series-when">
+              {new Date(point.date).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}
+              {' · '}
+              {point.time}
+            </span>
+            <span className="stats-event-series-value">{point.summary}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function EventSeriesPanel({ series }: { series: EventSeriesSummary }) {
+  const { t } = useTranslation()
+  const motorPoints = series.motor.map((point) => ({
+    ...point,
+    summary: point.summary === 'start'
+      ? t('logs.live_motor_start')
+      : t('logs.live_motor_stop')
+  }))
+
+  return (
+    <div className="member-editor-card glass mt-6">
+      <h3 className="stats-section-title">{t('stats.event_series_title')}</h3>
+      <p className="stats-section-sub">{t('stats.event_series_hint')}</p>
+      <EventSeriesList title={t('stats.event_series_pressure')} points={series.pressure} emptyLabel={t('stats.event_series_empty')} />
+      <EventSeriesList title={t('stats.event_series_wind')} points={series.wind} emptyLabel={t('stats.event_series_empty')} />
+      <EventSeriesList title={t('stats.event_series_motor')} points={motorPoints} emptyLabel={t('stats.event_series_empty')} />
+    </div>
+  )
+}
+
+function LogbookScopeView({
+  summary,
+  eventSeries
+}: {
+  summary: LogbookStatsSummary
+  eventSeries: EventSeriesSummary | null
+}) {
   const { t } = useTranslation()
   const { travelDays, routePorts, trackSegments, totals } = summary
 
@@ -313,6 +373,8 @@ function LogbookScopeView({ summary }: { summary: LogbookStatsSummary }) {
         <h3 className="stats-section-title">{t('stats.propulsion_title')}</h3>
         <PropulsionBreakdown totals={totals} />
       </div>
+
+      {eventSeries && <EventSeriesPanel series={eventSeries} />}
     </>
   )
 }
@@ -323,18 +385,21 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [logbookStats, setLogbookStats] = useState<LogbookStatsSummary | null>(null)
+  const [eventSeries, setEventSeries] = useState<EventSeriesSummary | null>(null)
   const [accountStats, setAccountStats] = useState<Awaited<ReturnType<typeof loadAccountStats>> | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [lb, acc] = await Promise.all([
+      const [lb, acc, series] = await Promise.all([
         loadLogbookStats(logbookId, logbookTitle, true),
-        loadAccountStats(false)
+        loadAccountStats(false),
+        loadLogbookEventSeries(logbookId)
       ])
       setLogbookStats(lb)
       setAccountStats(acc)
+      setEventSeries(series)
     } catch (err: unknown) {
       console.error('Failed to load statistics:', err)
       setError(err instanceof Error ? err.message : 'Failed to load statistics.')
@@ -397,7 +462,7 @@ export default function StatsDashboard({ logbookId, logbookTitle }: StatsDashboa
           <p>{t('stats.loading')}</p>
         </div>
       ) : scope === 'logbook' && logbookStats ? (
-        <LogbookScopeView summary={logbookStats} />
+        <LogbookScopeView summary={logbookStats} eventSeries={eventSeries} />
       ) : scope === 'account' && accountStats ? (
         <>
           <TotalsGrid totals={accountStats.totals} />

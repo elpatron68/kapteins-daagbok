@@ -2,12 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Anchor,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
+  CloudSun,
+  Compass,
+  Droplets,
   FileText,
+  Fuel,
   MapPin,
   MessageSquare,
   Radio,
   Sailboat,
+  Undo2,
   Zap
 } from 'lucide-react'
 import { db } from '../services/db.js'
@@ -17,15 +24,22 @@ import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import {
   appendQuickEvent,
+  appendTankRefill,
   findOrCreateTodayEntry,
-  loadEntry
+  loadEntry,
+  removeLastEvent
 } from '../services/quickEventLog.js'
 import { formatEventSummary } from '../utils/formatEventSummary.js'
 import {
+  getLastAutoPositionMs,
   isMotorRunningFromEvents,
   LIVE_EVENT_CODES,
   liveCommentRemark,
-  liveSailsRemark
+  liveFuelRemark,
+  livePrecipRemark,
+  liveSailsRemark,
+  liveTempRemark,
+  liveWaterRemark
 } from '../utils/liveEventCodes.js'
 import { getCurrentPosition } from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
@@ -37,10 +51,32 @@ interface LiveLogViewProps {
   onSwitchToList: () => void
 }
 
-type LiveModal = 'none' | 'sails' | 'comment'
+type LiveModal =
+  | 'none'
+  | 'sails'
+  | 'comment'
+  | 'wind'
+  | 'pressure'
+  | 'temp'
+  | 'precip'
+  | 'sea_state'
+  | 'course'
+  | 'fuel'
+  | 'water'
+
+const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
+const AUTO_POSITION_CHECK_MS = 60_000
+const UNDO_TIMEOUT_MS = 5000
 
 function hapticPulse() {
   navigator.vibrate?.(40)
+}
+
+function lastCourseFromEvents(events: LogEventPayload[]): string {
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].mgk.trim()) return events[i].mgk
+  }
+  return ''
 }
 
 export default function LiveLogView({
@@ -60,10 +96,16 @@ export default function LiveLogView({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<LiveModal>('none')
+  const [weatherExpanded, setWeatherExpanded] = useState(false)
   const [commentText, setCommentText] = useState('')
+  const [valueInput, setValueInput] = useState('')
+  const [valueInputSecondary, setValueInputSecondary] = useState('')
   const [selectedSails, setSelectedSails] = useState<string[]>([])
+  const [undoVisible, setUndoVisible] = useState(false)
 
   const streamEndRef = useRef<HTMLDivElement | null>(null)
+  const undoTimerRef = useRef<number | null>(null)
+  const autoPositionBusyRef = useRef(false)
 
   const defaultSails = i18n.language === 'de'
     ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
@@ -80,6 +122,15 @@ export default function LiveLogView({
     setDate(String(loaded.data.date || ''))
     setEvents(sortLogEventsByTime(entryEvents.map((e) => ({ ...e }))))
   }, [logbookId])
+
+  const showUndo = useCallback(() => {
+    setUndoVisible(true)
+    if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current)
+    undoTimerRef.current = window.setTimeout(() => {
+      setUndoVisible(false)
+      undoTimerRef.current = null
+    }, UNDO_TIMEOUT_MS)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -122,9 +173,45 @@ export default function LiveLogView({
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [events.length])
 
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!entryId || loading) return
+
+    const maybeAutoPosition = async () => {
+      if (document.visibilityState !== 'visible' || autoPositionBusyRef.current || busy) return
+
+      const lastMs = getLastAutoPositionMs(events, date)
+      if (lastMs != null && Date.now() - lastMs < AUTO_POSITION_INTERVAL_MS) return
+
+      autoPositionBusyRef.current = true
+      try {
+        const coords = await getCurrentPosition()
+        await appendQuickEvent(logbookId, entryId, {
+          gpsLat: coords.lat,
+          gpsLng: coords.lng,
+          remarks: LIVE_EVENT_CODES.AUTO_POSITION
+        })
+        await refreshEntry(entryId)
+      } catch {
+        // Silent — auto-position is best-effort
+      } finally {
+        autoPositionBusyRef.current = false
+      }
+    }
+
+    const interval = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
+    return () => window.clearInterval(interval)
+  }, [entryId, loading, events, date, logbookId, refreshEntry, busy])
+
   const runQuickAction = async (
     action: () => Promise<void>,
-    trackEvent?: string
+    trackEvent?: string,
+    withUndo = true
   ) => {
     if (!entryId || busy) return
     setBusy(true)
@@ -132,6 +219,7 @@ export default function LiveLogView({
     try {
       await action()
       await refreshEntry(entryId)
+      if (withUndo) showUndo()
       if (trackEvent) trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED, { context: trackEvent })
     } catch (err: unknown) {
       console.error('Live log action failed:', err)
@@ -139,6 +227,12 @@ export default function LiveLogView({
     } finally {
       setBusy(false)
     }
+  }
+
+  const openValueModal = (type: LiveModal, primary = '', secondary = '') => {
+    setValueInput(primary)
+    setValueInputSecondary(secondary)
+    setModal(type)
   }
 
   const handleMotorToggle = () => {
@@ -156,18 +250,14 @@ export default function LiveLogView({
   const handleCastOff = () => {
     void runQuickAction(async () => {
       if (!entryId) return
-      await appendQuickEvent(logbookId, entryId, {
-        remarks: LIVE_EVENT_CODES.CAST_OFF
-      })
+      await appendQuickEvent(logbookId, entryId, { remarks: LIVE_EVENT_CODES.CAST_OFF })
     }, 'live_cast_off')
   }
 
   const handleMoor = () => {
     void runQuickAction(async () => {
       if (!entryId) return
-      await appendQuickEvent(logbookId, entryId, {
-        remarks: LIVE_EVENT_CODES.MOOR
-      })
+      await appendQuickEvent(logbookId, entryId, { remarks: LIVE_EVENT_CODES.MOOR })
     }, 'live_moor')
   }
 
@@ -187,12 +277,16 @@ export default function LiveLogView({
     }, 'live_fix')
   }
 
-  const toggleSailSelection = (sail: string) => {
-    setSelectedSails((prev) =>
-      prev.some((s) => s.toLowerCase() === sail.toLowerCase())
-        ? prev.filter((s) => s.toLowerCase() !== sail.toLowerCase())
-        : [...prev, sail]
-    )
+  const handleUndo = () => {
+    if (!entryId || busy) return
+    setUndoVisible(false)
+    if (undoTimerRef.current) {
+      window.clearTimeout(undoTimerRef.current)
+      undoTimerRef.current = null
+    }
+    void runQuickAction(async () => {
+      await removeLastEvent(logbookId, entryId)
+    }, 'live_undo', false)
   }
 
   const confirmSails = () => {
@@ -222,10 +316,106 @@ export default function LiveLogView({
     setCommentText('')
     void runQuickAction(async () => {
       if (!entryId) return
-      await appendQuickEvent(logbookId, entryId, {
-        remarks: liveCommentRemark(text)
-      })
+      await appendQuickEvent(logbookId, entryId, { remarks: liveCommentRemark(text) })
     }, 'live_comment')
+  }
+
+  const confirmValueModal = () => {
+    if (!entryId) return
+    const primary = valueInput.trim()
+    const secondary = valueInputSecondary.trim()
+
+    switch (modal) {
+      case 'wind':
+        if (!primary && !secondary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            windDirection: primary,
+            windStrength: secondary,
+            remarks: LIVE_EVENT_CODES.WIND
+          })
+        }, 'live_wind')
+        break
+      case 'pressure':
+        if (!primary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            windPressure: primary,
+            remarks: LIVE_EVENT_CODES.PRESSURE
+          })
+        }, 'live_pressure')
+        break
+      case 'temp':
+        if (!primary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, { remarks: liveTempRemark(primary) })
+        }, 'live_temp')
+        break
+      case 'precip':
+        if (!primary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, { remarks: livePrecipRemark(primary) })
+        }, 'live_precip')
+        break
+      case 'sea_state':
+        if (!primary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            seaState: primary,
+            remarks: LIVE_EVENT_CODES.SEA_STATE
+          })
+        }, 'live_sea_state')
+        break
+      case 'course': {
+        const course = primary || lastCourseFromEvents(events)
+        if (!course) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            mgk: course,
+            remarks: LIVE_EVENT_CODES.COURSE
+          })
+        }, 'live_course')
+        break
+      }
+      case 'fuel': {
+        const liters = parseFloat(primary)
+        if (!Number.isFinite(liters) || liters <= 0) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendTankRefill(logbookId, entryId, 'fuel', liters, {
+            remarks: liveFuelRemark(String(liters))
+          })
+        }, 'live_fuel')
+        break
+      }
+      case 'water': {
+        const liters = parseFloat(primary)
+        if (!Number.isFinite(liters) || liters <= 0) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendTankRefill(logbookId, entryId, 'freshwater', liters, {
+            remarks: liveWaterRemark(String(liters))
+          })
+        }, 'live_water')
+        break
+      }
+      default:
+        break
+    }
+  }
+
+  const toggleSailSelection = (sail: string) => {
+    setSelectedSails((prev) =>
+      prev.some((s) => s.toLowerCase() === sail.toLowerCase())
+        ? prev.filter((s) => s.toLowerCase() !== sail.toLowerCase())
+        : [...prev, sail]
+    )
   }
 
   if (loading) {
@@ -252,22 +442,12 @@ export default function LiveLogView({
           </div>
         </div>
         <div className="section-toolbar">
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={onSwitchToList}
-            style={{ width: 'auto', padding: '8px 16px' }}
-          >
+          <button type="button" className="btn secondary" onClick={onSwitchToList} style={{ width: 'auto', padding: '8px 16px' }}>
             <ChevronLeft size={16} />
             <span className="hide-mobile">{t('logs.view_list')}</span>
           </button>
           {entryId && (
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={() => onOpenEditor(entryId)}
-              style={{ width: 'auto', padding: '8px 16px' }}
-            >
+            <button type="button" className="btn secondary" onClick={() => onOpenEditor(entryId)} style={{ width: 'auto', padding: '8px 16px' }}>
               <FileText size={16} />
               <span className="hide-mobile">{t('logs.live_open_editor')}</span>
             </button>
@@ -279,12 +459,7 @@ export default function LiveLogView({
 
       <div className="live-log-layout">
         <aside className="live-log-actions" aria-label={t('logs.live_actions_label')}>
-          <button
-            type="button"
-            className={`live-log-action-btn ${motorRunning ? 'is-active' : ''}`}
-            onClick={handleMotorToggle}
-            disabled={busy}
-          >
+          <button type="button" className={`live-log-action-btn ${motorRunning ? 'is-active' : ''}`} onClick={handleMotorToggle} disabled={busy}>
             <Zap size={18} />
             {motorRunning ? t('logs.live_motor_stop') : t('logs.live_motor_start')}
           </button>
@@ -296,25 +471,61 @@ export default function LiveLogView({
             <Anchor size={18} style={{ transform: 'scaleX(-1)' }} />
             {t('logs.live_moor')}
           </button>
-          <button
-            type="button"
-            className="live-log-action-btn"
-            onClick={() => { setSelectedSails([]); setModal('sails') }}
-            disabled={busy}
-          >
+          <button type="button" className="live-log-action-btn" onClick={() => { setSelectedSails([]); setModal('sails') }} disabled={busy}>
             <Sailboat size={18} />
             {t('logs.live_sails_btn')}
           </button>
+          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('course', lastCourseFromEvents(events))} disabled={busy}>
+            <Compass size={18} />
+            {t('logs.live_course_btn')}
+          </button>
+          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('fuel')} disabled={busy}>
+            <Fuel size={18} />
+            {t('logs.live_fuel_btn')}
+          </button>
+          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('water')} disabled={busy}>
+            <Droplets size={18} />
+            {t('logs.live_water_btn')}
+          </button>
+
+          <div className="live-log-weather-group">
+            <button
+              type="button"
+              className={`live-log-action-btn live-log-weather-toggle ${weatherExpanded ? 'is-expanded' : ''}`}
+              onClick={() => setWeatherExpanded((prev) => !prev)}
+              disabled={busy}
+              aria-expanded={weatherExpanded}
+            >
+              <CloudSun size={18} />
+              {t('logs.live_weather_btn')}
+              {weatherExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {weatherExpanded && (
+              <div className="live-log-weather-submenu">
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('wind')} disabled={busy}>
+                  {t('logs.live_wind_btn')}
+                </button>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('temp')} disabled={busy}>
+                  {t('logs.live_temp_btn')}
+                </button>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('pressure')} disabled={busy}>
+                  {t('logs.live_pressure_btn')}
+                </button>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('precip')} disabled={busy}>
+                  {t('logs.live_precip_btn')}
+                </button>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('sea_state')} disabled={busy}>
+                  {t('logs.live_sea_state_btn')}
+                </button>
+              </div>
+            )}
+          </div>
+
           <button type="button" className="live-log-action-btn" onClick={handleFix} disabled={busy}>
             <MapPin size={18} />
             {t('logs.live_fix')}
           </button>
-          <button
-            type="button"
-            className="live-log-action-btn"
-            onClick={() => { setCommentText(''); setModal('comment') }}
-            disabled={busy}
-          >
+          <button type="button" className="live-log-action-btn" onClick={() => { setCommentText(''); setModal('comment') }} disabled={busy}>
             <MessageSquare size={18} />
             {t('logs.live_comment_btn')}
           </button>
@@ -338,6 +549,16 @@ export default function LiveLogView({
         </section>
       </div>
 
+      {undoVisible && events.length > 0 && (
+        <div className="live-log-undo-bar" role="status">
+          <span>{t('logs.live_undo_hint')}</span>
+          <button type="button" className="btn secondary" onClick={handleUndo} disabled={busy}>
+            <Undo2 size={16} />
+            {t('logs.live_undo_btn')}
+          </button>
+        </div>
+      )}
+
       {modal === 'sails' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
           <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
@@ -355,12 +576,8 @@ export default function LiveLogView({
               ))}
             </div>
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>
-                {t('logs.confirm_no')}
-              </button>
-              <button type="button" className="btn primary" onClick={confirmSails} disabled={selectedSails.length === 0}>
-                {t('logs.live_sails_confirm')}
-              </button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn primary" onClick={confirmSails} disabled={selectedSails.length === 0}>{t('logs.live_sails_confirm')}</button>
             </div>
           </div>
         </div>
@@ -370,22 +587,61 @@ export default function LiveLogView({
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
           <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_comment_btn')}</h3>
+            <input type="text" className="input-text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder={t('logs.live_comment_placeholder')} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') confirmComment() }} />
+            <div className="live-log-modal-actions">
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn primary" onClick={confirmComment} disabled={!commentText.trim()}>{t('logs.live_comment_confirm')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'wind' && (
+        <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
+          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+            <h3>{t('logs.live_wind_btn')}</h3>
+            <input type="text" className="input-text mb-2" value={valueInput} onChange={(e) => setValueInput(e.target.value)} placeholder={t('logs.event_wind_direction')} autoFocus />
+            <input type="text" className="input-text" value={valueInputSecondary} onChange={(e) => setValueInputSecondary(e.target.value)} placeholder={t('logs.event_wind_strength')} />
+            <div className="live-log-modal-actions">
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {['pressure', 'temp', 'precip', 'sea_state', 'course', 'fuel', 'water'].includes(modal) && (
+        <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
+          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              {modal === 'pressure' && t('logs.live_pressure_btn')}
+              {modal === 'temp' && t('logs.live_temp_btn')}
+              {modal === 'precip' && t('logs.live_precip_btn')}
+              {modal === 'sea_state' && t('logs.live_sea_state_btn')}
+              {modal === 'course' && t('logs.live_course_btn')}
+              {modal === 'fuel' && t('logs.live_fuel_btn')}
+              {modal === 'water' && t('logs.live_water_btn')}
+            </h3>
             <input
               type="text"
               className="input-text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder={t('logs.live_comment_placeholder')}
+              value={valueInput}
+              onChange={(e) => setValueInput(e.target.value)}
+              placeholder={
+                modal === 'pressure' ? t('logs.live_pressure_placeholder')
+                  : modal === 'temp' ? t('logs.live_temp_placeholder')
+                    : modal === 'precip' ? t('logs.live_precip_placeholder')
+                      : modal === 'sea_state' ? t('logs.live_sea_state_placeholder')
+                        : modal === 'course' ? t('logs.live_course_placeholder')
+                          : modal === 'fuel' ? t('logs.live_fuel_placeholder')
+                            : t('logs.live_water_placeholder')
+              }
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') confirmComment() }}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmValueModal() }}
             />
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>
-                {t('logs.confirm_no')}
-              </button>
-              <button type="button" className="btn primary" onClick={confirmComment} disabled={!commentText.trim()}>
-                {t('logs.live_comment_confirm')}
-              </button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
             </div>
           </div>
         </div>

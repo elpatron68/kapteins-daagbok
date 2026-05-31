@@ -47,6 +47,8 @@ function buildEncryptedPayload(
     events: LogEventPayload[]
     departure?: string
     destination?: string
+    freshwater?: { morning: number; refilled: number; evening: number; consumption: number }
+    fuel?: { morning: number; refilled: number; evening: number; consumption: number }
     clearSignatures?: boolean
   }
 ): Record<string, unknown> {
@@ -56,23 +58,26 @@ function buildEncryptedPayload(
   const trackSpeedAvg = data.trackSpeedAvgKn
   const motorHoursRaw = data.motorHours
 
+  const freshwater = options.freshwater ?? {
+    morning: fw.morning || 0,
+    refilled: fw.refilled || 0,
+    evening: fw.evening || 0,
+    consumption: fw.consumption ?? 0
+  }
+  const fuelLevels = options.fuel ?? {
+    morning: fuel.morning || 0,
+    refilled: fuel.refilled || 0,
+    evening: fuel.evening || 0,
+    consumption: fuel.consumption ?? 0
+  }
+
   const payload = buildLogEntryPayload({
     date: String(data.date || ''),
     dayOfTravel: String(data.dayOfTravel || ''),
     departure: options.departure ?? String(data.departure || ''),
     destination: options.destination ?? String(data.destination || ''),
-    freshwater: {
-      morning: fw.morning || 0,
-      refilled: fw.refilled || 0,
-      evening: fw.evening || 0,
-      consumption: fw.consumption ?? 0
-    },
-    fuel: {
-      morning: fuel.morning || 0,
-      refilled: fuel.refilled || 0,
-      evening: fuel.evening || 0,
-      consumption: fuel.consumption ?? 0
-    },
+    freshwater,
+    fuel: fuelLevels,
     greywater: gw ? { level: gw.level || 0 } : undefined,
     trackDistanceNm:
       trackDistance != null && trackDistance !== ''
@@ -207,11 +212,26 @@ export async function appendQuickEvent(
   })
   const nextEvents = sortLogEventsByTime([...currentEvents, newEvent])
 
-  const entryData = buildEncryptedPayload(loaded.data, {
+  await persistEntry(logbookId, entryId, loaded.data, {
     events: nextEvents,
     departure: headerPatch?.departure,
     destination: headerPatch?.destination,
     clearSignatures: hadSignature
+  })
+
+  return { events: nextEvents, hadSignature }
+}
+
+async function persistEntry(
+  logbookId: string,
+  entryId: string,
+  data: Record<string, unknown>,
+  options: Parameters<typeof buildEncryptedPayload>[1]
+): Promise<void> {
+  const hadSignature = !!(data.signSkipper || data.signCrew)
+  const entryData = buildEncryptedPayload(data, {
+    ...options,
+    clearSignatures: options.clearSignatures ?? hadSignature
   })
 
   const masterKey = await getMasterKey(logbookId)
@@ -237,6 +257,65 @@ export async function appendQuickEvent(
   })
 
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
+}
+
+export async function removeLastEvent(
+  logbookId: string,
+  entryId: string
+): Promise<LogEventPayload[]> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const currentEvents = (loaded.data.events as LogEventPayload[]) || []
+  if (currentEvents.length === 0) return []
+
+  const nextEvents = sortLogEventsByTime(currentEvents.slice(0, -1))
+  await persistEntry(logbookId, entryId, loaded.data, { events: nextEvents })
+  return nextEvents
+}
+
+export async function appendTankRefill(
+  logbookId: string,
+  entryId: string,
+  tank: 'fuel' | 'freshwater',
+  addLiters: number,
+  event: Partial<LogEventPayload>
+): Promise<AppendQuickEventResult> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const { fw, fuel } = tankLevelsFromData(loaded.data)
+  const currentEvents = (loaded.data.events as LogEventPayload[]) || []
+  const newEvent = normalizeLogEvent({
+    time: currentLocalTimeHHMM(),
+    ...event
+  })
+  const nextEvents = sortLogEventsByTime([...currentEvents, newEvent])
+
+  const tankPatch = tank === 'fuel'
+    ? {
+        fuel: {
+          morning: fuel.morning || 0,
+          refilled: (fuel.refilled || 0) + addLiters,
+          evening: fuel.evening || 0,
+          consumption: fuel.consumption ?? 0
+        }
+      }
+    : {
+        freshwater: {
+          morning: fw.morning || 0,
+          refilled: (fw.refilled || 0) + addLiters,
+          evening: fw.evening || 0,
+          consumption: fw.consumption ?? 0
+        }
+      }
+
+  const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
+  await persistEntry(logbookId, entryId, loaded.data, {
+    events: nextEvents,
+    ...tankPatch,
+    clearSignatures: hadSignature
+  })
 
   return { events: nextEvents, hadSignature }
 }

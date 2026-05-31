@@ -3,7 +3,11 @@ import type { LogEventPayload } from './logEntryPayload.js'
 import {
   LIVE_EVENT_CODES,
   parseLiveCommentRemark,
-  parseLiveSailsRemark
+  parseLiveFuelRemark,
+  parseLivePrecipRemark,
+  parseLiveSailsRemark,
+  parseLiveTempRemark,
+  parseLiveWaterRemark
 } from './liveEventCodes.js'
 
 export function formatEventSummary(event: LogEventPayload, t: TFunction): string {
@@ -20,11 +24,45 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
   const comment = parseLiveCommentRemark(code)
   if (comment) return comment
 
-  if (code === LIVE_EVENT_CODES.FIX) {
+  const temp = parseLiveTempRemark(code)
+  if (temp) return t('logs.live_temp_entry', { temp })
+
+  const precip = parseLivePrecipRemark(code)
+  if (precip) return t('logs.live_precip_entry', { value: precip })
+
+  const fuel = parseLiveFuelRemark(code)
+  if (fuel) return t('logs.live_fuel_entry', { liters: fuel })
+
+  const water = parseLiveWaterRemark(code)
+  if (water) return t('logs.live_water_entry', { liters: water })
+
+  if (code === LIVE_EVENT_CODES.FIX || code === LIVE_EVENT_CODES.AUTO_POSITION) {
     if (event.gpsLat && event.gpsLng) {
-      return t('logs.live_fix_coords', { lat: event.gpsLat, lng: event.gpsLng })
+      const label = code === LIVE_EVENT_CODES.AUTO_POSITION
+        ? t('logs.live_auto_position')
+        : t('logs.live_fix')
+      return `${label} ${event.gpsLat}, ${event.gpsLng}`
     }
-    return t('logs.live_fix')
+    return code === LIVE_EVENT_CODES.AUTO_POSITION
+      ? t('logs.live_auto_position')
+      : t('logs.live_fix')
+  }
+
+  if (code === LIVE_EVENT_CODES.COURSE && event.mgk) {
+    return t('logs.live_course_entry', { course: event.mgk })
+  }
+
+  if (code === LIVE_EVENT_CODES.WIND) {
+    const wind = [event.windDirection, event.windStrength].filter(Boolean).join(' ')
+    return wind ? t('logs.live_wind_entry', { value: wind }) : t('logs.live_wind_btn')
+  }
+
+  if (code === LIVE_EVENT_CODES.PRESSURE && event.windPressure) {
+    return t('logs.live_pressure_entry', { value: event.windPressure })
+  }
+
+  if (code === LIVE_EVENT_CODES.SEA_STATE && event.seaState) {
+    return t('logs.live_sea_state_entry', { value: event.seaState })
   }
 
   if (code && !code.startsWith('__live:')) {
