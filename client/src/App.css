@@ -1298,6 +1298,26 @@ html.scheme-dark .themed-select-option.is-selected {
   margin: 0;
 }
 
+.logbook-title-editable {
+  cursor: text;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.logbook-title-editable:hover {
+  background: var(--app-accent-bg);
+}
+
+.logbook-title-inline-edit {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .card-icon {
   background: var(--app-accent-bg);
   color: var(--app-accent-light);
@@ -1416,32 +1436,6 @@ html.scheme-dark .themed-select-option.is-selected {
 .btn-delete:hover {
   color: #f43f5e;
   background: rgba(244, 63, 94, 0.1);
-}
-
-.btn-edit {
-  background: none;
-  border: none;
-  color: #475569;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: all 0.2s ease;
-  position: absolute;
-  top: 12px;
-  right: 48px;
-}
-
-.logbook-card:hover .btn-edit {
-  opacity: 1;
-}
-
-.btn-edit:hover {
-  color: var(--app-accent-light);
-  background: var(--app-accent-bg);
 }
 
 .btn-pdf {

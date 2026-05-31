@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../services/db.js'
@@ -8,10 +8,9 @@ import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import { BookOpen, Plus, Trash2, Edit2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
+import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
-import EditLogbookModal from './EditLogbookModal.tsx'
 
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
@@ -24,7 +23,9 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const { showConfirm } = useDialog()
   const [logbooks, setLogbooks] = useState<DecryptedLogbook[]>([])
   const [newTitle, setNewTitle] = useState('')
-  const [editingLogbook, setEditingLogbook] = useState<DecryptedLogbook | null>(null)
+  const [editingLogbookId, setEditingLogbookId] = useState<string | null>(null)
+  const [editingTitleDraft, setEditingTitleDraft] = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -101,25 +102,44 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
     }
   }
 
-  const handleEdit = (lb: DecryptedLogbook, e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent selecting the logbook when clicking edit
-    setEditingLogbook(lb)
+  useEffect(() => {
+    if (editingLogbookId) {
+      titleInputRef.current?.focus()
+      titleInputRef.current?.select()
+    }
+  }, [editingLogbookId])
+
+  const startTitleEdit = (lb: DecryptedLogbook, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingLogbookId(lb.id)
+    setEditingTitleDraft(lb.title)
   }
 
-  const handleSaveTitle = async (newTitle: string) => {
-    if (!editingLogbook) return
+  const cancelTitleEdit = () => {
+    setEditingLogbookId(null)
+    setEditingTitleDraft('')
+  }
+
+  const commitTitleEdit = async (id: string) => {
+    if (editingLogbookId !== id) return
+
+    const lb = logbooks.find((item) => item.id === id)
+    const trimmedTitle = editingTitleDraft.trim()
+    cancelTitleEdit()
+
+    if (!lb || !trimmedTitle || trimmedTitle === lb.title.trim()) return
 
     setLoading(true)
     setError(null)
     try {
-      await updateLogbookTitle(editingLogbook.id, newTitle)
+      await updateLogbookTitle(id, trimmedTitle)
       setLogbooks((prev) =>
-        prev.map((lb) => (lb.id === editingLogbook.id ? { ...lb, title: newTitle, updatedAt: new Date().toISOString() } : lb))
+        prev.map((item) =>
+          item.id === id ? { ...item, title: trimmedTitle, updatedAt: new Date().toISOString() } : item
+        )
       )
-      setEditingLogbook(null)
     } catch (err: any) {
       setError(err.message || 'Failed to update logbook title')
-      throw err
     } finally {
       setLoading(false)
     }
@@ -138,7 +158,10 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const ownedLogbooks = logbooks.filter((lb) => !lb.isShared)
   const sharedLogbooks = logbooks.filter((lb) => lb.isShared)
 
-  const renderLogbookCard = (lb: DecryptedLogbook) => (
+  const renderLogbookCard = (lb: DecryptedLogbook) => {
+    const isEditingTitle = editingLogbookId === lb.id
+
+    return (
     <div
       key={lb.id}
       className={`logbook-card glass${lb.isShared ? ' logbook-card--shared' : ''}`}
@@ -150,7 +173,36 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
 
       <div className="card-info">
         <div className="card-title-row">
-          <h3>{lb.title}</h3>
+          {isEditingTitle ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              className="logbook-title-inline-edit input-text"
+              value={editingTitleDraft}
+              onChange={(e) => setEditingTitleDraft(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void commitTitleEdit(lb.id)
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  cancelTitleEdit()
+                }
+              }}
+              onBlur={() => void commitTitleEdit(lb.id)}
+              disabled={loading}
+              aria-label={t('dashboard.edit_title')}
+            />
+          ) : (
+            <h3
+              className={lb.isShared ? undefined : 'logbook-title-editable'}
+              onClick={lb.isShared ? undefined : (e) => startTitleEdit(lb, e)}
+              title={lb.isShared ? undefined : t('dashboard.edit_title')}
+            >
+              {lb.title}
+            </h3>
+          )}
           <LogbookRoleBadge role={lb.accessRole} />
         </div>
         <div className="card-meta">
@@ -171,15 +223,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
       </div>
 
       <button
-        className="btn-edit"
-        onClick={(e) => handleEdit(lb, e)}
-        title={t('dashboard.edit_title')}
-        style={{ visibility: lb.isShared ? 'hidden' : 'visible' }}
-      >
-        <Edit2 size={18} />
-      </button>
-
-      <button
         className="btn-delete"
         onClick={(e) => handleDelete(lb.id, e)}
         title={t('dashboard.delete_btn')}
@@ -188,7 +231,8 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
         <Trash2 size={18} />
       </button>
     </div>
-  )
+    )
+  }
 
   const renderLogbookSection = (
     title: string,
@@ -326,14 +370,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           )}
         </section>
       </main>
-
-      {/* Edit Logbook Title Modal */}
-      <EditLogbookModal
-        open={editingLogbook !== null}
-        onClose={() => setEditingLogbook(null)}
-        currentTitle={editingLogbook?.title || ''}
-        onSave={handleSaveTitle}
-      />
     </div>
   )
 }
