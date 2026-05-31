@@ -1495,7 +1495,6 @@ export default function LogEntryEditor({
                   disabled={saving || weatherLoading}
                   allowCardinal
                   displayMode="auto"
-                  size="sm"
                   aria-label={t('logs.event_wind_direction')}
                 />
               </div>
