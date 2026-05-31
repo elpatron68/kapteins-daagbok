@@ -2433,6 +2433,18 @@ html.scheme-dark .themed-select-option.is-selected {
   .track-map-container {
     height: min(360px, 45svh);
   }
+
+  .sails-picker-pills {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
+    gap: 6px;
+  }
+
+  .sail-pill {
+    text-align: center;
+    padding: 3px 8px;
+    font-size: 11px;
+  }
 }
 
 /* ========================================== */
@@ -2693,10 +2705,7 @@ html.theme-cupertino .events-scroll-container {
 
 /* Event Editor Interactive Sails Picker */
 .sails-picker-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  grid-column: 1 / -1;
 }
 
 .sails-picker-pills {
@@ -2715,6 +2724,7 @@ html.theme-cupertino .events-scroll-container {
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .sail-pill:hover {
@@ -2742,7 +2752,9 @@ html.theme-cupertino .events-scroll-container {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
   color: #38bdf8;
-}.grid-span-2 {
+}
+
+.grid-span-2 {
   grid-column: span 2;
 }
 

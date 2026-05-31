@@ -1559,25 +1559,6 @@ export default function LogEntryEditor({
                   onChange={(e) => setEvSailsOrMotor(e.target.value)}
                   disabled={saving}
                 />
-                <div className="sails-picker-container">
-                  <div className="sails-picker-pills">
-                    {(yachtSails.length > 0 ? yachtSails : defaultSails).map((sail) => (
-                      <span
-                        key={sail}
-                        className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
-                        onClick={() => toggleSailOrMotor(sail)}
-                      >
-                        {sail}
-                      </span>
-                    ))}
-                    <span
-                      className={`sail-pill motor-pill ${isItemActive(t('logs.motor_propulsion')) ? 'active' : ''}`}
-                      onClick={() => toggleSailOrMotor(t('logs.motor_propulsion'))}
-                    >
-                      {t('logs.motor_propulsion')}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <div className="input-group">
@@ -1592,7 +1573,27 @@ export default function LogEntryEditor({
                 />
               </div>
 
-              <div className="input-group" style={{ gridColumn: 'span 2' }}>
+              <div className="sails-picker-container grid-span-2">
+                <div className="sails-picker-pills">
+                  {(yachtSails.length > 0 ? yachtSails : defaultSails).map((sail) => (
+                    <span
+                      key={sail}
+                      className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
+                      onClick={() => toggleSailOrMotor(sail)}
+                    >
+                      {sail}
+                    </span>
+                  ))}
+                  <span
+                    className={`sail-pill motor-pill ${isItemActive(t('logs.motor_propulsion')) ? 'active' : ''}`}
+                    onClick={() => toggleSailOrMotor(t('logs.motor_propulsion'))}
+                  >
+                    {t('logs.motor_propulsion')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="input-group grid-span-2">
                 <label>{t('logs.event_remarks')}</label>
                 <input
                   type="text"
