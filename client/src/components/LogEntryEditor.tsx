@@ -897,6 +897,7 @@ export default function LogEntryEditor({
     setEvRemarks('')
     setEvLocationName('')
     setEditingEventIndex(null)
+    setSailsPickerExpanded(false)
   }
 
   const fillEventForm = (ev: LogEvent) => {
