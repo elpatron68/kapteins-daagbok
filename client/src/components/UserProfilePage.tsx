@@ -225,7 +225,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
       trackPlausibleEvent(PlausibleEvents.PASSKEY_RENAMED)
       showAlert(t('profile.passkey_rename_success'))
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('profile.add_passkey_failed'))
+      setError(err instanceof Error ? err.message : t('profile.passkey_rename_failed'))
     } finally {
       setPasskeyBusy(false)
     }

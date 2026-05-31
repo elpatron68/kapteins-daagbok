@@ -344,6 +344,7 @@
       "passkey_label_placeholder": "z. B. MacBook, iPhone",
       "passkey_rename_btn": "Name speichern",
       "passkey_rename_success": "Passkey-Name gespeichert.",
+      "passkey_rename_failed": "Passkey-Name konnte nicht gespeichert werden.",
       "passkey_unnamed": "Unbenannter Passkey",
       "stats_title": "Statistiken",
       "stats_subtitle": "Über alle deine Logbücher auf diesem Gerät",
