@@ -1,13 +1,7 @@
-/** BCP 47 locales that use 24-hour clock for Intl and native pickers. */
+/** BCP 47 locales that use 24-hour clock for Intl formatting. */
 export function resolveIntlLocale(language?: string): string {
   const lng = (language ?? 'en').toLowerCase()
   return lng.startsWith('de') ? 'de-DE' : 'en-GB'
-}
-
-/** `lang` for `<html>` and `<input type="time">` (24h-friendly). */
-export function resolveDocumentLang(language?: string): string {
-  const lng = (language ?? 'en').toLowerCase()
-  return lng.startsWith('de') ? 'de' : 'en-GB'
 }
 
 const APP_DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {

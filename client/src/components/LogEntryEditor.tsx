@@ -22,8 +22,8 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, currentLocalTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
-import { resolveIntlLocale } from '../utils/dateTimeFormat.js'
+import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
+import EventTimeInput24h from './EventTimeInput24h.tsx'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -927,7 +927,7 @@ export default function LogEntryEditor({
 
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (readOnly || !evTime) return
+    if (readOnly || !isValidTimeHHMM(evTime)) return
 
     const eventData = buildEventFromForm()
     const isEdit = editingEventIndex !== null
@@ -1369,13 +1369,11 @@ export default function LogEntryEditor({
                   <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
                   {t('logs.event_time')} *
                 </label>
-                <input
-                  type="time"
-                  className="input-text"
-                  lang={resolveIntlLocale(i18n.language)}
+                <EventTimeInput24h
                   value={evTime}
-                  onChange={(e) => setEvTime(e.target.value)}
+                  onChange={setEvTime}
                   disabled={saving}
+                  aria-label={t('logs.event_time')}
                 />
               </div>
 
@@ -1613,7 +1611,7 @@ export default function LogEntryEditor({
                 type="button"
                 className="btn secondary"
                 onClick={handleSaveEvent}
-                disabled={saving || !evTime}
+                disabled={saving || !isValidTimeHHMM(evTime)}
                 style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
               >
                 {editingEventIndex !== null ? <Save size={16} /> : <Plus size={16} />}

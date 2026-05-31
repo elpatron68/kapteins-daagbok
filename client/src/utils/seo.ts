@@ -1,5 +1,4 @@
 import type { i18n as I18nInstance } from 'i18next'
-import { resolveDocumentLang } from './dateTimeFormat.js'
 
 const SITE_ORIGIN = 'https://kapteins-daagbok.eu'
 
@@ -35,7 +34,7 @@ export function updatePageSeo(lng?: string) {
   if (!i18nRef?.isInitialized) return
 
   const lang = normalizeSeoLang(lng ?? i18nRef.language)
-  document.documentElement.lang = resolveDocumentLang(lang)
+  document.documentElement.lang = lang
 
   const title = i18nRef.t('seo.title')
   document.title = title

@@ -17,11 +17,54 @@ export interface LogEventPayload {
   remarks: string
 }
 
-/** Local time as HH:MM for HTML `<input type="time">`. */
+/** Local time as HH:MM (24-hour). */
 export function currentLocalTimeHHMM(date: Date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+/** Parse 24h or 12h (AM/PM) time strings to HH:MM. */
+export function parseTimeToHHMM(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const amPm = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i)
+  if (amPm) {
+    let hours = parseInt(amPm[1], 10)
+    const minutes = parseInt(amPm[2], 10)
+    const isPm = amPm[3].toUpperCase() === 'PM'
+    if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null
+    if (hours === 12) hours = isPm ? 12 : 0
+    else if (isPm) hours += 12
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
+
+  const h24 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+  if (h24) {
+    const hours = parseInt(h24[1], 10)
+    const minutes = parseInt(h24[2], 10)
+    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    }
+  }
+
+  return null
+}
+
+export function isValidTimeHHMM(value: string): boolean {
+  return parseTimeToHHMM(value) !== null
+}
+
+export function splitTimeHHMM(value: string): { hours: string; minutes: string } {
+  const parsed = parseTimeToHHMM(value) ?? currentLocalTimeHHMM()
+  return { hours: parsed.slice(0, 2), minutes: parsed.slice(3, 5) }
+}
+
+export function joinTimeHHMM(hours: string, minutes: string): string {
+  const h = Math.min(23, Math.max(0, parseInt(hours, 10) || 0))
+  const m = Math.min(59, Math.max(0, parseInt(minutes, 10) || 0))
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 const LOG_EVENT_FIELDS: (keyof LogEventPayload)[] = [
@@ -35,7 +78,7 @@ export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<strin
   const e = event as Record<string, unknown>
   const timeRaw = String(e.time ?? '').trim()
   const normalized: LogEventPayload = {
-    time: timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw,
+    time: parseTimeToHHMM(timeRaw) ?? (timeRaw.length >= 5 ? timeRaw.slice(0, 5) : timeRaw),
     mgk: '',
     rwk: '',
     windPressure: '',
