@@ -22,6 +22,7 @@ const rpID = process.env.RP_ID || 'localhost'
 const origin = process.env.ORIGIN || 'http://localhost:5173'
 
 const registrationChallenges = new Map<string, string>()
+/** WebAuthn registration challenges for add-credential flow: challenge -> userId */
 const addCredentialChallenges = new Map<string, string>()
 const activeChallenges = new Set<string>()
 
@@ -462,7 +463,7 @@ router.post('/add-credential-options', requireReauth, async (req: any, res) => {
       excludeCredentials
     })
 
-    addCredentialChallenges.set(req.userId, options.challenge)
+    addCredentialChallenges.set(options.challenge, req.userId)
 
     return res.json(options)
   } catch (error: any) {
@@ -473,15 +474,22 @@ router.post('/add-credential-options', requireReauth, async (req: any, res) => {
 
 router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
   try {
-    const { credentialResponse } = req.body
-    if (!credentialResponse) {
-      return res.status(400).json({ error: 'credentialResponse is required' })
+    const { credentialResponse, challenge } = req.body
+    if (!credentialResponse || !challenge) {
+      return res.status(400).json({ error: 'credentialResponse and challenge are required' })
     }
 
-    const expectedChallenge = addCredentialChallenges.get(req.userId)
-    if (!expectedChallenge) {
+    const challengeUserId = addCredentialChallenges.get(challenge)
+    if (!challengeUserId) {
       return res.status(400).json({ error: 'Challenge not found or expired' })
     }
+
+    if (challengeUserId !== req.userId) {
+      return res.status(403).json({ error: 'Challenge does not belong to this account' })
+    }
+
+    // Single-use: invalidate before verification so failed attempts cannot be retried
+    addCredentialChallenges.delete(challenge)
 
     const user = await prisma.user.findUnique({
       where: { id: req.userId }
@@ -493,7 +501,7 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
 
     const verification = await verifyRegistrationResponse({
       response: credentialResponse,
-      expectedChallenge,
+      expectedChallenge: challenge,
       expectedOrigin: origin,
       expectedRPID: rpID
     })
@@ -521,8 +529,6 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
         transports: credentialResponse.response.transports || []
       }
     })
-
-    addCredentialChallenges.delete(req.userId)
 
     return res.json({
       verified: true,

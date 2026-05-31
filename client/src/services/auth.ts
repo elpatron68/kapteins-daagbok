@@ -613,7 +613,7 @@ export async function addPasskey(): Promise<void> {
 
   await apiJson(`${API_BASE}/add-credential-verify`, {
     method: 'POST',
-    body: JSON.stringify({ credentialResponse })
+    body: JSON.stringify({ credentialResponse, challenge: options.challenge })
   })
 
   const masterKey = getActiveMasterKey()
