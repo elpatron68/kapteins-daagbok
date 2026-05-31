@@ -31,6 +31,13 @@ function previewCredentialId(credentialId: string): string {
   return `${credentialId.slice(0, 8)}…${credentialId.slice(-8)}`
 }
 
+function normalizeCredentialLabel(label: unknown): string | null {
+  if (typeof label !== 'string') return null
+  const trimmed = label.trim()
+  if (!trimmed) return null
+  return trimmed.slice(0, 64)
+}
+
 router.post('/register-options', async (req, res) => {
   try {
     const { username } = req.body
@@ -416,6 +423,7 @@ router.get('/profile', requireUser, async (req: any, res) => {
       hasPrfEncryption: user.encryptedMasterKeyPrf != null,
       credentials: user.credentials.map((cred) => ({
         id: cred.id,
+        label: cred.label,
         credentialIdPreview: previewCredentialId(cred.credentialId),
         transports: cred.transports
       })),
@@ -479,6 +487,8 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
       return res.status(400).json({ error: 'credentialResponse and challenge are required' })
     }
 
+    const label = normalizeCredentialLabel(req.body.label)
+
     const challengeUserId = addCredentialChallenges.get(challenge)
     if (!challengeUserId) {
       return res.status(400).json({ error: 'Challenge not found or expired' })
@@ -524,6 +534,7 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
       data: {
         userId: req.userId,
         credentialId,
+        label,
         publicKey: Buffer.from(credentialPublicKey),
         counter: BigInt(counter),
         transports: credentialResponse.response.transports || []
@@ -534,12 +545,45 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
       verified: true,
       credential: {
         id: credential.id,
+        label: credential.label,
         credentialIdPreview: previewCredentialId(credential.credentialId),
         transports: credential.transports
       }
     })
   } catch (error: any) {
     console.error('Error verifying add-credential response:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.patch('/credentials/:id', requireUser, async (req: any, res) => {
+  try {
+    const { id } = req.params
+    const label = normalizeCredentialLabel(req.body?.label)
+
+    const credential = await prisma.credential.findUnique({
+      where: { id }
+    })
+
+    if (!credential || credential.userId !== req.userId) {
+      return res.status(404).json({ error: 'Credential not found' })
+    }
+
+    const updated = await prisma.credential.update({
+      where: { id },
+      data: { label }
+    })
+
+    return res.json({
+      credential: {
+        id: updated.id,
+        label: updated.label,
+        credentialIdPreview: previewCredentialId(updated.credentialId),
+        transports: updated.transports
+      }
+    })
+  } catch (error: any) {
+    console.error('Error updating credential label:', error)
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 })

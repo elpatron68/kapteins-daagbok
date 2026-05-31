@@ -52,6 +52,7 @@ model Credential {
   id           String   @id @default(uuid())
   userId       String
   credentialId String   @unique
+  label        String?
   publicKey    Bytes
   counter      BigInt
   transports   String[] // WebAuthn transports list

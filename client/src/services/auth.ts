@@ -546,6 +546,7 @@ export async function deleteAccount(): Promise<boolean> {
 
 export interface UserProfileCredential {
   id: string
+  label: string | null
   credentialIdPreview: string
   transports: string[]
 }
@@ -579,7 +580,7 @@ async function enrollPrfFromMasterKey(masterKey: ArrayBuffer, prfFirst: ArrayBuf
   })
 }
 
-export async function addPasskey(): Promise<void> {
+export async function addPasskey(label?: string): Promise<void> {
   await reauthWithPasskey()
 
   const options = await apiJson<any>(`${API_BASE}/add-credential-options`, {
@@ -613,7 +614,11 @@ export async function addPasskey(): Promise<void> {
 
   await apiJson(`${API_BASE}/add-credential-verify`, {
     method: 'POST',
-    body: JSON.stringify({ credentialResponse, challenge: options.challenge })
+    body: JSON.stringify({
+      credentialResponse,
+      challenge: options.challenge,
+      ...(label?.trim() ? { label: label.trim() } : {})
+    })
   })
 
   const masterKey = getActiveMasterKey()
@@ -638,4 +643,11 @@ export async function removePasskey(credentialDbId: string): Promise<void> {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error || 'Failed to remove passkey')
   }
+}
+
+export async function renamePasskey(credentialDbId: string, label: string): Promise<void> {
+  await apiJson(`${API_BASE}/credentials/${credentialDbId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ label })
+  })
 }

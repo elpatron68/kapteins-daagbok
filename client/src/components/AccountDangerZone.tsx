@@ -46,6 +46,7 @@ export default function AccountDangerZone({ className = '' }: AccountDangerZoneP
       </div>
 
       <p className="account-danger-zone__desc">{t('settings.danger_zone_desc')}</p>
+      <p className="account-danger-zone__hint">{t('settings.delete_backup_hint')}</p>
 
       <div className="form-actions account-danger-zone__actions">
         <button

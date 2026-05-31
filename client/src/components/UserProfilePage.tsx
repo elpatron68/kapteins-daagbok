@@ -18,7 +18,14 @@ import {
   Share2,
   Calendar,
   Lock,
-  BarChart2
+  BarChart2,
+  Shield,
+  Smartphone,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  CircleCheck,
+  CircleAlert
 } from 'lucide-react'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import BetaBadge from './BetaBadge.tsx'
@@ -26,10 +33,13 @@ import { useDialog } from './ModalDialog.tsx'
 import {
   addPasskey,
   fetchUserProfile,
+  forgetUsername,
   getActiveMasterKey,
+  getKnownUsernames,
   hasLocalPin,
   removeLocalPin,
   removePasskey,
+  renamePasskey,
   setLocalPin,
   type UserProfile
 } from '../services/auth.js'
@@ -81,6 +91,15 @@ function KpiCard({
   )
 }
 
+function SecurityCheckItem({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <li className={`profile-security-item ${ok ? 'profile-security-item--ok' : 'profile-security-item--warn'}`}>
+      {ok ? <CircleCheck size={18} aria-hidden="true" /> : <CircleAlert size={18} aria-hidden="true" />}
+      <span>{label}</span>
+    </li>
+  )
+}
+
 export default function UserProfilePage({ onBack, onLogout }: UserProfilePageProps) {
   const { t, i18n } = useTranslation()
   const { showConfirm, showAlert } = useDialog()
@@ -96,6 +115,14 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   const [pinInput, setPinInput] = useState('')
   const [pinConfirm, setPinConfirm] = useState('')
   const [pinActive, setPinActive] = useState(() => hasLocalPin(username))
+  const [newPasskeyLabel, setNewPasskeyLabel] = useState('')
+  const [passkeyLabels, setPasskeyLabels] = useState<Record<string, string>>({})
+  const [online, setOnline] = useState(navigator.onLine)
+  const [isKnownDevice, setIsKnownDevice] = useState(() =>
+    getKnownUsernames().some((u) => u.toLowerCase() === username.toLowerCase())
+  )
+
+  const pendingSyncCount = useLiveQuery(() => db.syncQueue.count()) ?? 0
 
   const sharedLogbookCount = useLiveQuery(
     () => db.logbooks.filter((lb) => lb.isShared === 1).count(),
@@ -127,6 +154,26 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     void loadData()
   }, [loadData])
 
+  useEffect(() => {
+    const handleOnline = () => setOnline(true)
+    const handleOffline = () => setOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!profile) return
+    const labels: Record<string, string> = {}
+    for (const cred of profile.credentials) {
+      labels[cred.id] = cred.label ?? ''
+    }
+    setPasskeyLabels(labels)
+  }, [profile])
+
   const statsTotals = accountStats?.totals
   const logbookCount =
     accountStats?.logbooks.length ?? profile?.serverMeta.ownedLogbookCount ?? 0
@@ -151,7 +198,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     setPasskeyBusy(true)
     setError(null)
     try {
-      await addPasskey()
+      await addPasskey(newPasskeyLabel)
+      setNewPasskeyLabel('')
       await loadData()
       showAlert(t('profile.add_passkey_success'))
     } catch (err: unknown) {
@@ -161,7 +209,42 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     }
   }
 
+  const handleRenamePasskey = async (credentialId: string) => {
+    setPasskeyBusy(true)
+    setError(null)
+    try {
+      await renamePasskey(credentialId, passkeyLabels[credentialId] ?? '')
+      await loadData()
+      showAlert(t('profile.passkey_rename_success'))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('profile.add_passkey_failed'))
+    } finally {
+      setPasskeyBusy(false)
+    }
+  }
+
+  const handleForgetDevice = async () => {
+    const confirmed = await showConfirm(
+      t('profile.device_forget_confirm_desc'),
+      t('profile.device_forget_confirm_title'),
+      t('profile.device_forget_confirm_yes'),
+      t('profile.remove_passkey_confirm_no')
+    )
+    if (!confirmed) return
+
+    forgetUsername(username)
+    setIsKnownDevice(false)
+  }
+
   const handleRemovePasskey = async (credentialId: string) => {
+    if (profile && profile.credentials.length <= 1) {
+      await showAlert(
+        t('profile.remove_passkey_last_desc'),
+        t('profile.remove_passkey_last_title')
+      )
+      return
+    }
+
     const confirmed = await showConfirm(
       t('profile.remove_passkey_confirm_desc'),
       t('profile.remove_passkey_confirm_title'),
@@ -305,6 +388,80 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
 
             <section className="member-editor-card glass">
               <div className="profile-section-header">
+                <Shield size={20} />
+                <h3>{t('profile.security_title')}</h3>
+              </div>
+              <p className="profile-section-desc">{t('profile.security_desc')}</p>
+              <ul className="profile-security-list">
+                <SecurityCheckItem
+                  ok={profile.credentials.length > 0}
+                  label={
+                    profile.credentials.length > 0
+                      ? t('profile.security_passkeys_ok')
+                      : t('profile.security_passkeys_missing')
+                  }
+                />
+                <SecurityCheckItem
+                  ok={profile.hasPrfEncryption}
+                  label={
+                    profile.hasPrfEncryption
+                      ? t('profile.security_prf_ok')
+                      : t('profile.security_prf_missing')
+                  }
+                />
+                <SecurityCheckItem
+                  ok={pinActive}
+                  label={pinActive ? t('profile.security_pin_ok') : t('profile.security_pin_missing')}
+                />
+                <SecurityCheckItem ok label={t('profile.security_recovery_ok')} />
+              </ul>
+              <p className="profile-section-desc profile-recovery-hint">{t('profile.security_recovery_hint')}</p>
+            </section>
+
+            <section className="member-editor-card glass">
+              <div className="profile-section-header">
+                <Smartphone size={20} />
+                <h3>{t('profile.device_title')}</h3>
+              </div>
+              <p className="profile-section-desc">{t('profile.device_desc')}</p>
+              <div className={`profile-device-status conn-status ${online ? (pendingSyncCount > 0 ? 'warning' : 'online') : 'offline'}`}>
+                {online ? (
+                  pendingSyncCount > 0 ? (
+                    <>
+                      <RefreshCw size={16} className="spin" aria-hidden="true" />
+                      <span>{t('profile.device_sync_pending', { count: pendingSyncCount })}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wifi size={16} aria-hidden="true" />
+                      <span>{t('profile.device_sync_ok')}</span>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <WifiOff size={16} aria-hidden="true" />
+                    <span>{t('sync.status_offline')}</span>
+                  </>
+                )}
+              </div>
+              <p className="profile-pin-status">
+                {isKnownDevice ? t('profile.device_remembered') : t('profile.device_not_remembered')}
+              </p>
+              {isKnownDevice && (
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void handleForgetDevice()}
+                  >
+                    {t('profile.device_forget_btn')}
+                  </button>
+                </div>
+              )}
+            </section>
+
+            <section className="member-editor-card glass">
+              <div className="profile-section-header">
                 <Lock size={20} />
                 <h3>{t('profile.pin_title')}</h3>
               </div>
@@ -378,24 +535,44 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 <ul className="profile-passkey-list">
                   {profile.credentials.map((cred) => (
                     <li key={cred.id} className="profile-passkey-item">
-                      <div>
+                      <div className="profile-passkey-main">
+                        <span className="profile-passkey-label">
+                          {cred.label || t('profile.passkey_unnamed')}
+                        </span>
                         <span className="profile-passkey-id">{cred.credentialIdPreview}</span>
                         {cred.transports.length > 0 && (
                           <span className="profile-passkey-transports">
                             {cred.transports.join(', ')}
                           </span>
                         )}
+                        <div className="profile-passkey-rename">
+                          <input
+                            type="text"
+                            className="input-text"
+                            value={passkeyLabels[cred.id] ?? ''}
+                            onChange={(e) =>
+                              setPasskeyLabels((prev) => ({ ...prev, [cred.id]: e.target.value }))
+                            }
+                            placeholder={t('profile.passkey_label_placeholder')}
+                            disabled={passkeyBusy}
+                            maxLength={64}
+                          />
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            onClick={() => void handleRenamePasskey(cred.id)}
+                            disabled={passkeyBusy}
+                          >
+                            {t('profile.passkey_rename_btn')}
+                          </button>
+                        </div>
                       </div>
                       <button
                         type="button"
                         className="btn-icon danger"
                         onClick={() => void handleRemovePasskey(cred.id)}
-                        disabled={passkeyBusy || profile.credentials.length <= 1}
-                        title={
-                          profile.credentials.length <= 1
-                            ? t('profile.remove_passkey_last')
-                            : t('profile.remove_passkey_btn')
-                        }
+                        disabled={passkeyBusy}
+                        title={t('profile.remove_passkey_btn')}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -403,6 +580,22 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                   ))}
                 </ul>
               )}
+
+              <div className="profile-add-passkey">
+                <div className="input-group">
+                  <label htmlFor="profile-new-passkey-label">{t('profile.passkey_label')}</label>
+                  <input
+                    id="profile-new-passkey-label"
+                    type="text"
+                    className="input-text"
+                    value={newPasskeyLabel}
+                    onChange={(e) => setNewPasskeyLabel(e.target.value)}
+                    placeholder={t('profile.passkey_label_placeholder')}
+                    disabled={passkeyBusy}
+                    maxLength={64}
+                  />
+                </div>
+              </div>
 
               <div className="form-actions mt-4">
                 <button

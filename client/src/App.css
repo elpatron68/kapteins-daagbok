@@ -918,13 +918,98 @@ html.scheme-dark .themed-select-option.is-selected {
 
 .profile-passkey-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(148, 163, 184, 0.06);
   border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.profile-passkey-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-passkey-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text);
+  margin-bottom: 2px;
+}
+
+.profile-passkey-rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.profile-passkey-rename .input-text {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.profile-add-passkey {
+  margin-top: 16px;
+}
+
+.profile-add-passkey .input-group label {
+  display: block;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--app-text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.profile-security-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-security-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.profile-security-item--ok {
+  color: #4ade80;
+}
+
+.profile-security-item--warn {
+  color: #fbbf24;
+}
+
+.profile-recovery-hint {
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+.profile-device-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.account-danger-zone__hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  line-height: 1.5;
 }
 
 .profile-passkey-id {
