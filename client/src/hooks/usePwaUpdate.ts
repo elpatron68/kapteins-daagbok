@@ -113,12 +113,14 @@ export function usePwaUpdate() {
   })
 
   setNeedRefreshRef.current = setNeedRefresh
-  if (pendingNeedRefreshRef.current !== null) {
-    setNeedRefresh(pendingNeedRefreshRef.current)
-    pendingNeedRefreshRef.current = null
-  }
 
   useEffect(() => {
+    if (pendingNeedRefreshRef.current !== null) {
+      const pending = pendingNeedRefreshRef.current
+      pendingNeedRefreshRef.current = null
+      setNeedRefresh(pending)
+    }
+
     if (isUpdateSuppressed()) {
       setNeedRefresh(false)
     }
