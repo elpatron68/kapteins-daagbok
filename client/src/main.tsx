@@ -6,6 +6,11 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { applyAppearanceToDocument } from './services/appearance.ts'
+import {
+  installStaleAssetRecovery,
+  markReloadAttempt,
+  reconcileServiceWorkerOnStartup
+} from './services/pwaStartup.ts'
 
 /** Stale PWA precache on localhost can shadow Vite dev modules. */
 async function clearDevServiceWorkerCaches(): Promise<void> {
@@ -35,7 +40,15 @@ function renderBootstrapError(message: string): void {
 
 async function bootstrap(): Promise<void> {
   applyAppearanceToDocument()
+  installStaleAssetRecovery()
   await clearDevServiceWorkerCaches()
+
+  const shouldReloadForWaitingSw = await reconcileServiceWorkerOnStartup()
+  if (shouldReloadForWaitingSw) {
+    markReloadAttempt()
+    window.location.reload()
+    return
+  }
 
   const rootEl = document.getElementById('root')
   if (!rootEl) {

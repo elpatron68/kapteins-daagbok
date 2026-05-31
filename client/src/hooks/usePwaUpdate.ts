@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { markReloadAttempt, recentlyAttemptedReload } from '../services/pwaStartup.js'
 
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000
 const UPDATE_SUPPRESS_KEY = 'pwa_update_suppress_until'
 const UPDATE_SUPPRESS_MS = 30_000
 const UPDATE_DISMISS_SUPPRESS_MS = 60 * 60 * 1000
 const UPDATE_RELOAD_FALLBACK_MS = 2000
-/** Prevent Android PWA cold-start reload loops from onNeedReload. */
-const PWA_INITIAL_RELOAD_KEY = 'pwa_sw_initial_reload_done'
 
 function isUpdateSuppressed(): boolean {
   const suppressUntil = Number(sessionStorage.getItem(UPDATE_SUPPRESS_KEY) || '0')
@@ -43,6 +42,13 @@ function scheduleUpdateChecks(registration: ServiceWorkerRegistration): () => vo
   }
 }
 
+function reloadForServiceWorkerTakeover(): void {
+  if (recentlyAttemptedReload()) return
+  markReloadAttempt()
+  clearUpdateSuppression()
+  window.location.reload()
+}
+
 export function usePwaUpdate() {
   const cleanupRef = useRef<(() => void) | null>(null)
 
@@ -52,14 +58,7 @@ export function usePwaUpdate() {
   } = useRegisterSW({
     immediate: !import.meta.env.DEV,
     onNeedReload() {
-      // First SW takeover requires one reload; guard against repeated reloads on Android PWA resume.
-      if (sessionStorage.getItem(PWA_INITIAL_RELOAD_KEY)) {
-        return
-      }
-      sessionStorage.setItem(PWA_INITIAL_RELOAD_KEY, '1')
-      clearUpdateSuppression()
-      setNeedRefresh(false)
-      window.location.reload()
+      reloadForServiceWorkerTakeover()
     },
     onNeedRefresh() {
       if (isUpdateSuppressed()) return
@@ -96,7 +95,7 @@ export function usePwaUpdate() {
 
     // vite-plugin-pwa reloads via the "controlling" event; fallback if that does not fire.
     window.setTimeout(() => {
-      window.location.reload()
+      reloadForServiceWorkerTakeover()
     }, UPDATE_RELOAD_FALLBACK_MS)
   }
 
