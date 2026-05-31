@@ -10,6 +10,7 @@
     "test": "vitest run",
     "preview": "vite preview",
     "generate:flyer": "node ../scripts/generate-beta-flyer.mjs",
+    "generate:flyer:png": "node ../scripts/generate-beta-flyer.mjs --png",
     "generate:flyer:setup": "playwright install chromium"
   },
   "dependencies": {

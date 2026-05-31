@@ -18,6 +18,7 @@ const assetsDir = resolve(marketingDir, 'assets')
 const htmlPath = resolve(marketingDir, 'beta-flyer.html')
 const qrPath = resolve(assetsDir, 'qr-kapteins-daagbok.eu.png')
 const pdfPath = resolve(marketingDir, 'kapteins-daagbok-beta-flyer.pdf')
+const pngPath = resolve(marketingDir, 'kapteins-daagbok-beta-flyer.png')
 const appUrl = 'https://kapteins-daagbok.eu'
 
 const require = createRequire(resolve(clientDir, 'package.json'))
@@ -91,5 +92,42 @@ async function renderPdf() {
   }
 }
 
+async function renderPng() {
+  let playwright
+  try {
+    playwright = require('playwright')
+  } catch {
+    console.error('Fehlende Abhängigkeit: "npm install -D playwright" in client/ ausführen.')
+    process.exit(1)
+  }
+
+  await ensurePlaywrightChromium(playwright)
+
+  const browser = await playwright.chromium.launch({ headless: true })
+  try {
+    const context = await browser.newContext({
+      viewport: { width: 794, height: 1123 },
+      deviceScaleFactor: 2
+    })
+    const page = await context.newPage()
+    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
+    await page.screenshot({
+      path: pngPath,
+      fullPage: true,
+      type: 'png'
+    })
+    console.log('PNG written:', pngPath)
+    await context.close()
+  } finally {
+    await browser.close()
+  }
+}
+
 await ensureQrCode()
-await renderPdf()
+const outputMode = process.argv.includes('--png') ? 'png' : 'pdf'
+
+if (outputMode === 'png') {
+  await renderPng()
+} else {
+  await renderPdf()
+}
