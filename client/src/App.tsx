@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
 import UserProfilePage from './components/UserProfilePage.tsx'
