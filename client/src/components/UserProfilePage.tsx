@@ -726,7 +726,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
               </div>
             </section>
 
-            <section className="form-card">
+            <section className="form-card profile-stats-section">
               <div className="form-header">
                 <BarChart2 size={24} className="form-icon" />
                 <div>
@@ -736,7 +736,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
               </div>
 
               {(statsTotals || profile) && (
-                <div className="stats-kpi-grid">
+                <div className="stats-kpi-grid profile-stats-kpi-grid">
                   <KpiCard
                     icon={<BookOpen size={20} />}
                     label={t('profile.stats_logbooks')}

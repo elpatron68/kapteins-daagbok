@@ -3632,6 +3632,59 @@ html.theme-cupertino .events-scroll-container {
   .stats-kpi-value {
     font-size: 20px;
   }
+
+  .profile-stats-section.form-card {
+    padding: 20px 16px;
+  }
+
+  .profile-stats-section .form-header {
+    margin-bottom: 12px;
+    gap: 10px;
+  }
+
+  .profile-stats-section .form-header h2 {
+    font-size: 18px;
+  }
+
+  .profile-stats-section .stats-subtitle {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .profile-stats-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-card {
+    padding: 10px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-icon {
+    margin-top: 0;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-label {
+    font-size: 11px;
+    margin-bottom: 2px;
+    line-height: 1.25;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-value {
+    font-size: 16px;
+  }
+
+  .profile-stats-kpi-grid .stats-kpi-unit {
+    font-size: 11px;
+  }
 }
 
 .signature-grid {
