@@ -646,6 +646,8 @@ export async function removePasskey(credentialDbId: string): Promise<void> {
 }
 
 export async function renamePasskey(credentialDbId: string, label: string): Promise<void> {
+  await reauthWithPasskey()
+
   await apiJson(`${API_BASE}/credentials/${credentialDbId}`, {
     method: 'PATCH',
     body: JSON.stringify({ label })

@@ -240,7 +240,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
       t('profile.device_forget_confirm_desc'),
       t('profile.device_forget_confirm_title'),
       t('profile.device_forget_confirm_yes'),
-      t('profile.remove_passkey_confirm_no')
+      t('profile.device_forget_confirm_no')
     )
     if (!confirmed) return
 

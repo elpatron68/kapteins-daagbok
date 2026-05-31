@@ -347,6 +347,7 @@
       "device_forget_confirm_title": "Remove quick login?",
       "device_forget_confirm_desc": "The account will be removed from the quick-login list on this device. Your session and local logbooks stay on this device.",
       "device_forget_confirm_yes": "Remove",
+      "device_forget_confirm_no": "Cancel",
       "passkey_label": "Name for new passkey (optional)",
       "passkey_label_placeholder": "e.g. MacBook, iPhone",
       "passkey_rename_btn": "Save name",

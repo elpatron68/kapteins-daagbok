@@ -587,7 +587,7 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
   }
 })
 
-router.patch('/credentials/:id', requireUser, async (req: any, res) => {
+router.patch('/credentials/:id', requireReauth, async (req: any, res) => {
   try {
     const { id } = req.params
     const label = normalizeCredentialLabel(req.body?.label)

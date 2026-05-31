@@ -347,6 +347,7 @@
       "device_forget_confirm_title": "Schnell-Login entfernen?",
       "device_forget_confirm_desc": "Der Account verschwindet aus der Schnell-Login-Liste auf diesem Gerät. Deine Session und lokalen Logbücher bleiben erhalten.",
       "device_forget_confirm_yes": "Entfernen",
+      "device_forget_confirm_no": "Abbrechen",
       "passkey_label": "Name für neuen Passkey (optional)",
       "passkey_label_placeholder": "z. B. MacBook, iPhone",
       "passkey_rename_btn": "Name speichern",
