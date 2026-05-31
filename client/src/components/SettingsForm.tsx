@@ -190,7 +190,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       trackPlausibleEvent(PlausibleEvents.PUSH_ENABLED)
     } catch (err: unknown) {
       console.error('Failed to enable push after invite:', err)
-      showAlert(err instanceof Error ? err.message : t('profile.push_error'))
+      await showAlert(err instanceof Error ? err.message : t('profile.push_error'))
     }
   }
 
