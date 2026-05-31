@@ -3306,6 +3306,23 @@ html.theme-cupertino .events-scroll-container {
   border-radius: var(--app-radius-card, 12px);
 }
 
+.live-log-modal--dial {
+  width: min(320px, 100%);
+}
+
+.live-log-dial-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.live-log-dial-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
 .live-log-modal h3 {
   margin: 0 0 16px;
   font-size: 17px;

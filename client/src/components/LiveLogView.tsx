@@ -47,6 +47,7 @@ import {
 import { getCurrentPosition } from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
 import { useDialog } from './ModalDialog.tsx'
+import CourseDialInput from './CourseDialInput.tsx'
 
 interface LiveLogViewProps {
   logbookId: string
@@ -80,6 +81,13 @@ function hapticPulse() {
 function lastCourseFromEvents(events: LogEventPayload[]): string {
   for (let i = events.length - 1; i >= 0; i--) {
     if (events[i].mgk.trim()) return events[i].mgk
+  }
+  return ''
+}
+
+function lastWindDirectionFromEvents(events: LogEventPayload[]): string {
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].windDirection.trim()) return events[i].windDirection
   }
   return ''
 }
@@ -548,7 +556,7 @@ export default function LiveLogView({
             </button>
             {weatherExpanded && (
               <div className="live-log-weather-submenu">
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('wind')} disabled={busy}>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('wind', lastWindDirectionFromEvents(events))} disabled={busy}>
                   {t('logs.live_wind_btn')}
                 </button>
                 <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('temp')} disabled={busy}>
@@ -644,10 +652,30 @@ export default function LiveLogView({
 
       {modal === 'wind' && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
-          <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
+          <div className="live-log-modal live-log-modal--dial glass" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_wind_btn')}</h3>
-            <input type="text" className="input-text mb-2" value={valueInput} onChange={(e) => setValueInput(e.target.value)} placeholder={t('logs.event_wind_direction')} autoFocus />
-            <input type="text" className="input-text" value={valueInputSecondary} onChange={(e) => setValueInputSecondary(e.target.value)} placeholder={t('logs.event_wind_strength')} />
+            <div className="live-log-dial-field">
+              <label>{t('logs.event_wind_direction')}</label>
+              <CourseDialInput
+                value={valueInput}
+                onChange={setValueInput}
+                disabled={busy}
+                allowCardinal
+                displayMode="auto"
+                size="sm"
+                aria-label={t('logs.event_wind_direction')}
+              />
+            </div>
+            <div className="live-log-dial-field">
+              <label>{t('logs.event_wind_strength')}</label>
+              <input
+                type="text"
+                className="input-text"
+                value={valueInputSecondary}
+                onChange={(e) => setValueInputSecondary(e.target.value)}
+                placeholder="e.g. 4 Bft"
+              />
+            </div>
             <div className="live-log-modal-actions">
               <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
               <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
@@ -656,7 +684,29 @@ export default function LiveLogView({
         </div>
       )}
 
-      {['pressure', 'temp', 'precip', 'sea_state', 'course', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
+      {modal === 'course' && (
+        <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
+          <div className="live-log-modal live-log-modal--dial glass" onClick={(e) => e.stopPropagation()}>
+            <h3>{t('logs.live_course_btn')}</h3>
+            <div className="live-log-dial-field">
+              <label>{t('logs.event_mgk')}</label>
+              <CourseDialInput
+                value={valueInput}
+                onChange={setValueInput}
+                disabled={busy}
+                size="sm"
+                aria-label={t('logs.event_mgk')}
+              />
+            </div>
+            <div className="live-log-modal-actions">
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {['pressure', 'temp', 'precip', 'sea_state', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
           <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
             <h3>
@@ -664,7 +714,6 @@ export default function LiveLogView({
               {modal === 'temp' && t('logs.live_temp_btn')}
               {modal === 'precip' && t('logs.live_precip_btn')}
               {modal === 'sea_state' && t('logs.live_sea_state_btn')}
-              {modal === 'course' && t('logs.live_course_btn')}
               {modal === 'fuel' && t('logs.live_fuel_btn')}
               {modal === 'water' && t('logs.live_water_btn')}
               {modal === 'sog' && t('logs.live_sog_btn')}
@@ -684,11 +733,10 @@ export default function LiveLogView({
                   : modal === 'temp' ? t('logs.live_temp_placeholder')
                     : modal === 'precip' ? t('logs.live_precip_placeholder')
                       : modal === 'sea_state' ? t('logs.live_sea_state_placeholder')
-                        : modal === 'course' ? t('logs.live_course_placeholder')
-                          : modal === 'fuel' ? t('logs.live_fuel_placeholder')
-                            : modal === 'water' ? t('logs.live_water_placeholder')
-                              : modal === 'sog' ? t('logs.live_sog_placeholder')
-                                : t('logs.live_stw_placeholder')
+                        : modal === 'fuel' ? t('logs.live_fuel_placeholder')
+                          : modal === 'water' ? t('logs.live_water_placeholder')
+                            : modal === 'sog' ? t('logs.live_sog_placeholder')
+                              : t('logs.live_stw_placeholder')
               }
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') confirmValueModal() }}
