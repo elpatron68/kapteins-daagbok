@@ -59,7 +59,7 @@ bump_patch_version() {
 }
 
 ensure_clean_git_tree() {
-  if git diff-index --quiet HEAD -- && [ -z "$(git status --porcelain)" ]; then
+  if [ -z "$(git status --porcelain)" ]; then
     return 0
   fi
 
