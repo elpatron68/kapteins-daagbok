@@ -36,7 +36,10 @@ export const PlausibleEvents = {
   DEVICE_FORGOTTEN: 'Device Forgotten',
   RECOVERY_ROTATED: 'Recovery Rotated',
   LANGUAGE_CHANGED: 'Language Changed',
-  NMEA_IMPORTED: 'NMEA Imported'
+  NMEA_IMPORTED: 'NMEA Imported',
+  NMEA_UPLOADED: 'NMEA Uploaded',
+  LIVE_LOG_OPENED: 'Live Log Opened',
+  LIVE_LOG_EVENT_LOGGED: 'Live Log Event Logged'
 } as const
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]

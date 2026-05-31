@@ -186,6 +186,12 @@ export default function LiveLogView({
   }, [logbookId, refreshEntry, t])
 
   useEffect(() => {
+    if (!loading && entryId) {
+      trackPlausibleEvent(PlausibleEvents.LIVE_LOG_OPENED)
+    }
+  }, [loading, entryId])
+
+  useEffect(() => {
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [events.length])
 
@@ -226,7 +232,7 @@ export default function LiveLogView({
 
   const runQuickAction = async (
     action: () => Promise<void>,
-    trackEvent?: string,
+    trackAction?: string,
     withUndo = true
   ) => {
     if (!entryId || busy) return
@@ -236,7 +242,9 @@ export default function LiveLogView({
       await action()
       await refreshEntry(entryId)
       if (withUndo) showUndo()
-      if (trackEvent) trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED, { context: trackEvent })
+      if (trackAction) {
+        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: trackAction })
+      }
     } catch (err: unknown) {
       console.error('Live log action failed:', err)
       setError(err instanceof Error ? err.message : t('logs.live_action_error'))
@@ -264,28 +272,28 @@ export default function LiveLogView({
 
   const handleMotorToggle = () => {
     hapticPulse()
+    const starting = !motorRunning
     void runQuickAction(async () => {
       if (!entryId) return
-      const starting = !motorRunning
       await appendQuickEvent(logbookId, entryId, {
         sailsOrMotor: starting ? motorLabel : '',
         remarks: starting ? LIVE_EVENT_CODES.MOTOR_START : LIVE_EVENT_CODES.MOTOR_STOP
       })
-    }, 'live_motor')
+    }, starting ? 'motor_start' : 'motor_stop')
   }
 
   const handleCastOff = () => {
     void runQuickAction(async () => {
       if (!entryId) return
       await appendQuickEvent(logbookId, entryId, { remarks: LIVE_EVENT_CODES.CAST_OFF })
-    }, 'live_cast_off')
+    }, 'cast_off')
   }
 
   const handleMoor = () => {
     void runQuickAction(async () => {
       if (!entryId) return
       await appendQuickEvent(logbookId, entryId, { remarks: LIVE_EVENT_CODES.MOOR })
-    }, 'live_moor')
+    }, 'moor')
   }
 
   const handleFix = () => {
@@ -301,7 +309,7 @@ export default function LiveLogView({
       } catch {
         await showAlert(t('logs.live_gps_error'), t('logs.live_fix'))
       }
-    }, 'live_fix')
+    }, 'fix')
   }
 
   const handleUndo = () => {
@@ -313,7 +321,7 @@ export default function LiveLogView({
     }
     void runQuickAction(async () => {
       await removeLastEvent(logbookId, entryId)
-    }, 'live_undo', false)
+    }, 'undo', false)
   }
 
   const confirmSails = () => {
@@ -330,7 +338,7 @@ export default function LiveLogView({
         sailsOrMotor: sailsLabel,
         remarks: liveSailsRemark(sailsLabel)
       })
-    }, 'live_sails')
+    }, 'sails')
   }
 
   const confirmComment = () => {
@@ -344,7 +352,7 @@ export default function LiveLogView({
     void runQuickAction(async () => {
       if (!entryId) return
       await appendQuickEvent(logbookId, entryId, { remarks: liveCommentRemark(text) })
-    }, 'live_comment')
+    }, 'comment')
   }
 
   const confirmValueModal = () => {
@@ -362,7 +370,7 @@ export default function LiveLogView({
             windStrength: secondary,
             remarks: LIVE_EVENT_CODES.WIND
           })
-        }, 'live_wind')
+        }, 'wind')
         break
       case 'pressure':
         if (!primary) return
@@ -372,21 +380,21 @@ export default function LiveLogView({
             windPressure: primary,
             remarks: LIVE_EVENT_CODES.PRESSURE
           })
-        }, 'live_pressure')
+        }, 'pressure')
         break
       case 'temp':
         if (!primary) return
         setModal('none')
         void runQuickAction(async () => {
           await appendQuickEvent(logbookId, entryId, { remarks: liveTempRemark(primary) })
-        }, 'live_temp')
+        }, 'temp')
         break
       case 'precip':
         if (!primary) return
         setModal('none')
         void runQuickAction(async () => {
           await appendQuickEvent(logbookId, entryId, { remarks: livePrecipRemark(primary) })
-        }, 'live_precip')
+        }, 'precip')
         break
       case 'sea_state':
         if (!primary) return
@@ -396,7 +404,7 @@ export default function LiveLogView({
             seaState: primary,
             remarks: LIVE_EVENT_CODES.SEA_STATE
           })
-        }, 'live_sea_state')
+        }, 'sea_state')
         break
       case 'course': {
         const course = primary || lastCourseFromEvents(events)
@@ -407,7 +415,7 @@ export default function LiveLogView({
             mgk: course,
             remarks: LIVE_EVENT_CODES.COURSE
           })
-        }, 'live_course')
+        }, 'course')
         break
       }
       case 'fuel': {
@@ -418,7 +426,7 @@ export default function LiveLogView({
           await appendTankRefill(logbookId, entryId, 'fuel', liters, {
             remarks: liveFuelRemark(String(liters))
           })
-        }, 'live_fuel')
+        }, 'fuel')
         break
       }
       case 'water': {
@@ -429,7 +437,7 @@ export default function LiveLogView({
           await appendTankRefill(logbookId, entryId, 'freshwater', liters, {
             remarks: liveWaterRemark(String(liters))
           })
-        }, 'live_water')
+        }, 'water')
         break
       }
       case 'sog': {
@@ -440,7 +448,7 @@ export default function LiveLogView({
           await appendQuickEvent(logbookId, entryId, {
             remarks: liveSogRemark(String(speedKn))
           })
-        }, 'live_sog')
+        }, 'sog')
         break
       }
       case 'stw': {
@@ -451,7 +459,7 @@ export default function LiveLogView({
           await appendQuickEvent(logbookId, entryId, {
             remarks: liveStwRemark(String(speedKn))
           })
-        }, 'live_stw')
+        }, 'stw')
         break
       }
       default:

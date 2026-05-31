@@ -101,6 +101,12 @@ export default function NmeaImportWizard({
           t
         }).candidates
         setSelectedIds(new Set(generated.map((c) => c.id)))
+        trackPlausibleEvent(PlausibleEvents.NMEA_UPLOADED, {
+          duplicate: alreadyImported,
+          lines: result.stats.parsedLines,
+          candidates: generated.length,
+          has_position: !result.warnings.includes('no_position')
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : t('logs.nmea_error_parse'))
       }
@@ -154,7 +160,7 @@ export default function NmeaImportWizard({
     }
     trackPlausibleEvent(PlausibleEvents.NMEA_IMPORTED, {
       mode,
-      candidates: picked.length,
+      events: picked.length,
       track: importTrack && (waypoints?.length ?? 0) > 0
     })
     setStep('archive')
