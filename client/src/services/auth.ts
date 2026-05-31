@@ -46,13 +46,14 @@ export async function checkServerSession(): Promise<{ authenticated: boolean; us
   }
 }
 
-/** Master key is memory-only; after process kill the HTTP session may outlive local crypto state. */
+/** Master key + username in memory/storage — enough to stay in the unlocked UI. */
+export function hasUnlockedLocalCrypto(): boolean {
+  return !!(getActiveMasterKey() && localStorage.getItem('active_username'))
+}
+
+/** Crypto unlock plus user id for authenticated API calls (userId may already be in localStorage). */
 export function hasUnlockedLocalSession(): boolean {
-  return !!(
-    getActiveMasterKey() &&
-    localStorage.getItem('active_username') &&
-    localStorage.getItem('active_userid')
-  )
+  return hasUnlockedLocalCrypto() && !!localStorage.getItem('active_userid')
 }
 
 export async function reauthWithPasskey(): Promise<boolean> {

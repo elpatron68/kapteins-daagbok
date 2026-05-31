@@ -15,7 +15,11 @@ import InvitationAcceptance from './components/InvitationAcceptance.tsx'
 import AppTourOverlay from './components/AppTourOverlay.tsx'
 import { AppTourProvider, useAppTour, type AppTab } from './context/AppTourContext.tsx'
 import { UnsavedChangesProvider, useUnsavedChangesContext } from './context/UnsavedChangesContext.tsx'
-import { logoutUser, checkServerSession, hasUnlockedLocalSession } from './services/auth.js'
+import {
+  logoutUser,
+  checkServerSession,
+  hasUnlockedLocalCrypto
+} from './services/auth.js'
 import AppErrorBoundary from './components/AppErrorBoundary.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 import {
@@ -221,7 +225,7 @@ function App() {
   /** After PWA/bfcache resume, React state may still say "logged in" while the master key is gone. */
   const enforceUnlockedSession = useCallback(() => {
     if (isViewerMode || isDemoMode || isAcceptingInvite) return
-    if (isAuthenticated && !hasUnlockedLocalSession()) {
+    if (isAuthenticated && !hasUnlockedLocalCrypto()) {
       clearAuthenticatedAppState()
     }
   }, [
@@ -267,7 +271,7 @@ function App() {
           localStorage.setItem('active_userid', session.userId)
         }
 
-        if (session.authenticated && hasUnlockedLocalSession()) {
+        if (session.authenticated && hasUnlockedLocalCrypto()) {
           setIsAuthenticated(true)
           const savedLogbookId = localStorage.getItem('active_logbook_id')
           const savedLogbookTitle = localStorage.getItem('active_logbook_title')
@@ -275,9 +279,8 @@ function App() {
             setActiveLogbookId(savedLogbookId)
             setActiveLogbookTitle(savedLogbookTitle)
           }
-        } else if (session.authenticated) {
-          clearAuthenticatedAppState()
         }
+        // authenticated without local crypto: stay on login (cookie alone is not enough)
       } catch (err) {
         if (!cancelled) {
           console.warn('Session restore failed:', err)
