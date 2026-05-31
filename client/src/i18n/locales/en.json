@@ -334,6 +334,7 @@
       "recovery_rotate_confirm_title": "Create new recovery phrase?",
       "recovery_rotate_confirm_desc": "Your previous 12-word phrase will be invalidated immediately. Make sure you can store the new phrase securely before continuing.",
       "recovery_rotate_confirm_yes": "Create new phrase",
+      "recovery_rotate_confirm_no": "Cancel",
       "recovery_rotate_new_warning": "IMPORTANT: Write down these 12 words and store them offline. Your previous recovery phrase is no longer valid.",
       "recovery_rotate_failed": "Could not create a new recovery phrase.",
       "recovery_rotate_no_session": "Encryption session expired — please sign out and sign in again, then retry.",

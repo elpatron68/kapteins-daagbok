@@ -336,7 +336,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
       t('profile.recovery_rotate_confirm_desc'),
       t('profile.recovery_rotate_confirm_title'),
       t('profile.recovery_rotate_confirm_yes'),
-      t('profile.remove_passkey_confirm_no')
+      t('profile.recovery_rotate_confirm_no')
     )
     if (!confirmed) return
 

@@ -334,6 +334,7 @@
       "recovery_rotate_confirm_title": "Neuen Wiederherstellungsschlüssel erstellen?",
       "recovery_rotate_confirm_desc": "Der bisherige 12-Wörter-Schlüssel wird sofort ungültig. Stelle sicher, dass du den neuen Schlüssel sicher aufbewahrst, bevor du fortfährst.",
       "recovery_rotate_confirm_yes": "Neuen Schlüssel erstellen",
+      "recovery_rotate_confirm_no": "Abbrechen",
       "recovery_rotate_new_warning": "WICHTIG: Schreib diese 12 Wörter auf und bewahre sie offline auf. Der bisherige Wiederherstellungsschlüssel ist ab sofort ungültig.",
       "recovery_rotate_failed": "Wiederherstellungsschlüssel konnte nicht erstellt werden.",
       "recovery_rotate_no_session": "Verschlüsselungssitzung abgelaufen — bitte abmelden und erneut anmelden, dann erneut versuchen.",
