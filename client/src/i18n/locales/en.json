@@ -672,9 +672,17 @@
           "title": "Send feedback",
           "body": "Use this form to report bugs, ideas, or general feedback to the project team — you can also open it anytime later via the icon in the top right."
         },
+        "nav_profile": {
+          "title": "Your user profile",
+          "body": "Tap the skipper button at the top to open your personal profile — independent of the current logbook."
+        },
+        "profile_preferences": {
+          "title": "Account & appearance",
+          "body": "Manage your account identity, theme, and light/dark mode here. You can restart the app tour anytime. Passkeys and security settings are further down on the profile page."
+        },
         "finish": {
           "title": "You're all set!",
-          "body": "You'll land on the statistics dashboard next. You can restart the tour anytime in Settings. Fair winds!"
+          "body": "You'll land on the statistics dashboard next. You can restart the tour anytime from your user profile. Fair winds!"
         }
       }
     },

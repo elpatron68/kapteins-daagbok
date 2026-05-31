@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
@@ -69,6 +69,12 @@ function App() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
   const [showUserProfile, setShowUserProfile] = useState(false)
+  const tourLogbookRef = useRef<{ id: string; title: string } | null>(null)
+  const activeLogbookRef = useRef<{ id: string | null; title: string | null }>({
+    id: activeLogbookId,
+    title: activeLogbookTitle
+  })
+  activeLogbookRef.current = { id: activeLogbookId, title: activeLogbookTitle }
 
   // Viewer mode for read-only shared links
   const [isViewerMode, setIsViewerMode] = useState(false)
@@ -313,7 +319,32 @@ function App() {
     registerNavigation({
       setActiveTab,
       setSelectedEntryId: setTourSelectedEntryId,
-      setFeedbackOpen: setTourFeedbackOpen
+      setFeedbackOpen: setTourFeedbackOpen,
+      setProfileOpen: setShowUserProfile,
+      setLogbookActive: (active) => {
+        if (active) {
+          const saved = tourLogbookRef.current
+          const id = saved?.id ?? localStorage.getItem('active_logbook_id')
+          const title = saved?.title ?? localStorage.getItem('active_logbook_title')
+          if (id && title) {
+            setActiveLogbookId(id)
+            setActiveLogbookTitle(title)
+            localStorage.setItem('active_logbook_id', id)
+            localStorage.setItem('active_logbook_title', title)
+          }
+          return
+        }
+
+        const { id, title } = activeLogbookRef.current
+        if (id && title) {
+          tourLogbookRef.current = { id, title }
+        }
+        setActiveLogbookId(null)
+        setActiveLogbookTitle(null)
+        setTourSelectedEntryId(null)
+        localStorage.removeItem('active_logbook_id')
+        localStorage.removeItem('active_logbook_title')
+      }
     })
   }, [registerNavigation])
 

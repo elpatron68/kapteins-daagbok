@@ -443,6 +443,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
           </section>
         ) : profile ? (
           <>
+            <div data-tour="profile-preferences">
             <section className="form-card">
               <div className="form-header">
                 <User size={24} className="form-icon" />
@@ -484,6 +485,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
             </section>
 
             <UserProfilePreferences userId={profile.userId} />
+            </div>
 
             <section className="member-editor-card glass">
               <div className="profile-section-header">

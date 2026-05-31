@@ -672,9 +672,17 @@
           "title": "Feedback senden",
           "body": "Über dieses Formular kannst du Fehler, Ideen oder allgemeines Feedback direkt an das Projektteam schicken – auch nach der Tour jederzeit über das Symbol oben rechts."
         },
+        "nav_profile": {
+          "title": "Dein Benutzerprofil",
+          "body": "Über den Skipper-Button oben erreichst du dein persönliches Profil – unabhängig vom aktuellen Logbuch."
+        },
+        "profile_preferences": {
+          "title": "Konto & Darstellung",
+          "body": "Hier verwaltest du deine Konto-Identität, Theme und Hell/Dunkel-Modus. Die App-Tour kannst du jederzeit erneut starten. Passkeys und Sicherheitseinstellungen findest du weiter unten im Profil."
+        },
         "finish": {
           "title": "Alles klar!",
-          "body": "Du landest gleich im Statistik-Dashboard. Die Tour kannst du jederzeit unter Einstellungen erneut starten. Gute Fahrt!"
+          "body": "Du landest gleich im Statistik-Dashboard. Die Tour kannst du jederzeit im Benutzerprofil erneut starten. Gute Fahrt!"
         }
       }
     },

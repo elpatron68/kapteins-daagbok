@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   getTourStepCopy,
   getTourTargetSelector,
+  getTourTargetRetryDelay,
   isCenteredTourStep,
   useAppTour
 } from '../context/AppTourContext.tsx'
@@ -89,10 +90,15 @@ export default function AppTourOverlay() {
     updateSpotlight()
     window.addEventListener('resize', updateSpotlight)
     window.addEventListener('scroll', updateSpotlight, true)
-    const timer = window.setTimeout(updateSpotlight, 120)
+    const retryDelay = getTourTargetRetryDelay(currentStepId)
+    const timer = window.setTimeout(updateSpotlight, retryDelay)
+    const retryTimer = retryDelay > 120
+      ? window.setTimeout(updateSpotlight, retryDelay + 180)
+      : undefined
 
     return () => {
       window.clearTimeout(timer)
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
       window.removeEventListener('resize', updateSpotlight)
       window.removeEventListener('scroll', updateSpotlight, true)
     }

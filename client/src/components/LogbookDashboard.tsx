@@ -314,6 +314,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
             onClick={onOpenProfile}
             title={t('dashboard.open_profile', { name: username })}
             aria-label={t('dashboard.open_profile', { name: username })}
+            data-tour="nav-profile"
           >
             <User size={18} aria-hidden="true" />
             <span className="skipper-badge__name">{username}</span>

@@ -29,12 +29,16 @@ export type TourStepId =
   | 'nav_crew'
   | 'nav_stats'
   | 'nav_feedback'
+  | 'nav_profile'
+  | 'profile_preferences'
   | 'finish'
 
 interface TourNavigation {
   setActiveTab: (tab: AppTab) => void
   setSelectedEntryId: (entryId: string | null) => void
   setFeedbackOpen: (open: boolean) => void
+  setLogbookActive: (active: boolean) => void
+  setProfileOpen: (open: boolean) => void
 }
 
 interface DemoTourContext {
@@ -58,7 +62,7 @@ interface AppTourContextValue {
   requestStartAfterLogin: () => void
 }
 
-const FULL_STEP_ORDER: TourStepId[] = [
+export const FULL_STEP_ORDER: TourStepId[] = [
   'welcome',
   'nav_logs',
   'entry_list',
@@ -68,12 +72,33 @@ const FULL_STEP_ORDER: TourStepId[] = [
   'nav_crew',
   'nav_stats',
   'nav_feedback',
+  'nav_profile',
+  'profile_preferences',
   'finish'
 ]
 
-/** Public demo has no stats/feedback UI — skip those steps. */
-const DEMO_EXCLUDED_STEPS: TourStepId[] = ['nav_stats', 'nav_feedback']
-const DEMO_STEP_ORDER: TourStepId[] = FULL_STEP_ORDER.filter((id) => !DEMO_EXCLUDED_STEPS.includes(id))
+/** Public demo has no stats/feedback/profile UI — skip those steps. */
+export const DEMO_EXCLUDED_STEPS: TourStepId[] = [
+  'nav_stats',
+  'nav_feedback',
+  'nav_profile',
+  'profile_preferences'
+]
+
+export const DEMO_STEP_ORDER: TourStepId[] = FULL_STEP_ORDER.filter(
+  (id) => !DEMO_EXCLUDED_STEPS.includes(id)
+)
+
+const LOGBOOK_TOUR_STEPS = new Set<TourStepId>([
+  'nav_logs',
+  'entry_list',
+  'entry_open',
+  'entry_track',
+  'nav_vessel',
+  'nav_crew',
+  'nav_stats',
+  'nav_feedback'
+])
 
 function getStepOrder(demoMode: boolean): TourStepId[] {
   return demoMode ? DEMO_STEP_ORDER : FULL_STEP_ORDER
@@ -87,7 +112,20 @@ const TARGET_BY_STEP: Partial<Record<TourStepId, string>> = {
   nav_vessel: '[data-tour="nav-vessel"]',
   nav_crew: '[data-tour="nav-crew"]',
   nav_stats: '[data-tour="stats-dashboard"]',
-  nav_feedback: '[data-tour="feedback-form"]'
+  nav_feedback: '[data-tour="feedback-form"]',
+  nav_profile: '[data-tour="nav-profile"]',
+  profile_preferences: '[data-tour="profile-preferences"]'
+}
+
+/** Whether a tour step opens the first log entry editor (not the list card). */
+export function tourStepOpensEntry(stepId: TourStepId): boolean {
+  return stepId === 'entry_track'
+}
+
+export function getTourTargetDelay(stepId: TourStepId): number {
+  if (stepId === 'nav_feedback') return 180
+  if (stepId === 'nav_profile' || stepId === 'profile_preferences') return 250
+  return 0
 }
 
 const AppTourContext = createContext<AppTourContextValue | null>(null)
@@ -112,13 +150,24 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     const nav = navigationRef.current
     if (!nav) return
 
+    if (LOGBOOK_TOUR_STEPS.has(stepId)) {
+      nav.setProfileOpen(false)
+      nav.setLogbookActive(true)
+    }
+
     if (stepId === 'nav_logs' || stepId === 'entry_list' || stepId === 'entry_open' || stepId === 'entry_track') {
       nav.setActiveTab('logs')
     }
-    if (stepId === 'entry_open' || stepId === 'entry_track') {
+
+    if (stepId === 'entry_list' || stepId === 'entry_open') {
+      nav.setSelectedEntryId(null)
+    } else if (tourStepOpensEntry(stepId)) {
       const firstEntryId = resolveFirstEntryId()
       if (firstEntryId) nav.setSelectedEntryId(firstEntryId)
+    } else if (LOGBOOK_TOUR_STEPS.has(stepId)) {
+      nav.setSelectedEntryId(null)
     }
+
     if (stepId === 'nav_vessel') {
       nav.setSelectedEntryId(null)
       nav.setActiveTab('vessel')
@@ -137,13 +186,22 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
     } else {
       nav.setFeedbackOpen(false)
     }
+
+    if (stepId === 'nav_profile') {
+      nav.setProfileOpen(false)
+      nav.setLogbookActive(false)
+    }
+    if (stepId === 'profile_preferences') {
+      nav.setLogbookActive(false)
+      nav.setProfileOpen(true)
+    }
   }, [resolveFirstEntryId])
 
   const scrollToCurrentTarget = useCallback((stepId: TourStepId | null) => {
     if (!stepId) return
     const selector = TARGET_BY_STEP[stepId]
     if (!selector) return
-    const delayMs = stepId === 'nav_feedback' ? 180 : 0
+    const delayMs = getTourTargetDelay(stepId)
     window.setTimeout(() => {
       window.requestAnimationFrame(() => {
         const el = document.querySelector(selector)
@@ -173,6 +231,8 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       trackPlausibleEvent(PlausibleEvents.ONBOARDING_TOUR_COMPLETED, tourProps)
       const nav = navigationRef.current
       if (nav && !tourModeRef.current.demoMode) {
+        nav.setProfileOpen(false)
+        nav.setLogbookActive(true)
         nav.setSelectedEntryId(null)
         nav.setActiveTab('stats')
       }
@@ -183,6 +243,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
 
     tourModeRef.current = { demoMode: false }
     navigationRef.current?.setFeedbackOpen(false)
+    navigationRef.current?.setProfileOpen(false)
     setIsDemoTour(false)
     setIsActive(false)
     setStepIndex(0)
@@ -320,4 +381,10 @@ export function getTourTargetSelector(stepId: TourStepId | null): string | null 
 
 export function isCenteredTourStep(stepId: TourStepId | null): boolean {
   return stepId === 'welcome' || stepId === 'finish'
+}
+
+export function getTourTargetRetryDelay(stepId: TourStepId | null): number {
+  if (stepId === 'profile_preferences') return 300
+  if (stepId === 'nav_profile') return 200
+  return 120
 }
