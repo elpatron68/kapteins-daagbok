@@ -3311,6 +3311,13 @@ html.theme-cupertino .events-scroll-container {
   font-size: 17px;
 }
 
+.live-log-modal-hint {
+  margin: -8px 0 12px;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  line-height: 1.4;
+}
+
 .live-log-sail-pills {
   margin-bottom: 16px;
 }

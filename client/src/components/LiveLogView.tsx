@@ -10,6 +10,7 @@ import {
   Droplets,
   FileText,
   Fuel,
+  Gauge,
   MapPin,
   MessageSquare,
   Radio,
@@ -38,6 +39,8 @@ import {
   liveFuelRemark,
   livePrecipRemark,
   liveSailsRemark,
+  liveSogRemark,
+  liveStwRemark,
   liveTempRemark,
   liveWaterRemark
 } from '../utils/liveEventCodes.js'
@@ -63,6 +66,8 @@ type LiveModal =
   | 'course'
   | 'fuel'
   | 'water'
+  | 'sog'
+  | 'stw'
 
 const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
 const AUTO_POSITION_CHECK_MS = 60_000
@@ -235,6 +240,17 @@ export default function LiveLogView({
     setModal(type)
   }
 
+  const openSogModal = async () => {
+    let prefill = ''
+    try {
+      const pos = await getCurrentPosition()
+      if (pos.speedKn != null) prefill = String(pos.speedKn)
+    } catch {
+      // Manual entry when GPS speed unavailable
+    }
+    openValueModal('sog', prefill)
+  }
+
   const handleMotorToggle = () => {
     hapticPulse()
     void runQuickAction(async () => {
@@ -405,6 +421,28 @@ export default function LiveLogView({
         }, 'live_water')
         break
       }
+      case 'sog': {
+        const speedKn = parseFloat(primary.replace(',', '.'))
+        if (!Number.isFinite(speedKn) || speedKn < 0) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            remarks: liveSogRemark(String(speedKn))
+          })
+        }, 'live_sog')
+        break
+      }
+      case 'stw': {
+        const speedKn = parseFloat(primary.replace(',', '.'))
+        if (!Number.isFinite(speedKn) || speedKn < 0) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            remarks: liveStwRemark(String(speedKn))
+          })
+        }, 'live_stw')
+        break
+      }
       default:
         break
     }
@@ -478,6 +516,14 @@ export default function LiveLogView({
           <button type="button" className="live-log-action-btn" onClick={() => openValueModal('course', lastCourseFromEvents(events))} disabled={busy}>
             <Compass size={18} />
             {t('logs.live_course_btn')}
+          </button>
+          <button type="button" className="live-log-action-btn" onClick={() => void openSogModal()} disabled={busy}>
+            <Gauge size={18} />
+            {t('logs.live_sog_btn')}
+          </button>
+          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('stw')} disabled={busy}>
+            <Gauge size={18} style={{ transform: 'scaleX(-1)' }} />
+            {t('logs.live_stw_btn')}
           </button>
           <button type="button" className="live-log-action-btn" onClick={() => openValueModal('fuel')} disabled={busy}>
             <Fuel size={18} />
@@ -610,7 +656,7 @@ export default function LiveLogView({
         </div>
       )}
 
-      {['pressure', 'temp', 'precip', 'sea_state', 'course', 'fuel', 'water'].includes(modal) && (
+      {['pressure', 'temp', 'precip', 'sea_state', 'course', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
           <div className="live-log-modal glass" onClick={(e) => e.stopPropagation()}>
             <h3>
@@ -621,9 +667,15 @@ export default function LiveLogView({
               {modal === 'course' && t('logs.live_course_btn')}
               {modal === 'fuel' && t('logs.live_fuel_btn')}
               {modal === 'water' && t('logs.live_water_btn')}
+              {modal === 'sog' && t('logs.live_sog_btn')}
+              {modal === 'stw' && t('logs.live_stw_btn')}
             </h3>
+            {modal === 'sog' && (
+              <p className="live-log-modal-hint">{t('logs.live_sog_hint')}</p>
+            )}
             <input
               type="text"
+              inputMode="decimal"
               className="input-text"
               value={valueInput}
               onChange={(e) => setValueInput(e.target.value)}
@@ -634,7 +686,9 @@ export default function LiveLogView({
                       : modal === 'sea_state' ? t('logs.live_sea_state_placeholder')
                         : modal === 'course' ? t('logs.live_course_placeholder')
                           : modal === 'fuel' ? t('logs.live_fuel_placeholder')
-                            : t('logs.live_water_placeholder')
+                            : modal === 'water' ? t('logs.live_water_placeholder')
+                              : modal === 'sog' ? t('logs.live_sog_placeholder')
+                                : t('logs.live_stw_placeholder')
               }
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') confirmValueModal() }}

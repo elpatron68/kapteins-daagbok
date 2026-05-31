@@ -38,6 +38,14 @@ export function liveWaterRemark(liters: string): string {
   return `__live:water:${liters}`
 }
 
+export function liveSogRemark(speedKn: string): string {
+  return `__live:sog:${speedKn}`
+}
+
+export function liveStwRemark(speedKn: string): string {
+  return `__live:stw:${speedKn}`
+}
+
 export function parseLiveSailsRemark(remarks: string): string | null {
   const prefix = '__live:sails:'
   return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
@@ -65,6 +73,16 @@ export function parseLiveFuelRemark(remarks: string): string | null {
 
 export function parseLiveWaterRemark(remarks: string): string | null {
   const prefix = '__live:water:'
+  return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
+}
+
+export function parseLiveSogRemark(remarks: string): string | null {
+  const prefix = '__live:sog:'
+  return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
+}
+
+export function parseLiveStwRemark(remarks: string): string | null {
+  const prefix = '__live:stw:'
   return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
 }
 

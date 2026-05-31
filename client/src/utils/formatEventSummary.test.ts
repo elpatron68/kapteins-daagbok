@@ -4,6 +4,7 @@ import {
   LIVE_EVENT_CODES,
   liveCommentRemark,
   liveSailsRemark,
+  liveSogRemark,
   parseLiveCommentRemark,
   parseLiveSailsRemark
 } from './liveEventCodes.js'
@@ -12,8 +13,8 @@ import { normalizeLogEvent } from './logEntryPayload.js'
 
 const t = (key: string, opts?: Record<string, unknown>) => {
   const map: Record<string, string> = {
-    'logs.live_motor_start': 'Motor start',
-    'logs.live_motor_stop': 'Motor stop',
+    'logs.live_motor_start': 'Motor Start',
+    'logs.live_motor_stop': 'Motor Stop',
     'logs.live_cast_off': 'Cast off',
     'logs.live_moor': 'Moor',
     'logs.live_sails': `Sails: ${opts?.sails ?? ''}`,
@@ -24,6 +25,8 @@ const t = (key: string, opts?: Record<string, unknown>) => {
     'logs.live_pressure_entry': `Pressure ${opts?.value} hPa`,
     'logs.live_wind_entry': `Wind ${opts?.value}`,
     'logs.live_course_entry': `Course ${opts?.course}`,
+    'logs.live_sog_entry': `SOG ${opts?.speed} kn`,
+    'logs.live_stw_entry': `STW ${opts?.speed} kn`,
     'logs.event_mgk': 'Course',
     'logs.event_wind_pressure': 'Pressure'
   }
@@ -57,7 +60,7 @@ describe('liveEventCodes', () => {
 describe('formatEventSummary', () => {
   it('formats live motor start', () => {
     const event = normalizeLogEvent({ time: '08:10', remarks: LIVE_EVENT_CODES.MOTOR_START })
-    expect(formatEventSummary(event, t)).toBe('Motor start')
+    expect(formatEventSummary(event, t)).toBe('Motor Start')
   })
 
   it('formats sails remark', () => {
@@ -86,5 +89,21 @@ describe('formatEventSummary', () => {
       windPressure: '1013'
     })
     expect(formatEventSummary(event, t)).toBe('Pressure 1013 hPa')
+  })
+
+  it('formats SOG entry', () => {
+    const event = normalizeLogEvent({
+      time: '10:15',
+      remarks: liveSogRemark('5.2')
+    })
+    expect(formatEventSummary(event, t)).toBe('SOG 5.2 kn')
+  })
+
+  it('formats STW entry', () => {
+    const event = normalizeLogEvent({
+      time: '10:20',
+      remarks: '__live:stw:4.8'
+    })
+    expect(formatEventSummary(event, t)).toBe('STW 4.8 kn')
   })
 })

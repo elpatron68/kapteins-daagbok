@@ -6,6 +6,8 @@ import {
   parseLiveFuelRemark,
   parseLivePrecipRemark,
   parseLiveSailsRemark,
+  parseLiveSogRemark,
+  parseLiveStwRemark,
   parseLiveTempRemark,
   parseLiveWaterRemark
 } from './liveEventCodes.js'
@@ -35,6 +37,12 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
 
   const water = parseLiveWaterRemark(code)
   if (water) return t('logs.live_water_entry', { liters: water })
+
+  const sog = parseLiveSogRemark(code)
+  if (sog) return t('logs.live_sog_entry', { speed: sog })
+
+  const stw = parseLiveStwRemark(code)
+  if (stw) return t('logs.live_stw_entry', { speed: stw })
 
   if (code === LIVE_EVENT_CODES.FIX || code === LIVE_EVENT_CODES.AUTO_POSITION) {
     if (event.gpsLat && event.gpsLng) {
