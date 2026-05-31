@@ -5,6 +5,8 @@
   "scripts": {
     "translate:locales": "node scripts/translate-locales.mjs",
     "translate:flyer": "node scripts/translate-flyer.mjs",
-    "validate:i18n": "node scripts/validate-i18n-keys.mjs"
+    "validate:i18n": "node scripts/validate-i18n-keys.mjs",
+    "generate:flyer": "node scripts/generate-beta-flyer.mjs",
+    "generate:flyer:all": "node scripts/generate-beta-flyer.mjs --all"
   }
 }

@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "generate:flyer": "node ../scripts/generate-beta-flyer.mjs",
     "generate:flyer:png": "node ../scripts/generate-beta-flyer.mjs --png",
+    "generate:flyer:all": "node ../scripts/generate-beta-flyer.mjs --all",
     "generate:flyer:setup": "playwright install chromium",
     "translate:locales": "node ../scripts/translate-locales.mjs",
     "translate:flyer": "node ../scripts/translate-flyer.mjs",

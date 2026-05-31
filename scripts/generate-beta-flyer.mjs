@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 /**
- * Generates the beta flyer PDF from docs/marketing/beta-flyer.html
- * Usage: npm run generate:flyer --prefix client
+ * Generates beta flyer PDF/PNG from docs/marketing/beta-flyer*.html
+ *
+ * Usage:
+ *   node scripts/generate-beta-flyer.mjs              # German PDF
+ *   node scripts/generate-beta-flyer.mjs --png          # German PNG
+ *   node scripts/generate-beta-flyer.mjs --all          # all locales, PDF + PNG
+ *   node scripts/generate-beta-flyer.mjs --lang da,sv # selected locales
  */
 
 import { execSync } from 'node:child_process'
@@ -15,13 +20,37 @@ const repoRoot = resolve(__dirname, '..')
 const clientDir = resolve(repoRoot, 'client')
 const marketingDir = resolve(repoRoot, 'docs/marketing')
 const assetsDir = resolve(marketingDir, 'assets')
-const htmlPath = resolve(marketingDir, 'beta-flyer.html')
 const qrPath = resolve(assetsDir, 'qr-kapteins-daagbok.eu.png')
-const pdfPath = resolve(marketingDir, 'kapteins-daagbok-beta-flyer.pdf')
-const pngPath = resolve(marketingDir, 'kapteins-daagbok-beta-flyer.png')
 const appUrl = 'https://kapteins-daagbok.eu'
 
+const LOCALES = {
+  de: { html: 'beta-flyer.html', suffix: '' },
+  da: { html: 'beta-flyer.da.html', suffix: '.da' },
+  sv: { html: 'beta-flyer.sv.html', suffix: '.sv' },
+  nb: { html: 'beta-flyer.nb.html', suffix: '.nb' }
+}
+
 const require = createRequire(resolve(clientDir, 'package.json'))
+
+function parseArgs(argv) {
+  const all = argv.includes('--all')
+  let langs = all ? Object.keys(LOCALES) : ['de']
+  let pdf = !argv.includes('--png-only')
+  let png = argv.includes('--png') || argv.includes('--all') || argv.includes('--png-only')
+
+  if (argv.includes('--pdf-only')) {
+    pdf = true
+    png = false
+  }
+
+  for (let i = 2; i < argv.length; i++) {
+    if (argv[i] === '--lang' && argv[i + 1]) {
+      langs = argv[++i].split(',').map((l) => l.trim())
+    }
+  }
+
+  return { langs, pdf, png }
+}
 
 function isMissingBrowserError(err) {
   const msg = err instanceof Error ? err.message : String(err)
@@ -64,70 +93,79 @@ async function ensureQrCode() {
   console.log('QR code written:', qrPath)
 }
 
-async function renderPdf() {
-  let playwright
+function loadPlaywright() {
   try {
-    playwright = require('playwright')
+    return require('playwright')
   } catch {
     console.error('Fehlende Abhängigkeit: "npm install -D playwright" in client/ ausführen.')
     process.exit(1)
   }
+}
+
+async function renderPdf(page, htmlPath, pdfPath) {
+  await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
+  await page.pdf({
+    path: pdfPath,
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: 0, right: 0, bottom: 0, left: 0 }
+  })
+  console.log('PDF written:', pdfPath)
+}
+
+async function renderPng(page, htmlPath, pngPath) {
+  await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
+  await page.screenshot({
+    path: pngPath,
+    fullPage: true,
+    type: 'png'
+  })
+  console.log('PNG written:', pngPath)
+}
+
+async function generateForLocale(playwright, lang, { pdf, png }) {
+  const locale = LOCALES[lang]
+  if (!locale) {
+    console.error(`Unknown locale: ${lang}`)
+    process.exit(1)
+  }
+
+  const htmlPath = resolve(marketingDir, locale.html)
+  const baseName = `kapteins-daagbok-beta-flyer${locale.suffix}`
+  const pdfPath = resolve(marketingDir, `${baseName}.pdf`)
+  const pngPath = resolve(marketingDir, `${baseName}.png`)
+
+  console.log(`\n→ ${lang.toUpperCase()} (${locale.html})`)
 
   await ensurePlaywrightChromium(playwright)
-
   const browser = await playwright.chromium.launch({ headless: true })
+
   try {
-    const page = await browser.newPage()
-    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
-    await page.pdf({
-      path: pdfPath,
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 }
-    })
-    console.log('PDF written:', pdfPath)
+    if (pdf) {
+      const page = await browser.newPage()
+      await renderPdf(page, htmlPath, pdfPath)
+      await page.close()
+    }
+
+    if (png) {
+      const context = await browser.newContext({
+        viewport: { width: 794, height: 1123 },
+        deviceScaleFactor: 2
+      })
+      const page = await context.newPage()
+      await renderPng(page, htmlPath, pngPath)
+      await context.close()
+    }
   } finally {
     await browser.close()
   }
 }
 
-async function renderPng() {
-  let playwright
-  try {
-    playwright = require('playwright')
-  } catch {
-    console.error('Fehlende Abhängigkeit: "npm install -D playwright" in client/ ausführen.')
-    process.exit(1)
-  }
-
-  await ensurePlaywrightChromium(playwright)
-
-  const browser = await playwright.chromium.launch({ headless: true })
-  try {
-    const context = await browser.newContext({
-      viewport: { width: 794, height: 1123 },
-      deviceScaleFactor: 2
-    })
-    const page = await context.newPage()
-    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
-    await page.screenshot({
-      path: pngPath,
-      fullPage: true,
-      type: 'png'
-    })
-    console.log('PNG written:', pngPath)
-    await context.close()
-  } finally {
-    await browser.close()
-  }
-}
-
+const { langs, pdf, png } = parseArgs(process.argv)
 await ensureQrCode()
-const outputMode = process.argv.includes('--png') ? 'png' : 'pdf'
 
-if (outputMode === 'png') {
-  await renderPng()
-} else {
-  await renderPdf()
+const playwright = loadPlaywright()
+for (const lang of langs) {
+  await generateForLocale(playwright, lang, { pdf, png })
 }
