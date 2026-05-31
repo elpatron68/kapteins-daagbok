@@ -5,6 +5,7 @@ import ThemedSelect from './ThemedSelect.tsx'
 import PushNotificationSettings from './PushNotificationSettings.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
 import { notifyAppearanceChanged } from '../services/appearance.js'
+import { saveAppearancePrefsToServer } from '../services/appearancePrefs.js'
 import { useAppTour } from '../context/AppTourContext.tsx'
 import {
   getColorSchemePreference,
@@ -32,6 +33,9 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
     setThemePreference(userId, nextTheme)
     setColorSchemePreference(userId, nextColorScheme)
     notifyAppearanceChanged()
+    void saveAppearancePrefsToServer(nextTheme, nextColorScheme).catch((err) => {
+      console.warn('Failed to save appearance prefs to server:', err)
+    })
   }
 
   const handleThemeChange = (nextTheme: string) => {

@@ -38,6 +38,17 @@ function normalizeCredentialLabel(label: unknown): string | null {
   return trimmed.slice(0, 64)
 }
 
+const VALID_THEMES = new Set(['auto', 'ocean', 'material', 'cupertino'])
+const VALID_COLOR_SCHEMES = new Set(['auto', 'light', 'dark'])
+
+function parseThemePreference(value: unknown): string | null {
+  return typeof value === 'string' && VALID_THEMES.has(value) ? value : null
+}
+
+function parseColorSchemePreference(value: unknown): string | null {
+  return typeof value === 'string' && VALID_COLOR_SCHEMES.has(value) ? value : null
+}
+
 router.post('/register-options', async (req, res) => {
   try {
     const { username } = req.body
@@ -422,6 +433,57 @@ router.post('/rotate-recovery', requireReauth, async (req: any, res) => {
     return res.json({ success: true })
   } catch (error: any) {
     console.error('Error rotating recovery key:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.get('/appearance-prefs', requireUser, async (req: any, res) => {
+  try {
+    const prefs = await prisma.userAppearancePrefs.findUnique({
+      where: { userId: req.userId }
+    })
+
+    return res.json({
+      theme: prefs?.theme ?? 'auto',
+      colorScheme: prefs?.colorScheme ?? 'auto',
+      persisted: prefs != null
+    })
+  } catch (error: any) {
+    console.error('Error reading appearance prefs:', error)
+    return res.status(500).json({ error: error.message || 'Internal server error' })
+  }
+})
+
+router.put('/appearance-prefs', requireUser, async (req: any, res) => {
+  try {
+    const theme = parseThemePreference(req.body?.theme)
+    const colorScheme = parseColorSchemePreference(req.body?.colorScheme)
+    if (!theme || !colorScheme) {
+      return res.status(400).json({ error: 'Invalid theme or colorScheme' })
+    }
+
+    const prefs = await prisma.userAppearancePrefs.upsert({
+      where: { userId: req.userId },
+      create: {
+        userId: req.userId,
+        theme,
+        colorScheme,
+        updatedAt: new Date()
+      },
+      update: {
+        theme,
+        colorScheme,
+        updatedAt: new Date()
+      }
+    })
+
+    return res.json({
+      theme: prefs.theme,
+      colorScheme: prefs.colorScheme,
+      persisted: true
+    })
+  } catch (error: any) {
+    console.error('Error updating appearance prefs:', error)
     return res.status(500).json({ error: error.message || 'Internal server error' })
   }
 })

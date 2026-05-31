@@ -29,6 +29,7 @@ import {
   resolveColorScheme,
   subscribeToSystemColorScheme
 } from './services/appearance.js'
+import { syncAppearancePrefs } from './services/appearancePrefs.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import DemoViewer from './components/DemoViewer.tsx'
@@ -150,6 +151,13 @@ function App() {
       setIsSyncing(syncing)
     })
   }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const userId = localStorage.getItem('active_userid')
+    if (!userId) return
+    void syncAppearancePrefs(userId)
+  }, [isAuthenticated])
 
   useEffect(() => {
     const handleOnline = () => {
