@@ -2,9 +2,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { Plugin } from 'vite'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -16,6 +17,19 @@ function readAppVersion(): string {
     return readFileSync(resolve(__dirname, '../VERSION'), 'utf8').trim()
   } catch {
     return '0.1.0.0-dev'
+  }
+}
+
+function versionJsonPlugin(version: string): Plugin {
+  return {
+    name: 'version-json',
+    writeBundle(options) {
+      const outDir = options.dir ?? resolve(__dirname, 'dist')
+      writeFileSync(
+        resolve(outDir, 'version.json'),
+        `${JSON.stringify({ version }, null, 2)}\n`
+      )
+    }
   }
 }
 
@@ -42,6 +56,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    versionJsonPlugin(readAppVersion()),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

@@ -9,7 +9,7 @@ import { applyAppearanceToDocument } from './services/appearance.ts'
 import {
   installStaleAssetRecovery,
   markReloadAttempt,
-  reconcileServiceWorkerOnStartup
+  reconcileVersionOnStartup
 } from './services/pwaStartup.ts'
 
 /** Stale PWA precache on localhost can shadow Vite dev modules. */
@@ -43,10 +43,13 @@ async function bootstrap(): Promise<void> {
   installStaleAssetRecovery()
   await clearDevServiceWorkerCaches()
 
-  const shouldReloadForWaitingSw = await reconcileServiceWorkerOnStartup()
-  if (shouldReloadForWaitingSw) {
+  const startupResult = await reconcileVersionOnStartup()
+  if (startupResult === 'reload') {
     markReloadAttempt()
     window.location.reload()
+    return
+  }
+  if (startupResult === 'recovered') {
     return
   }
 

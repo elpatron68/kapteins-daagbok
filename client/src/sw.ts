@@ -1,12 +1,17 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from 'workbox-core'
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { NetworkOnly } from 'workbox-strategies'
 
 declare let self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 clientsClaim()
+
+// Always fetch the live deploy version, even under an older precache.
+registerRoute(({ url }) => url.pathname === '/version.json', new NetworkOnly())
 
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {

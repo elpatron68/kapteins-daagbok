@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   markReloadAttempt,
   recentlyAttemptedReload,
-  reconcileServiceWorkerOnStartup
+  reconcileServiceWorkerOnStartup,
+  reconcileVersionOnStartup
 } from './pwaStartup.js'
 
 describe('pwaStartup reload guards', () => {
@@ -35,11 +36,40 @@ describe('reconcileServiceWorkerOnStartup', () => {
       configurable: true,
       value: {
         controller: {},
-        getRegistration: vi.fn().mockResolvedValue({ waiting: null }),
+        getRegistration: vi.fn().mockResolvedValue({
+          waiting: null,
+          installing: null,
+          update: vi.fn().mockResolvedValue(undefined),
+          addEventListener: vi.fn()
+        }),
         addEventListener: vi.fn()
       }
     })
 
     await expect(reconcileServiceWorkerOnStartup()).resolves.toBe(false)
+  })
+})
+
+describe('reconcileVersionOnStartup', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it('returns noop in dev mode', async () => {
+    vi.stubEnv('DEV', true)
+    await expect(reconcileVersionOnStartup()).resolves.toBe('noop')
+  })
+
+  it('returns noop when deployed version matches bundled version', async () => {
+    vi.stubEnv('DEV', false)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ version: '0.1.0.57' })
+    }))
+    vi.stubGlobal('__APP_VERSION__', '0.1.0.57')
+
+    await expect(reconcileVersionOnStartup()).resolves.toBe('noop')
   })
 })
