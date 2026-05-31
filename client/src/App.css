@@ -732,31 +732,14 @@ html.scheme-dark .themed-select-option.is-selected {
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-.skipper-badge {
-  display: flex;
-  align-items: center;
+.skipper-badge.btn-icon {
+  width: auto;
+  border-radius: 18px;
+  padding: 0 12px;
   gap: 6px;
   font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: rgba(148, 163, 184, 0.08);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  color: var(--app-text-muted);
-  cursor: pointer;
+  font-weight: 500;
   user-select: none;
-  font-family: inherit;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.skipper-badge:hover {
-  background: rgba(148, 163, 184, 0.14);
-  border-color: rgba(148, 163, 184, 0.28);
-  color: var(--app-text);
-}
-
-.skipper-badge:focus-visible {
-  outline: 2px solid var(--app-accent, #38bdf8);
-  outline-offset: 2px;
 }
 
 .skipper-badge__name {
@@ -1910,6 +1893,11 @@ html.scheme-dark .themed-select-option.is-selected {
 
   .skipper-badge__name {
     display: none;
+  }
+
+  .skipper-badge.btn-icon {
+    width: 36px;
+    padding: 0;
   }
 
   .btn-back {

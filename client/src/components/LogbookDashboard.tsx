@@ -212,12 +212,12 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           {/* Skipper profile */}
           <button
             type="button"
-            className="skipper-badge"
+            className="btn-icon skipper-badge"
             onClick={onOpenProfile}
             title={t('dashboard.open_profile', { name: username })}
             aria-label={t('dashboard.open_profile', { name: username })}
           >
-            <User size={16} aria-hidden="true" />
+            <User size={18} aria-hidden="true" />
             <span className="skipper-badge__name">{username}</span>
           </button>
 
