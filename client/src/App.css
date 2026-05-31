@@ -1371,6 +1371,148 @@ html.scheme-dark .themed-select-option.is-selected {
   gap: 20px;
 }
 
+.dashboard-list-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dashboard-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-sort-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-sort-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
+.dashboard-sort-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.dashboard-sort-group {
+  display: flex;
+  flex: 1 1 140px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dashboard-sort-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--app-border-subtle);
+  background: var(--app-surface-alt);
+  color: var(--app-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+
+.dashboard-sort-btn:hover {
+  border-color: var(--app-border);
+  color: var(--app-text-heading);
+}
+
+.dashboard-sort-btn.is-active {
+  border-color: var(--app-accent-border);
+  background: var(--app-accent-bg);
+  color: var(--app-accent-light);
+}
+
+.dashboard-sort-btn:focus-visible {
+  outline: 2px solid var(--app-accent-focus-ring);
+  outline-offset: 2px;
+}
+
+.dashboard-sort-btn span {
+  white-space: nowrap;
+}
+
+.dashboard-filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-muted);
+  margin: 0;
+}
+
+.dashboard-filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.dashboard-filter-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--app-text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.dashboard-filter-input {
+  width: 100%;
+  padding-left: 42px;
+  padding-right: 42px;
+  min-height: 44px;
+}
+
+.dashboard-filter-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.dashboard-filter-clear {
+  position: absolute;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.dashboard-filter-clear:hover {
+  color: var(--app-text-heading);
+  background: var(--app-accent-bg);
+}
+
+.dashboard-filter-clear:focus-visible {
+  outline: 2px solid var(--app-accent-focus-ring);
+  outline-offset: 2px;
+}
+
+.dashboard-filter-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+}
+
 .section-title-bar {
   display: flex;
   justify-content: space-between;
@@ -2320,6 +2462,14 @@ html.scheme-dark .themed-select-option.is-selected {
     font-size: 16px;
     white-space: normal;
     word-break: break-word;
+  }
+
+  .dashboard-sort-row {
+    flex-direction: column;
+  }
+
+  .dashboard-sort-group {
+    flex: 1 1 100%;
   }
 
   .logbooks-grid {

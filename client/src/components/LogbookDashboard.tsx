@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type DecryptedLogbook } from '../services/logbook.js'
@@ -7,7 +7,7 @@ import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff } from 'lucide-react'
+import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
 
@@ -15,6 +15,46 @@ interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
   onLogout: () => void
   onOpenProfile: () => void
+}
+
+function logbookMatchesFilter(lb: DecryptedLogbook, query: string, locale: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+
+  if (lb.title.toLowerCase().includes(q)) return true
+
+  const updated = new Date(lb.updatedAt)
+  const year = updated.getFullYear().toString()
+  if (year.includes(q)) return true
+
+  const dateLabel = updated.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).toLowerCase()
+  if (dateLabel.includes(q)) return true
+
+  return false
+}
+
+type LogbookSortKey = 'name' | 'date'
+type LogbookSortDirection = 'asc' | 'desc'
+
+function sortLogbooks(
+  items: DecryptedLogbook[],
+  sortBy: LogbookSortKey,
+  direction: LogbookSortDirection,
+  locale: string
+): DecryptedLogbook[] {
+  const sorted = [...items]
+  sorted.sort((a, b) => {
+    const cmp =
+      sortBy === 'name'
+        ? a.title.localeCompare(b.title, locale, { sensitivity: 'base' })
+        : new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+    return direction === 'asc' ? cmp : -cmp
+  })
+  return sorted
 }
 
 export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProfile }: LogbookDashboardProps) {
@@ -28,6 +68,10 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [filterQuery, setFilterQuery] = useState('')
+  const [sortBy, setSortBy] = useState<LogbookSortKey>('date')
+  const [sortDirection, setSortDirection] = useState<LogbookSortDirection>('desc')
+  const filterInputRef = useRef<HTMLInputElement>(null)
   const [online, setOnline] = useState(navigator.onLine)
   const [username] = useState(localStorage.getItem('active_username') || 'Skipper')
 
@@ -155,6 +199,25 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
 
   const ownedLogbooks = logbooks.filter((lb) => !lb.isShared)
   const sharedLogbooks = logbooks.filter((lb) => lb.isShared)
+
+  const filterActive = filterQuery.trim().length > 0
+  const filteredOwnedLogbooks = useMemo(
+    () => ownedLogbooks.filter((lb) => logbookMatchesFilter(lb, filterQuery, i18n.language)),
+    [ownedLogbooks, filterQuery, i18n.language]
+  )
+  const filteredSharedLogbooks = useMemo(
+    () => sharedLogbooks.filter((lb) => logbookMatchesFilter(lb, filterQuery, i18n.language)),
+    [sharedLogbooks, filterQuery, i18n.language]
+  )
+  const sortedOwnedLogbooks = useMemo(
+    () => sortLogbooks(filteredOwnedLogbooks, sortBy, sortDirection, i18n.language),
+    [filteredOwnedLogbooks, sortBy, sortDirection, i18n.language]
+  )
+  const sortedSharedLogbooks = useMemo(
+    () => sortLogbooks(filteredSharedLogbooks, sortBy, sortDirection, i18n.language),
+    [filteredSharedLogbooks, sortBy, sortDirection, i18n.language]
+  )
+  const filteredLogbookCount = sortedOwnedLogbooks.length + sortedSharedLogbooks.length
 
   const renderLogbookCard = (lb: DecryptedLogbook) => {
     const isEditingTitle = editingLogbookId === lb.id
@@ -376,17 +439,115 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           ) : logbooks.length === 0 ? (
             <div className="dashboard-status-msg glass">{t('dashboard.no_logbooks')}</div>
           ) : (
-            <div className="logbook-sections">
-              {ownedLogbooks.length > 0 && renderLogbookSection(
-                sharedLogbooks.length > 0 ? t('dashboard.section_owned') : t('dashboard.title'),
-                ownedLogbooks
+            <>
+              <div className="dashboard-list-controls">
+                <div className="dashboard-filter-bar">
+                  <label className="dashboard-filter-label" htmlFor="logbook-list-filter">
+                    {t('dashboard.filter_label')}
+                  </label>
+                  <div className="dashboard-filter-input-wrap">
+                    <Search size={18} className="dashboard-filter-icon" aria-hidden="true" />
+                    <input
+                      ref={filterInputRef}
+                      id="logbook-list-filter"
+                      type="search"
+                      className="input-text dashboard-filter-input"
+                      placeholder={t('dashboard.filter_placeholder')}
+                      value={filterQuery}
+                      onChange={(e) => setFilterQuery(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                      aria-describedby={filterActive ? 'logbook-filter-status' : undefined}
+                    />
+                    {filterActive && (
+                      <button
+                        type="button"
+                        className="dashboard-filter-clear"
+                        onClick={() => {
+                          setFilterQuery('')
+                          filterInputRef.current?.focus()
+                        }}
+                        title={t('dashboard.filter_clear')}
+                        aria-label={t('dashboard.filter_clear')}
+                      >
+                        <X size={16} aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                  {filterActive && (
+                    <p id="logbook-filter-status" className="dashboard-filter-meta" role="status">
+                      {t('dashboard.filter_results', { count: filteredLogbookCount })}
+                    </p>
+                  )}
+                </div>
+
+                <div className="dashboard-sort-bar">
+                  <span className="dashboard-sort-label">{t('dashboard.sort_label')}</span>
+                  <div className="dashboard-sort-row">
+                    <div className="dashboard-sort-group" role="group" aria-label={t('dashboard.sort_by_label')}>
+                      <button
+                        type="button"
+                        className={`dashboard-sort-btn${sortBy === 'name' ? ' is-active' : ''}`}
+                        onClick={() => setSortBy('name')}
+                        aria-pressed={sortBy === 'name'}
+                        title={t('dashboard.sort_by_name')}
+                      >
+                        <CaseSensitive size={16} aria-hidden="true" />
+                        <span>{t('dashboard.sort_by_name')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`dashboard-sort-btn${sortBy === 'date' ? ' is-active' : ''}`}
+                        onClick={() => setSortBy('date')}
+                        aria-pressed={sortBy === 'date'}
+                        title={t('dashboard.sort_by_date')}
+                      >
+                        <CalendarDays size={16} aria-hidden="true" />
+                        <span>{t('dashboard.sort_by_date')}</span>
+                      </button>
+                    </div>
+                    <div className="dashboard-sort-group" role="group" aria-label={t('dashboard.sort_dir_label')}>
+                      <button
+                        type="button"
+                        className={`dashboard-sort-btn${sortDirection === 'asc' ? ' is-active' : ''}`}
+                        onClick={() => setSortDirection('asc')}
+                        aria-pressed={sortDirection === 'asc'}
+                        title={sortBy === 'name' ? t('dashboard.sort_name_asc') : t('dashboard.sort_date_asc')}
+                      >
+                        <ArrowUp size={16} aria-hidden="true" />
+                        <span>{t('dashboard.sort_asc')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`dashboard-sort-btn${sortDirection === 'desc' ? ' is-active' : ''}`}
+                        onClick={() => setSortDirection('desc')}
+                        aria-pressed={sortDirection === 'desc'}
+                        title={sortBy === 'name' ? t('dashboard.sort_name_desc') : t('dashboard.sort_date_desc')}
+                      >
+                        <ArrowDown size={16} aria-hidden="true" />
+                        <span>{t('dashboard.sort_desc')}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {filterActive && filteredLogbookCount === 0 ? (
+                <div className="dashboard-status-msg glass">{t('dashboard.filter_no_results')}</div>
+              ) : (
+                <div className="logbook-sections">
+                  {sortedOwnedLogbooks.length > 0 && renderLogbookSection(
+                    sortedSharedLogbooks.length > 0 ? t('dashboard.section_owned') : t('dashboard.title'),
+                    sortedOwnedLogbooks
+                  )}
+                  {sortedSharedLogbooks.length > 0 && renderLogbookSection(
+                    t('dashboard.section_shared'),
+                    sortedSharedLogbooks,
+                    t('dashboard.section_shared_hint')
+                  )}
+                </div>
               )}
-              {sharedLogbooks.length > 0 && renderLogbookSection(
-                t('dashboard.section_shared'),
-                sharedLogbooks,
-                t('dashboard.section_shared_hint')
-              )}
-            </div>
+            </>
           )}
         </section>
       </main>
