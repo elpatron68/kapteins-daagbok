@@ -62,7 +62,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 
 ## Typische Funnels (Plausible Goals)
 
-Empfohlene Goal-Ketten für Auswertung:
+Empfohlene Goal-Ketten für Auswertung (nur Business!):
 
 1. **Aktivierung:** Account Created → Logbook Created → Travel Day Created → Travel Day Saved
 2. **Onboarding:** Account Created → Onboarding Tour Completed (vs. Onboarding Tour Skipped)
