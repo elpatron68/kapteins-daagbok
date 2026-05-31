@@ -45,7 +45,7 @@ import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, La
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage } from './utils/i18nLanguages.js'
+import { cycleAppLanguage } from './utils/i18nLanguages.js'
 import {
   resolveTourLogbookContext,
   seedDemoLogbookIfNeeded
@@ -497,7 +497,7 @@ function App() {
   }
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   const handleExitDemo = () => {

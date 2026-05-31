@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage } from '../utils/i18nLanguages.js'
+import { cycleAppLanguage } from '../utils/i18nLanguages.js'
 import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type DecryptedLogbook } from '../services/logbook.js'
 import LogbookRoleBadge from './LogbookRoleBadge.tsx'
@@ -194,7 +194,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   }
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   const ownedLogbooks = logbooks.filter((lb) => !lb.isShared)

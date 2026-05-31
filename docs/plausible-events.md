@@ -49,6 +49,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Local PIN Removed | Lokaler PIN entfernt (`UserProfilePage.tsx`) | — |
 | Device Forgotten | Account aus Schnell-Login-Liste dieses Geräts entfernt (`UserProfilePage.tsx`) | — |
 | Recovery Rotated | Neuer 12-Wörter-Wiederherstellungsschlüssel erstellt (`UserProfilePage.tsx`) | — |
+| Language Changed | Sprache über UI-Wechsler gewählt (`i18nLanguages.ts` via Sprach-Button in App, Dashboard, Auth, Demo, Einladung, Share-Viewer) | `from`, `to`: ISO 639-1 (`de`, `en`, `da`, `sv`, `nb`) |
 
 ## Bewusst nicht getrackt
 
@@ -56,6 +57,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 - **Manuelle Signaturen:** Nur Passkey-Signaturen lösen `Entry Signed` aus.
 - **PII:** Keine Inhalte aus verschlüsselten Logbüchern in Properties.
 - **Profil-KPIs:** Statistik-Karten und User-ID-Kopieren werden nicht getrackt (reine Anzeige bzw. zu granular).
+- **Sprache bei Erstbesuch:** Automatische Browser-/URL-Erkennung (`i18next-browser-languagedetector`, `?lng=`) löst kein `Language Changed` aus — nur explizite Klicks auf den Sprach-Button.
 - **Kontolöschung:** `Account Deleted` bleibt in `auth.ts` — unabhängig davon, ob die Gefahrenzone auf der Profilseite oder früher in den Einstellungen genutzt wurde.
 
 ## Typische Funnels (Plausible Goals)
@@ -69,6 +71,7 @@ Empfohlene Goal-Ketten für Auswertung:
 5. **Export:** Travel Day Saved → PDF Exported / CSV Exported
 6. **Datensicherung:** Backup Exported → Backup Restored
 7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
+8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
 
 ## Entwicklung
 
@@ -77,6 +80,7 @@ import { PlausibleEvents, trackPlausibleEvent } from './services/analytics.js'
 
 trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
 trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'skipper' })
+trackPlausibleEvent(PlausibleEvents.LANGUAGE_CHANGED, { from: 'de', to: 'da' })
 ```
 
 Lokal ohne Plausible-Script ist `trackPlausibleEvent` ein No-Op. In Production im Browser-Netzwerk-Tab auf Requests an die Plausible-Instanz prüfen.

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage, isGermanLocale } from '../utils/i18nLanguages.js'
+import { cycleAppLanguage, getNextLanguage, isGermanLocale } from '../utils/i18nLanguages.js'
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import VesselForm from './VesselForm.tsx'
@@ -137,7 +137,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
   }
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   if (loading) {

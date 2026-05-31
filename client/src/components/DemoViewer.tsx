@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage } from '../utils/i18nLanguages.js'
+import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
 import VesselForm from './VesselForm.tsx'
 import CrewForm from './CrewForm.tsx'
 import LogEntriesList from './LogEntriesList.tsx'
@@ -49,7 +49,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
   }, [registerNavigation, registerDemoTourContext, startTour, fixture.firstEntryId])
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   const { title, yacht, crews, entries, gpsTracks, photos, firstEntryId } = fixture

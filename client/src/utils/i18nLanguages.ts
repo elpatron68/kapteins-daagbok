@@ -1,3 +1,6 @@
+import type { i18n as I18nInstance } from 'i18next'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+
 /** Supported UI languages (ISO 639-1, language-only). */
 export const SUPPORTED_LANGUAGES = ['de', 'en', 'da', 'sv', 'nb'] as const
 
@@ -19,4 +22,18 @@ export function getNextLanguage(current?: string): AppLanguage {
 
 export function isGermanLocale(language?: string): boolean {
   return normalizeAppLanguage(language) === 'de'
+}
+
+/** Switch UI language and track explicit user choice (not auto-detection). */
+export function changeAppLanguage(i18n: I18nInstance, language: AppLanguage): void {
+  const from = normalizeAppLanguage(i18n.language)
+  const to = normalizeAppLanguage(language)
+  if (from === to) return
+
+  void i18n.changeLanguage(to)
+  trackPlausibleEvent(PlausibleEvents.LANGUAGE_CHANGED, { from, to })
+}
+
+export function cycleAppLanguage(i18n: I18nInstance): void {
+  changeAppLanguage(i18n, getNextLanguage(i18n.language))
 }

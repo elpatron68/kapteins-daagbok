@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage } from '../utils/i18nLanguages.js'
+import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
 import { 
   registerUser, 
   loginUser, 
@@ -210,7 +210,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
   }
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   const copyToClipboard = () => {

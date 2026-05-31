@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getNextLanguage } from '../utils/i18nLanguages.js'
+import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
 import { Ship, LogIn, UserPlus, AlertTriangle, ShieldCheck, Languages, ArrowRight, KeyRound } from 'lucide-react'
 import {
   getActiveMasterKey,
@@ -309,7 +309,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
   }
 
   const toggleLanguage = () => {
-    i18n.changeLanguage(getNextLanguage(i18n.language))
+    cycleAppLanguage(i18n)
   }
 
   if (recoveryPhrase) {
