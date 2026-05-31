@@ -129,7 +129,12 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
   const [pendingRecoveryPhrase, setPendingRecoveryPhrase] = useState<string | null>(null)
   const [recoveryCopied, setRecoveryCopied] = useState(false)
 
-  const { pendingCount: pendingSyncCount, showSpinner, showPendingWarning } = useSyncIndicator()
+  const {
+    pendingCount: pendingSyncCount,
+    showSpinner,
+    showPendingWarning,
+    connStatusClassName
+  } = useSyncIndicator()
 
   const sharedLogbookCount = useLiveQuery(
     () => db.logbooks.filter((lb) => lb.isShared === 1).count(),
@@ -528,7 +533,7 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 <h3>{t('profile.device_title')}</h3>
               </div>
               <p className="profile-section-desc">{t('profile.device_desc')}</p>
-              <div className={`profile-device-status conn-status ${online ? (pendingSyncCount > 0 ? 'warning' : 'online') : 'offline'}`}>
+              <div className={`profile-device-status ${connStatusClassName(online)}`}>
                 {online ? (
                   showSpinner ? (
                     <>

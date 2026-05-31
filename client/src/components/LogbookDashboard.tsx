@@ -31,7 +31,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [online, setOnline] = useState(navigator.onLine)
   const [username] = useState(localStorage.getItem('active_username') || 'Skipper')
 
-  const { pendingCount, showSpinner, showPendingWarning } = useSyncIndicator()
+  const { pendingCount, showSpinner, showPendingWarning, connStatusClassName } = useSyncIndicator()
 
   // Listen to connectivity changes
   useEffect(() => {
@@ -271,7 +271,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
         <div className="header-actions">
           {/* Connection Indicator */}
           <div
-            className={`conn-status ${online ? (pendingCount > 0 ? 'unsynced' : 'online') : 'offline'}`}
+            className={connStatusClassName(online)}
             title={
               online
                 ? showSpinner

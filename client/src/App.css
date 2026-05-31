@@ -2172,6 +2172,12 @@ html.scheme-dark .themed-select-option.is-selected {
   100% { background-position: 0 0; }
 }
 
+.conn-status.syncing {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
 .conn-status.warning {
   background: rgba(251, 191, 36, 0.1);
   color: #fbbf24;
