@@ -1097,6 +1097,7 @@ html.scheme-dark .themed-select-option.is-selected {
   gap: 12px;
 }
 
+.profile-field-label,
 .profile-pin-form .input-group label {
   display: block;
   text-align: left;

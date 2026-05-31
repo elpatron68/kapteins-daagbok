@@ -1,4 +1,5 @@
 import { apiFetch } from './api.js'
+import { getOwmApiKey } from './userPreferences.js'
 
 export class WeatherApiError extends Error {
   code: 'NO_KEY' | 'REQUEST_FAILED'
@@ -26,7 +27,7 @@ export async function fetchOpenWeatherCurrent(params: {
     throw new WeatherApiError('lat/lon or location query required')
   }
 
-  const userKey = localStorage.getItem('owm_api_key')?.trim()
+  const userKey = getOwmApiKey().trim()
   const headers: Record<string, string> = {}
   if (userKey) headers['X-OWM-Api-Key'] = userKey
 

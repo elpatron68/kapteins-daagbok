@@ -56,7 +56,7 @@ export default function PushNotificationSettings() {
         trackPlausibleEvent(PlausibleEvents.PUSH_DISABLED)
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('settings.push_error')
+      const message = err instanceof Error ? err.message : t('profile.push_error')
       showAlert(message)
       void loadPrefs()
     } finally {
@@ -69,10 +69,10 @@ export default function PushNotificationSettings() {
       <div className="member-editor-card glass mt-4">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <BellOff size={20} style={{ color: '#94a3b8' }} />
-          <h3 style={{ margin: 0, color: '#94a3b8', fontSize: '16px' }}>{t('settings.push_title')}</h3>
+          <h3 style={{ margin: 0, color: '#94a3b8', fontSize: '16px' }}>{t('profile.push_title')}</h3>
         </div>
         <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: 0 }}>
-          {t('settings.push_unsupported')}
+          {t('profile.push_unsupported')}
         </p>
       </div>
     )
@@ -83,23 +83,23 @@ export default function PushNotificationSettings() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <Bell size={20} style={{ color: 'var(--app-accent-light)' }} />
         <h3 style={{ margin: 0, color: 'var(--app-accent-light)', fontSize: '16px' }}>
-          {t('settings.push_title')}
+          {t('profile.push_title')}
         </h3>
       </div>
 
       <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 16px 0' }}>
-        {t('settings.push_desc')}
+        {t('profile.push_desc')}
       </p>
 
       {iosNeedsInstall && (
         <p className="text-muted" style={{ fontSize: '13px', margin: '0 0 12px 0' }}>
-          {t('settings.push_ios_install_hint')}
+          {t('profile.push_ios_install_hint')}
         </p>
       )}
 
       {permission === 'denied' && (
         <p style={{ fontSize: '13px', color: '#f87171', margin: '0 0 12px 0' }}>
-          {t('settings.push_denied_hint')}
+          {t('profile.push_denied_hint')}
         </p>
       )}
 
@@ -122,12 +122,12 @@ export default function PushNotificationSettings() {
           disabled={loading || toggling || iosNeedsInstall}
           style={{ width: '18px', height: '18px', cursor: 'inherit' }}
         />
-        <span>{t('settings.push_enable')}</span>
+        <span>{t('profile.push_enable')}</span>
       </label>
 
       {enabled && permission === 'granted' && (
         <p className="text-muted" style={{ fontSize: '12px', margin: '12px 0 0 0' }}>
-          {t('settings.push_active')}
+          {t('profile.push_active')}
         </p>
       )}
     </div>

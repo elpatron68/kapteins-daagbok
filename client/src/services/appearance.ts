@@ -1,3 +1,5 @@
+import { getColorSchemePreference as getStoredColorScheme, getThemePreference } from './userPreferences.js'
+
 export type ColorSchemePreference = 'auto' | 'light' | 'dark'
 export type ResolvedColorScheme = 'light' | 'dark'
 export type AppTheme = 'ocean' | 'material' | 'cupertino'
@@ -6,7 +8,7 @@ const THEME_CLASSES = ['theme-ocean', 'theme-material', 'theme-cupertino'] as co
 const SCHEME_CLASSES = ['scheme-light', 'scheme-dark'] as const
 
 export function getColorSchemePreference(): ColorSchemePreference {
-  const stored = localStorage.getItem('active_color_scheme')
+  const stored = getStoredColorScheme()
   if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored
   return 'auto'
 }
@@ -19,7 +21,7 @@ export function resolveColorScheme(pref?: ColorSchemePreference): ResolvedColorS
 }
 
 export function resolveAppTheme(): AppTheme {
-  const configTheme = localStorage.getItem('active_theme') || 'auto'
+  const configTheme = getThemePreference() || 'auto'
   if (configTheme === 'material' || configTheme === 'cupertino' || configTheme === 'ocean') {
     return configTheme
   }

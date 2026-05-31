@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings as SettingsIcon, Save, Check, Users, Trash2, Copy, Link as LinkIcon, Compass } from 'lucide-react'
+import { Settings as SettingsIcon, Check, Users, Trash2, Copy, Link as LinkIcon } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import LogbookBackupPanel from './LogbookBackupPanel.tsx'
-import PwaInstallPrompt from './PwaInstallPrompt.tsx'
-import PushNotificationSettings from './PushNotificationSettings.tsx'
 import { useDialog } from './ModalDialog.tsx'
-import { notifyAppearanceChanged } from '../services/appearance.js'
-import ThemedSelect from './ThemedSelect.tsx'
-import { useAppTour } from '../context/AppTourContext.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { apiFetch } from '../services/api.js'
 
@@ -25,7 +20,6 @@ interface Collaborator {
   createdAt: string
 }
 
-// Convert ArrayBuffer to Hex String for URL fragment
 const bufferToHex = (buffer: ArrayBuffer): string => {
   return Array.from(new Uint8Array(buffer))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -35,14 +29,7 @@ const bufferToHex = (buffer: ArrayBuffer): string => {
 export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsFormProps) {
   const { t } = useTranslation()
   const { showConfirm, showAlert } = useDialog()
-  const { restartTour } = useAppTour()
-  const [apiKey, setApiKey] = useState(localStorage.getItem('owm_api_key') || '')
-  const [theme, setTheme] = useState(localStorage.getItem('active_theme') || 'auto')
-  const [colorScheme, setColorScheme] = useState(localStorage.getItem('active_color_scheme') || 'auto')
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
 
-  // Collaboration States
   const [collaborators, setCollaborators] = useState<Collaborator[]>([])
   const [isOwner, setIsOwner] = useState(true)
   const [inviteLink, setInviteLink] = useState('')
@@ -51,7 +38,6 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
   const [collabError, setCollabError] = useState<string | null>(null)
   const [loadingCollabs, setLoadingCollabs] = useState(false)
 
-  // Public Share Link States
   const [shareEnabled, setShareEnabled] = useState(false)
   const [shareLink, setShareLink] = useState('')
   const [shareCopied, setShareCopied] = useState(false)
@@ -120,9 +106,9 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       } else {
         throw new Error('Failed to toggle public share link.')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Toggle share link failed:', err)
-      showAlert(err.message || 'Failed to update public share link.')
+      showAlert(err instanceof Error ? err.message : 'Failed to update public share link.')
     } finally {
       setLoadingShareLink(false)
     }
@@ -135,7 +121,6 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       setTimeout(() => setShareCopied(false), 2000)
     }
   }
-
 
   const loadCollaborators = async () => {
     setLoadingCollabs(true)
@@ -173,10 +158,8 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
     if (!localStorage.getItem('active_userid')) return
 
     try {
-      // 1. Ensure logbook has an E2E key (upgrades legacy logbooks if needed)
       const logbookKey = await ensureLogbookKey(logbookId)
 
-      // 2. Create invite token on server
       const res = await apiFetch('/api/collaboration/invite', {
         method: 'POST',
         body: JSON.stringify({ logbookId, role: 'WRITE' })
@@ -187,16 +170,14 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       }
 
       const invite = await res.json()
-      
-      // 3. Format link containing token (URL params) and key (URL hash anchor)
       const hexKey = bufferToHex(logbookKey)
       const link = `${window.location.origin}/invite?token=${invite.token}#key=${hexKey}`
-      
+
       setInviteLink(link)
       trackPlausibleEvent(PlausibleEvents.INVITE_GENERATED)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to generate invite:', err)
-      showAlert(err.message || 'Failed to generate invite link.')
+      showAlert(err instanceof Error ? err.message : 'Failed to generate invite link.')
     } finally {
       setGeneratingInvite(false)
     }
@@ -225,40 +206,26 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
         } else {
           throw new Error('Failed to revoke collaborator access.')
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Revocation failed:', err)
-        showAlert(err.message || 'Failed to revoke access.')
+        showAlert(err instanceof Error ? err.message : 'Failed to revoke access.')
       }
     }
   }
 
-  const persistAppearance = (nextTheme: string, nextColorScheme: string) => {
-    localStorage.setItem('active_theme', nextTheme)
-    localStorage.setItem('active_color_scheme', nextColorScheme)
-    notifyAppearanceChanged()
-  }
-
-  const handleThemeChange = (nextTheme: string) => {
-    setTheme(nextTheme)
-    persistAppearance(nextTheme, colorScheme)
-  }
-
-  const handleColorSchemeChange = (nextColorScheme: string) => {
-    setColorScheme(nextColorScheme)
-    persistAppearance(theme, nextColorScheme)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setSuccess(false)
-    
-    localStorage.setItem('owm_api_key', apiKey.trim())
-    persistAppearance(theme, colorScheme)
-    
-    setSaving(false)
-    setSuccess(true)
-    setTimeout(() => setSuccess(false), 3000)
+  if (!logbookId) {
+    return (
+      <div className="form-card">
+        <div className="form-header">
+          <SettingsIcon size={24} className="form-icon" />
+          <div>
+            <h2>{t('settings.title')}</h2>
+            <p className="form-subtitle">{t('settings.subtitle')}</p>
+          </div>
+        </div>
+        <p className="text-muted mt-4">{t('settings.select_logbook_hint')}</p>
+      </div>
+    )
   }
 
   return (
@@ -267,128 +234,12 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
         <SettingsIcon size={24} className="form-icon" />
         <div>
           <h2>{t('settings.title')}</h2>
-          <p className="form-subtitle" style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#94a3b8' }}>
-            {t('settings.subtitle')}
-          </p>
+          <p className="form-subtitle">{t('settings.subtitle')}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="vessel-form mt-6">
-        <PwaInstallPrompt variant="inline" />
-        <PushNotificationSettings />
-
-        {/* Weather Integration card */}
-        <div className="member-editor-card glass">
-          <h3 style={{ marginTop: 0, marginBottom: '12px', color: '#fbbf24', fontSize: '16px' }}>
-            {t('settings.owm_title')}
-          </h3>
-          <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '145%', margin: '0 0 16px 0' }}>
-            {t('settings.key_help')}
-          </p>
-
-          <div className="input-group">
-            <label htmlFor="owm-api-key" style={{ display: 'block', fontSize: '13.5px', color: '#94a3b8', marginBottom: '6px', fontWeight: 500 }}>
-              {t('settings.owm_key')}
-            </label>
-            <input
-              id="owm-api-key"
-              name="owm-api-key"
-              type="password"
-              className="input-text"
-              placeholder="e.g. 8b6a7f...d8"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              disabled={saving}
-              autoComplete="off"
-            />
-          </div>
-        </div>
-
-        {/* Theme customization card */}
-        <div className="member-editor-card glass mt-4">
-          <h3 style={{ marginTop: 0, marginBottom: '12px', color: '#fbbf24', fontSize: '16px' }}>
-            {t('settings.theme_title')}
-          </h3>
-          <p style={{ fontSize: '13.5px', color: '#94a3b8', lineHeight: '145%', margin: '0 0 16px 0' }}>
-            {t('settings.theme_label')}
-          </p>
-
-          <div className="input-group">
-            <ThemedSelect
-              id="app-theme"
-              value={theme}
-              disabled={saving}
-              onChange={handleThemeChange}
-              options={[
-                { value: 'auto', label: t('settings.theme_auto') },
-                { value: 'ocean', label: t('settings.theme_ocean') },
-                { value: 'material', label: t('settings.theme_material') },
-                { value: 'cupertino', label: t('settings.theme_cupertino') }
-              ]}
-            />
-          </div>
-        </div>
-
-        <div className="member-editor-card glass mt-4">
-          <h3 style={{ marginTop: 0, marginBottom: '12px', color: 'var(--app-accent-light)', fontSize: '16px' }}>
-            {t('settings.color_scheme_title')}
-          </h3>
-          <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 16px 0' }}>
-            {t('settings.color_scheme_label')}
-          </p>
-
-          <div className="input-group">
-            <ThemedSelect
-              id="app-color-scheme"
-              value={colorScheme}
-              disabled={saving}
-              onChange={handleColorSchemeChange}
-              options={[
-                { value: 'auto', label: t('settings.color_scheme_auto') },
-                { value: 'light', label: t('settings.color_scheme_light') },
-                { value: 'dark', label: t('settings.color_scheme_dark') }
-              ]}
-            />
-          </div>
-        </div>
-
-        <div className="member-editor-card glass mt-4">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Compass size={20} style={{ color: 'var(--app-accent-light)' }} />
-            <h3 style={{ margin: 0, color: 'var(--app-accent-light)', fontSize: '16px' }}>
-              {t('settings.tour_title')}
-            </h3>
-          </div>
-          <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 16px 0' }}>
-            {t('settings.tour_desc')}
-          </p>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => restartTour()}
-          >
-            {t('settings.tour_restart')}
-          </button>
-        </div>
-
-        <div className="form-actions mt-4 mb-6">
-          {success && (
-            <div className="success-toast">
-              <Check size={16} />
-              <span>{t('settings.saved')}</span>
-            </div>
-          )}
-          
-          <button type="submit" className="btn primary" disabled={saving}>
-            <Save size={18} />
-            {saving ? t('settings.saving') : t('settings.save')}
-          </button>
-        </div>
-      </form>
-
-      {/* Public Share Link Card (Only visible to Logbook Owner) */}
       {logbookId && isOwner && (
-        <div className="member-editor-card glass mt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+        <div className="member-editor-card glass mt-6">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <LinkIcon size={20} style={{ color: '#fbbf24' }} />
             <h3 style={{ margin: 0, color: '#fbbf24', fontSize: '16px' }}>
@@ -441,12 +292,10 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
         </div>
       )}
 
-      {/* Backup & Restore (owner only) */}
       {logbookId && isOwner && (
         <LogbookBackupPanel logbookId={logbookId} onRestored={onLogbookRestored} />
       )}
 
-      {/* Crew Collaboration Card (Only visible to Logbook Owner) */}
       {logbookId && isOwner && (
         <div className="member-editor-card glass mt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -494,7 +343,6 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
             </div>
           )}
 
-          {/* Collaborator List */}
           <h4 style={{ color: '#fbbf24', fontSize: '14px', marginBottom: '12px' }}>
             {t('logs.collaborators_list')}
           </h4>

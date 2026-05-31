@@ -28,6 +28,7 @@ import {
   CircleAlert
 } from 'lucide-react'
 import AccountDangerZone from './AccountDangerZone.tsx'
+import UserProfilePreferences from './UserProfilePreferences.tsx'
 import BetaBadge from './BetaBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import {
@@ -475,6 +476,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 </div>
               </dl>
             </section>
+
+            <UserProfilePreferences userId={profile.userId} />
 
             <section className="member-editor-card glass">
               <div className="profile-section-header">
