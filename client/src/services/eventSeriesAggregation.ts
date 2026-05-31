@@ -71,21 +71,21 @@ export async function loadLogbookEventSeries(logbookId: string): Promise<EventSe
         time: event.time
       }
 
-      if (event.windPressure.trim()) {
+      if (event.windPressure?.trim()) {
         pressure.push({
           ...base,
           summary: `${event.windPressure} hPa`
         })
       }
 
-      if (event.windDirection.trim() || event.windStrength.trim()) {
+      if (event.windDirection?.trim() || event.windStrength?.trim()) {
         wind.push({
           ...base,
           summary: [event.windDirection, event.windStrength].filter(Boolean).join(' ')
         })
       }
 
-      const code = event.remarks.trim()
+      const code = event.remarks?.trim() ?? ''
       if (
         code === LIVE_EVENT_CODES.MOTOR_START ||
         code === LIVE_EVENT_CODES.MOTOR_STOP

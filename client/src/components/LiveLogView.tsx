@@ -81,14 +81,16 @@ function hapticPulse() {
 
 function lastCourseFromEvents(events: LogEventPayload[]): string {
   for (let i = events.length - 1; i >= 0; i--) {
-    if (events[i].mgk.trim()) return events[i].mgk
+    const mgk = events[i].mgk?.trim()
+    if (mgk) return mgk
   }
   return ''
 }
 
 function lastWindDirectionFromEvents(events: LogEventPayload[]): string {
   for (let i = events.length - 1; i >= 0; i--) {
-    if (events[i].windDirection.trim()) return events[i].windDirection
+    const direction = events[i].windDirection?.trim()
+    if (direction) return direction
   }
   return ''
 }
