@@ -31,7 +31,8 @@ export const NO_TRANSLATE_TERMS = [
   'iPad',
   'iPhone',
   'Android',
-  'Knorrstr. 16 · 24106 Kiel'
+  'Knorrstr. 16 · 24106 Kiel',
+  'KnorrLabs · Markus F.J. Busche · Knorrstr. 16 · 24106 Kiel · elpatron+kd@mailbox.org'
 ]
 
 const PLACEHOLDER_RE = /\{\{[^}]+\}\}/g

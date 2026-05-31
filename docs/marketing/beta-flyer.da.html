@@ -5,46 +5,46 @@
   <title>Kapteins Daagbok - Beta-flyer</title>
   <style>
     @page {
-      størrelse: A4 stående;
+      size: A4 portrait;
       margin: 0;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
-      polstring: 0;
+      padding: 0;
     }
 
     html, body {
-      bredde: 210mm;
-      højde: 297 mm;
+      width: 210mm;
+      height: 297mm;
       font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      farve: #e2e8f0;
-      baggrund: #0f172a;
+      color: #e2e8f0;
+      background: #0f172a;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
-    .side {
-      bredde: 210mm;
-      højde: 297mm;
-      max-højde: 297mm;
-      polstring: 12mm 15mm 10mm;
+    .page {
+      width: 210mm;
+      height: 297mm;
+      max-height: 297mm;
+      padding: 12mm 15mm 10mm;
       display: flex;
-      flex-retning: kolonne;
-      mellemrum: 5 mm;
-      baggrund:
-        radial-gradient(ellipse 120% 80% ved 100% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 55%),
-        radial-gradient(ellipse 90% 60% ved 0% 100%, rgba(134, 59, 255, 0.14) 0%, transparent 50%),
-        lineær-gradient(165deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
+      flex-direction: column;
+      gap: 5mm;
+      background:
+        radial-gradient(ellipse 120% 80% at 100% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 90% 60% at 0% 100%, rgba(134, 59, 255, 0.14) 0%, transparent 50%),
+        linear-gradient(165deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
       position: relative;
-      overløb: skjult;
+      overflow: hidden;
     }
 
     .page::before {
-      indhold: "";
-      position: absolut;
-      indsat: 8 mm;
+      content: "";
+      position: absolute;
+      inset: 8mm;
       border: 1px solid rgba(148, 163, 184, 0.18);
       border-radius: 4mm;
       pointer-events: none;
@@ -53,247 +53,247 @@
     header {
       display: flex;
       align-items: center;
-      mellemrum: 5mm;
-      flex-krympning: 0;
-      position: relativ;
+      gap: 5mm;
+      flex-shrink: 0;
+      position: relative;
       z-index: 1;
     }
 
     .logo {
-      bredde: 16mm;
-      højde: 16mm;
-      flex-krymp: 0;
+      width: 16mm;
+      height: 16mm;
+      flex-shrink: 0;
       object-fit: contain;
     }
 
     .title-block h1 {
-      skriftstørrelse: 23pt;
-      font-vægt: 700;
+      font-size: 23pt;
+      font-weight: 700;
       letter-spacing: -0.02em;
-      farve: #f8fafc;
-      linjehøjde: 1.1;
+      color: #f8fafc;
+      line-height: 1.1;
     }
 
     .title-block p {
-      skriftstørrelse: 12pt;
-      farve: #94a3b8;
-      margin-top: 1,5 mm;
+      font-size: 12pt;
+      color: #94a3b8;
+      margin-top: 1.5mm;
     }
 
     .badge {
       margin-left: auto;
       align-self: flex-start;
-      baggrund: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-      farve: #1e293b;
-      skriftstørrelse: 11pt;
-      font-vægt: 800;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #1e293b;
+      font-size: 11pt;
+      font-weight: 800;
       letter-spacing: 0.12em;
-      polstring: 2,5 mm 4,5 mm;
+      padding: 2.5mm 4.5mm;
       border-radius: 2mm;
-      tekst-transformation: store bogstaver;
+      text-transform: uppercase;
     }
 
     .intro {
-      skriftstørrelse: 12pt;
-      linjehøjde: 1,5;
-      farve: #cbd5e1;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #cbd5e1;
       flex-shrink: 0;
-      max-bredde: 95%;
-      position: relativ;
+      max-width: 95%;
+      position: relative;
       z-index: 1;
     }
 
     .intro strong {
-      farve: #f8fafc;
+      color: #f8fafc;
     }
 
     .screenshots {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      mellemrum: 3 mm;
+      gap: 3mm;
       flex-shrink: 0;
-      position: relativ;
+      position: relative;
       z-index: 1;
     }
 
-    .screenshot-kort {
-      border-radius: 2,5 mm;
-      overløb: skjult;
+    .screenshot-card {
+      border-radius: 2.5mm;
+      overflow: hidden;
       border: 1px solid rgba(148, 163, 184, 0.22);
-      baggrund: rgba(15, 23, 42, 0.55);
+      background: rgba(15, 23, 42, 0.55);
       display: flex;
-      flex-retning: kolonne;
-      min-bredde: 0;
+      flex-direction: column;
+      min-width: 0;
     }
 
-    .screenshot-kort img {
-      bredde: 100%;
-      højde: 50mm;
+    .screenshot-card img {
+      width: 100%;
+      height: 50mm;
       object-fit: contain;
       object-position: top center;
       display: block;
-      baggrund: #0b1220;
+      background: #0b1220;
     }
 
     .screenshot-caption {
-      skriftstørrelse: 9pt;
-      farve: #94a3b8;
-      tekstjustering: center;
-      polstring: 1,5 mm 2 mm;
-      linjehøjde: 1,3;
+      font-size: 9pt;
+      color: #94a3b8;
+      text-align: center;
+      padding: 1.5mm 2mm;
+      line-height: 1.3;
       flex-shrink: 0;
     }
 
-    .funktioner {
+    .features {
       display: grid;
-      grid-template-kolonner: 1fr 1fr;
-      mellemrum: 1,8 mm 6 mm;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.8mm 6mm;
       flex-shrink: 0;
-      position: relativ;
+      position: relative;
       z-index: 1;
     }
 
     .feature {
       display: flex;
-      mellemrum: 2,5 mm;
+      gap: 2.5mm;
       align-items: flex-start;
-      skriftstørrelse: 10.5pt;
-      linjehøjde: 1,28;
-      farve: #e2e8f0;
+      font-size: 10.5pt;
+      line-height: 1.28;
+      color: #e2e8f0;
     }
 
     .feature-icon {
-      farve: #38bdf8;
-      font-vægt: 700;
-      flex-krymp: 0;
-      bredde: 4mm;
+      color: #38bdf8;
+      font-weight: 700;
+      flex-shrink: 0;
+      width: 4mm;
     }
 
-    .lang-liste {
+    .lang-list {
       display: inline-flex;
       flex-wrap: wrap;
       align-items: center;
-      mellemrum: 1,5 mm;
+      gap: 1.5mm;
     }
 
     .lang-item {
       display: inline-flex;
       align-items: center;
-      mellemrum: 1,2 mm;
+      gap: 1.2mm;
       white-space: nowrap;
     }
 
     .feature-flag {
       display: inline-block;
-      bredde: 5 mm;
-      højde: 3,5 mm;
-      border-radius: 0,3 mm;
+      width: 5mm;
+      height: 3.5mm;
+      border-radius: 0.3mm;
       flex-shrink: 0;
       box-shadow: 0 0 0 0.15mm rgba(0, 0, 0, 0.25);
     }
 
     .lang-sep {
-      farve: #94a3b8;
+      color: #94a3b8;
     }
 
     .beta-box {
-      baggrund: rgba(30, 41, 59, 0.85);
+      background: rgba(30, 41, 59, 0.85);
       border: 1px solid rgba(251, 191, 36, 0.35);
       border-left: 3px solid #fbbf24;
       border-radius: 3mm;
-      polstring: 5mm 6mm;
+      padding: 5mm 6mm;
       flex-shrink: 0;
-      position: relativ;
+      position: relative;
       z-index: 1;
     }
 
     .beta-box h2 {
-      skriftstørrelse: 12,5pt;
-      farve: #fbbf24;
-      margin-bund: 2mm;
-      font-vægt: 700;
+      font-size: 12.5pt;
+      color: #fbbf24;
+      margin-bottom: 2mm;
+      font-weight: 700;
     }
 
     .beta-box p {
-      skriftstørrelse: 10,5pt;
-      linjehøjde: 1,5;
-      farve: #cbd5e1;
+      font-size: 10.5pt;
+      line-height: 1.5;
+      color: #cbd5e1;
     }
 
     .cta {
       display: flex;
       align-items: center;
-      mellemrum: 7mm;
-      baggrund: rgba(15, 23, 42, 0.6);
+      gap: 7mm;
+      background: rgba(15, 23, 42, 0.6);
       border: 1px solid rgba(148, 163, 184, 0.2);
       border-radius: 4mm;
-      polstring: 5 mm 6 mm;
+      padding: 5mm 6mm;
       flex-shrink: 0;
       position: relative;
       z-index: 1;
     }
 
     .qr {
-      bredde: 32mm;
-      højde: 32mm;
-      baggrund: #fff;
-      polstring: 2 mm;
-      border-radius: 2 mm;
+      width: 32mm;
+      height: 32mm;
+      background: #fff;
+      padding: 2mm;
+      border-radius: 2mm;
       flex-shrink: 0;
     }
 
     .qr img {
       width: 100%;
-      højde: 100%;
+      height: 100%;
       display: block;
     }
 
-    .cta-tekst h3 {
-      skriftstørrelse: 14,5pt;
-      farve: #38bdf8;
-      font-vægt: 700;
-      margin-bund: 2mm;
+    .cta-text h3 {
+      font-size: 14.5pt;
+      color: #38bdf8;
+      font-weight: 700;
+      margin-bottom: 2mm;
     }
 
     .cta-text p {
-      skriftstørrelse: 11pt;
-      farve: #94a3b8;
-      linjehøjde: 1,5;
+      font-size: 11pt;
+      color: #94a3b8;
+      line-height: 1.5;
     }
 
     .tags {
       display: flex;
       flex-wrap: wrap;
-      mellemrum: 2mm;
+      gap: 2mm;
       margin-top: 3mm;
     }
 
     .tag {
-      skriftstørrelse: 9,5pt;
-      font-vægt: 600;
+      font-size: 9.5pt;
+      font-weight: 600;
       letter-spacing: 0.04em;
-      tekst-transformation: store bogstaver;
-      farve: #64748b;
+      text-transform: uppercase;
+      color: #64748b;
       border: 1px solid rgba(100, 116, 139, 0.4);
-      border-radius: 1,5 mm;
-      polstring: 1 mm 2,5 mm;
+      border-radius: 1.5mm;
+      padding: 1mm 2.5mm;
     }
 
-    sidefod {
+    footer {
       border-top: 1px solid rgba(148, 163, 184, 0.15);
       padding-top: 3mm;
       margin-top: auto;
       flex-shrink: 0;
-      skriftstørrelse: 9,5pt;
-      linjehøjde: 1,5;
-      farve: #64748b;
-      position: relativ;
+      font-size: 9.5pt;
+      line-height: 1.5;
+      color: #64748b;
+      position: relative;
       z-index: 1;
     }
 
-    sidefod strong {
-      farve: #94a3b8;
-      font-vægt: 600;
+    footer strong {
+      color: #94a3b8;
+      font-weight: 600;
     }
   </style>
 </head>
@@ -314,7 +314,7 @@
       <strong>også offline</strong> kan bruges til søs.
     </p>
 
-    <section class="features" aria-label="Funktionen">
+    <section class="features" aria-label="Funktioner">
       <div class="feature"><span class="feature-icon">✦</span><span>Rejsedage i nautisk logbogsformat (havn, vejr, sejl, besætning, brændstofniveauer)</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Offline-kompatibel PWA - kører på enhver smartphone og tablet</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Simpelt login uden adgangskode Passkey.</span></div>
@@ -328,22 +328,22 @@
       <div class="feature"><span class="feature-icon">✦</span><span>Krypteret sikkerhedskopiering og gendannelse</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Del logbog med venner</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Et vilkårligt antal skibe og logbøger</span></div>
-      <div class="feature"><span class="feature-icon">✦</span><span class="lang-list"><span class="lang-item"><svg class="feature-flag" viewBox="0 0 37 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="37" height="28" fill="#C8102E"/><rect x="12" width="4" height="28" fill="#fff"/><rect y="12" width="37" height="4" fill="#fff"/></svg>Dansk</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>Engelsk</span></span></div>
+      <div class="feature"><span class="feature-icon">✦</span><span class="lang-list"><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>English</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 37 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="37" height="28" fill="#C8102E"/><rect x="12" width="4" height="28" fill="#fff"/><rect y="12" width="37" height="4" fill="#fff"/></svg>Dansk</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 16 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg>Svenska</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#BA0C2F"/><rect x="6" width="4" height="16" fill="#fff"/><rect y="6" width="22" height="4" fill="#fff"/><rect x="7" width="2" height="16" fill="#00205B"/><rect y="7" width="22" height="2" fill="#00205B"/></svg>Norsk</span></span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>3 temaer, hver med en lys og en mørk variant</span></div>
       <div class="feature"><span class="feature-icon">✦</span><span>Fremstillet i Kiel.Sailing.City..</span></div>
     </section>
 
-    <section class="screenshots" aria-label="App-Screenshots">
+    <section class="screenshots" aria-label="Skærmbilleder af appen">
       <figure class="screenshot-card">
-        <img src="assets/screenshot-login.png" alt="Anmeldung mit Passkey und Demo" />
+        <img src="assets/screenshot-login.png" alt="Registrering med Passkey og demo" />
         <figcaption class="screenshot-caption">Registrering &amp; Passkey</figcaption>
       </figure>
       <figure class="screenshot-card">
-        <img src="assets/screenshot-logbook.png" alt="Logbuch-Journal mit Reisetagen" />
+        <img src="assets/screenshot-logbook.png" alt="Logbogsdagbog med rejsedage" />
         <figcaption class="screenshot-caption">Logbogsdagbog</figcaption>
       </figure>
       <figure class="screenshot-card">
-        <img src="assets/screenshot-vessel.png" alt="Schiffs-Stammdaten mit Yachtfoto" />
+        <img src="assets/screenshot-vessel.png" alt="Skibsdata med foto af yacht" />
         <figcaption class="screenshot-caption">Skibsdata</figcaption>
       </figure>
     </section>
@@ -359,7 +359,7 @@
 
     <section class="cta">
       <div class="qr">
-        <img src="assets/qr-kapteins-daagbok.eu.png" alt="QR-Code: kapteins-daagbok.eu" />
+        <img src="assets/qr-kapteins-daagbok.eu.png" alt="QR-kode: kapteins-daagbok.eu" />
       </div>
       <div class="cta-text">
         <h3>kapteins-daagbok.eu</h3>
@@ -374,7 +374,7 @@
 
     <footer>
       <strong>Påtryk</strong><br />
-      KnorrLabs - Markus F.J. Busche - Knorrstr. 16 · 24106 Kiel - elpatron+kd@mailbox.org.
+      KnorrLabs · Markus F.J. Busche · Knorrstr. 16 · 24106 Kiel · elpatron+kd@mailbox.org
     </footer>
   </article>
 </body>

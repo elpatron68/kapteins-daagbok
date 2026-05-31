@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Generate localized beta flyer HTML files from the German master via DeepL.
+ * Generate localized beta flyer HTML from the German master via DeepL.
+ * Only visible body text and <title> are translated — CSS/HTML structure stay intact.
  *
  * Usage: node scripts/translate-flyer.mjs [--lang da,sv,nb]
  */
@@ -20,43 +21,89 @@ const TARGETS = {
   nb: { code: 'NB', htmlLang: 'nb', file: 'beta-flyer.nb.html' }
 }
 
-/** Extract translatable text segments from HTML (text nodes only). */
-function extractSegments(html) {
+const LANG_LIST_BLOCK = `<span class="lang-list"><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>English</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 37 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="37" height="28" fill="#C8102E"/><rect x="12" width="4" height="28" fill="#fff"/><rect y="12" width="37" height="4" fill="#fff"/></svg>Dansk</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 16 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg>Svenska</span><span class="lang-sep">·</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#BA0C2F"/><rect x="6" width="4" height="16" fill="#fff"/><rect y="6" width="22" height="4" fill="#fff"/><rect x="7" width="2" height="16" fill="#00205B"/><rect y="7" width="22" height="2" fill="#00205B"/></svg>Norsk</span></span>`
+
+/** Pull translatable strings from visible content only (never from <style>). */
+function collectSegments(html) {
   const segments = []
-  const re = />([^<]+)</g
+
+  const titleMatch = html.match(/<title>([^<]*)<\/title>/i)
+  if (titleMatch?.[1]?.trim()) {
+    segments.push({ kind: 'title', original: titleMatch[1] })
+  }
+
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  const bodyHtml = bodyMatch?.[1] ?? ''
+
+  const textRe = />([^<]+)</g
   let match
-  while ((match = re.exec(html)) !== null) {
+  while ((match = textRe.exec(bodyHtml)) !== null) {
     const text = match[1]
     if (!text.trim()) continue
-    if (/^\s*$/.test(text)) continue
-    segments.push({ text, index: segments.length })
+    // Legal imprint stays identical in all locales
+    if (text.includes('KnorrLabs')) continue
+    segments.push({ kind: 'text', original: text })
   }
+
+  const ariaRe = /aria-label="([^"]+)"/g
+  while ((match = ariaRe.exec(bodyHtml)) !== null) {
+    segments.push({ kind: 'aria', original: match[1] })
+  }
+
+  const altRe = /alt="([^"]+)"/g
+  while ((match = altRe.exec(bodyHtml)) !== null) {
+    segments.push({ kind: 'alt', original: match[1] })
+  }
+
   return segments
 }
 
-function replaceSegments(html, originals, translated) {
+function applySegments(html, segments, translated) {
   let result = html
-  for (let i = 0; i < originals.length; i++) {
-    const from = originals[i].text
-    const to = translated[i]
-    if (from === to) continue
-    result = result.replace(`>${from}<`, `>${to}<`)
-  }
+
+  segments.forEach((segment, index) => {
+    const next = translated[index]
+    if (segment.original === next) return
+
+    switch (segment.kind) {
+      case 'title':
+        result = result.replace(
+          `<title>${segment.original}</title>`,
+          `<title>${next}</title>`
+        )
+        break
+      case 'text': {
+        const needle = `>${segment.original}<`
+        const pos = result.indexOf(needle)
+        if (pos === -1) return
+        result = `${result.slice(0, pos)}>${next}<${result.slice(pos + needle.length)}`
+        break
+      }
+      case 'aria':
+        result = result.replace(
+          `aria-label="${segment.original}"`,
+          `aria-label="${next}"`
+        )
+        break
+      case 'alt':
+        result = result.replace(
+          `alt="${segment.original}"`,
+          `alt="${next}"`
+        )
+        break
+      default:
+        break
+    }
+  })
+
   return result
 }
 
-function patchLanguageFeature(html, lang) {
-  const langBlocks = {
-    da: `<span class="lang-item"><svg class="feature-flag" viewBox="0 0 37 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="37" height="28" fill="#C8102E"/><rect x="12" width="4" height="28" fill="#fff"/><rect y="12" width="37" height="4" fill="#fff"/></svg>Dansk</span>`,
-    sv: `<span class="lang-item"><svg class="feature-flag" viewBox="0 0 16 10" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg>Svenska</span>`,
-    nb: `<span class="lang-item"><svg class="feature-flag" viewBox="0 0 22 16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="22" height="16" fill="#BA0C2F"/><rect x="6" width="4" height="16" fill="#fff"/><rect y="6" width="22" height="4" fill="#fff"/><rect x="7" width="2" height="16" fill="#00205B"/><rect y="7" width="22" height="2" fill="#00205B"/></svg>Norsk</span>`
-  }
-
-  const deEnBlock =
-    /<span class="lang-list">[\s\S]*?<\/span><\/span><\/div>/
-  const replacement = `<span class="lang-list">${langBlocks[lang]}<span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 5 3" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#D00"/><rect y="2" width="5" height="1" fill="#FFCE00"/></svg>Deutsch</span><span class="lang-sep">&amp;</span><span class="lang-item"><svg class="feature-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><clipPath id="gb-a"><path d="M0 0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30 15h30v15zv15H0z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>Engelsk</span></span></div>`
-
-  return html.replace(deEnBlock, replacement)
+function patchLanguageFeature(html) {
+  return html.replace(
+    /(<div class="feature"><span class="feature-icon">✦<\/span>)<span class="lang-list">[\s\S]*?<\/span>(<\/div>)/,
+    `$1${LANG_LIST_BLOCK}$2`
+  )
 }
 
 function parseArgs(argv) {
@@ -73,8 +120,10 @@ async function main() {
   const langs = parseArgs(process.argv)
   const apiKey = loadEnvKey()
   const sourceHtml = await readFile(sourcePath, 'utf8')
-  const segments = extractSegments(sourceHtml)
-  const texts = segments.map((s) => s.text)
+  const segments = collectSegments(sourceHtml)
+  const texts = segments.map((s) => s.original)
+
+  console.log(`Translating ${texts.length} visible strings per locale…`)
 
   for (const lang of langs) {
     const target = TARGETS[lang]
@@ -90,13 +139,9 @@ async function main() {
       batchSize: 20
     })
 
-    let html = replaceSegments(sourceHtml, segments, translated)
+    let html = applySegments(sourceHtml, segments, translated)
     html = html.replace(/<html lang="de">/, `<html lang="${target.htmlLang}">`)
-    html = html.replace(
-      /<title>Kapteins Daagbok — Beta-Flyer<\/title>/,
-      `<title>Kapteins Daagbok — Beta-Flyer (${target.htmlLang.toUpperCase()})</title>`
-    )
-    html = patchLanguageFeature(html, lang)
+    html = patchLanguageFeature(html)
 
     const outPath = resolve(repoRoot, 'docs/marketing', target.file)
     await writeFile(outPath, html, 'utf8')
