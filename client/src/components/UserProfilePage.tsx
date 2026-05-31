@@ -225,8 +225,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header">
-        <div className="header-brand">
+      <header className="dashboard-header dashboard-header--profile">
+        <div className="header-brand profile-header-brand">
           <button className="btn-back profile-back-btn" onClick={onBack} title={t('profile.back')}>
             <ChevronLeft size={16} />
             <span>{t('profile.back')}</span>

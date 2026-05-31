@@ -820,36 +820,49 @@ html.scheme-dark .themed-select-option.is-selected {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  text-align: left;
+}
+
+.dashboard-header--profile .profile-header-brand {
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  gap: 16px;
 }
 
 .profile-back-btn {
-  margin-right: 12px;
+  margin-top: 4px;
+  flex-shrink: 0;
 }
 
 .profile-dl {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .profile-dl-row {
   display: grid;
-  grid-template-columns: minmax(120px, 180px) 1fr;
-  gap: 8px 16px;
-  align-items: center;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
+  gap: 8px 20px;
+  align-items: start;
 }
 
 .profile-dl-row dt {
   margin: 0;
   font-size: 13px;
   color: var(--app-text-muted);
+  text-align: left;
+  line-height: 1.4;
 }
 
 .profile-dl-row dd {
   margin: 0;
   font-size: 14px;
-  word-break: break-all;
+  word-break: break-word;
+  text-align: left;
+  justify-self: start;
 }
 
 .profile-user-id {
@@ -863,6 +876,7 @@ html.scheme-dark .themed-select-option.is-selected {
   background: rgba(148, 163, 184, 0.08);
   padding: 4px 8px;
   border-radius: 6px;
+  word-break: break-all;
 }
 
 .profile-copy-btn {
@@ -888,12 +902,26 @@ html.scheme-dark .themed-select-option.is-selected {
   font-size: 13px;
   color: var(--app-text-muted);
   line-height: 1.5;
+  text-align: left;
 }
 
 .profile-pin-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.profile-pin-form .input-group label {
+  display: block;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--app-text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.profile-main .form-actions:not(.account-danger-zone__actions) {
+  justify-content: flex-start;
 }
 
 .profile-passkey-list {
@@ -932,6 +960,18 @@ html.scheme-dark .themed-select-option.is-selected {
 @media (max-width: 640px) {
   .profile-dl-row {
     grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .dashboard-header--profile .profile-header-brand {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .profile-back-btn {
+    margin-top: 0;
+    align-self: flex-start;
   }
 }
 
