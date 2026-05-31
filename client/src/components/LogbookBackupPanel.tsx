@@ -12,6 +12,7 @@ import {
   type LogbookBackupPreview
 } from '../services/logbookBackup.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { formatAppDateTime } from '../utils/dateTimeFormat.js'
 
 interface LogbookBackupPanelProps {
   logbookId: string
@@ -41,7 +42,7 @@ function mapBackupError(code: string, t: (key: string) => string): string {
 }
 
 export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBackupPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { showConfirm } = useDialog()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -334,7 +335,7 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
             </ul>
             <p className="text-muted backup-preview-date">
               {t('settings.backup_exported_at', {
-                date: new Date(importPreview.exportedAt).toLocaleString()
+                date: formatAppDateTime(importPreview.exportedAt, i18n.language)
               })}
             </p>
           </div>

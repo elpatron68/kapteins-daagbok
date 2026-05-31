@@ -17,6 +17,13 @@ export interface LogEventPayload {
   remarks: string
 }
 
+/** Local time as HH:MM for HTML `<input type="time">`. */
+export function currentLocalTimeHHMM(date: Date = new Date()): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
 const LOG_EVENT_FIELDS: (keyof LogEventPayload)[] = [
   'time', 'mgk', 'rwk', 'windPressure', 'windDirection', 'windStrength', 'seaState',
   'weatherIcon', 'current', 'heel', 'sailsOrMotor', 'logReading', 'distance',

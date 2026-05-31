@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Fingerprint, Loader2, AlertTriangle } from 'lucide-react'
 import type { PasskeySignature } from '../types/signatures.js'
+import { formatAppDateTime } from '../utils/dateTimeFormat.js'
 
 interface PasskeySignButtonProps {
   label: string
@@ -42,9 +43,7 @@ export default function PasskeySignButton({
     }
   }
 
-  const formattedDate = signature
-    ? new Date(signature.signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
-    : ''
+  const formattedDate = signature ? formatAppDateTime(signature.signedAt, i18n.language) : ''
 
   return (
     <div className="passkey-sign-block">

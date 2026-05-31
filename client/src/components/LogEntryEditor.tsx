@@ -22,7 +22,8 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, logEventsEqual, currentLocalTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { resolveIntlLocale } from '../utils/dateTimeFormat.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -162,7 +163,7 @@ export default function LogEntryEditor({
   const [events, setEvents] = useState<LogEvent[]>([])
 
   // Add Event Form State
-  const [evTime, setEvTime] = useState('')
+  const [evTime, setEvTime] = useState(() => currentLocalTimeHHMM())
   const [evMgk, setEvMgk] = useState('')
   const [evRwk, setEvRwk] = useState('')
   const [evWindPressure, setEvWindPressure] = useState('')
@@ -865,7 +866,7 @@ export default function LogEntryEditor({
   }
 
   const clearEventForm = () => {
-    setEvTime('')
+    setEvTime(currentLocalTimeHHMM())
     setEvMgk('')
     setEvRwk('')
     setEvWindPressure('')
@@ -1371,6 +1372,7 @@ export default function LogEntryEditor({
                 <input
                   type="time"
                   className="input-text"
+                  lang={resolveIntlLocale(i18n.language)}
                   value={evTime}
                   onChange={(e) => setEvTime(e.target.value)}
                   disabled={saving}

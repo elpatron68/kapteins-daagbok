@@ -5,6 +5,7 @@ import { decryptJson } from './crypto.js'
 import { formatSignatureForExport, normalizeSignature } from '../utils/signatures.js'
 import { sortLogEventsByTime } from '../utils/logEntryPayload.js'
 import i18n from '../i18n/index.js'
+import { formatAppDateTime } from '../utils/dateTimeFormat.js'
 
 function escapeCsvValue(val: string | number | undefined | null): string {
   if (val === null || val === undefined) return '';
@@ -94,11 +95,11 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
   const exportLabels = {
     imagePlaceholder: i18n.t('logs.sign_export_image'),
     passkeyLabel: (username: string, signedAt: string) => {
-      const date = new Date(signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
+      const date = formatAppDateTime(signedAt, i18n.language)
       return i18n.t('logs.sign_passkey_export', { username, date })
     },
     attributionLabel: (username: string, signedAt: string) => {
-      const date = new Date(signedAt).toLocaleString(i18n.language === 'de' ? 'de-DE' : 'en-GB')
+      const date = formatAppDateTime(signedAt, i18n.language)
       return i18n.t('logs.sign_attribution_export', { username, date })
     }
   };

@@ -5,6 +5,7 @@ import SignaturePad from './SignaturePad.tsx'
 import PasskeySignButton from './PasskeySignButton.tsx'
 import type { PasskeySignature, SignatureValue } from '../types/signatures.js'
 import { isPasskeySignature, getSignaturePayload, getSignatureAttribution } from '../utils/signatures.js'
+import { formatAppDateTime } from '../utils/dateTimeFormat.js'
 
 type SignatureMode = 'passkey' | 'classic'
 
@@ -30,9 +31,7 @@ function SignerAttributionBadge({ value }: { value: SignatureValue | '' }) {
   const attribution = getSignatureAttribution(value)
   if (!attribution) return null
 
-  const formattedDate = new Date(attribution.signedAt).toLocaleString(
-    i18n.language === 'de' ? 'de-DE' : 'en-GB'
-  )
+  const formattedDate = formatAppDateTime(attribution.signedAt, i18n.language)
 
   return (
     <div className="passkey-sign-badge valid signature-attribution-badge">

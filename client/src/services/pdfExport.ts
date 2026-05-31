@@ -6,10 +6,10 @@ import { decryptJson } from './crypto.js'
 import { isSignatureImage, isPasskeySignature, isClassicSignature, getSignaturePayload } from '../utils/signatures.js'
 import { sortLogEventsByTime } from '../utils/logEntryPayload.js'
 import i18n from '../i18n/index.js'
+import { formatAppDateTime } from '../utils/dateTimeFormat.js'
 
 function formatPasskeySignDate(signedAt: string): string {
-  const locale = i18n.language === 'de' ? 'de-DE' : 'en-GB'
-  return new Date(signedAt).toLocaleString(locale)
+  return formatAppDateTime(signedAt, i18n.language)
 }
 
 export async function generateLogbookPagePdf(logbookId: string, entryId: string, preloadedData?: { yacht: any; entry: any }): Promise<jsPDF> {
