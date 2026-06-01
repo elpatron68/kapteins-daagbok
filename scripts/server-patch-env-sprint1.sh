@@ -29,8 +29,11 @@ echo "Patching $ENV_FILE for Sprint 1..."
 # Match running container (docker exec daagbox-prod-db: USER=postgres DB=daagbox)
 ensure_var POSTGRES_USER "postgres"
 ensure_var POSTGRES_DB "daagbox"
-# Default from legacy docker-compose.yml; change only if you use a different DB password
-ensure_var POSTGRES_PASSWORD "postgres"
+if ! grep -q "^POSTGRES_PASSWORD=" "$ENV_FILE" || grep -q "^POSTGRES_PASSWORD=$" "$ENV_FILE"; then
+  echo "  skip  POSTGRES_PASSWORD (set manually or run scripts/rotate-postgres-password.sh)"
+else
+  echo "  keep  POSTGRES_PASSWORD (already set)"
+fi
 # NPM on 172.16.10.10 → app on this host
 ensure_var TRUST_PROXY "172.16.10.10"
 

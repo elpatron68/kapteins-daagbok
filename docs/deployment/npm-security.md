@@ -57,4 +57,4 @@ Optional später: `analytics.kapteins-daagbok.eu` als Alias auf dieselbe Plausib
 
 ## Docker Compose
 
-Keine Default-Passwörter in Produktion: `POSTGRES_PASSWORD` und `SESSION_SECRET` in `.env` setzen (siehe [`.env.example`](../../.env.example)).
+Keine Default-Passwörter in Produktion: starkes `POSTGRES_PASSWORD` (siehe [postgres-password.md](postgres-password.md)) und `SESSION_SECRET` in `.env` setzen (siehe [`.env.example`](../../.env.example)).

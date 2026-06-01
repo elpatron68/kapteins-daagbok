@@ -258,6 +258,7 @@ Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deploymen
 | Dokument | Inhalt |
 |----------|--------|
 | [docs/deployment/npm-security.md](docs/deployment/npm-security.md) | NPM, TLS, `trust proxy`, Security-Header |
+| [docs/deployment/postgres-password.md](docs/deployment/postgres-password.md) | PostgreSQL-Passwort rotieren / App-Rolle |
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
 | [docs/plan-compass-course-dial.md](docs/plan-compass-course-dial.md) | Kompass-Dial: UX- und Implementierungsplan |
