@@ -609,11 +609,11 @@
       "push_error": "Could not enable push notifications."
     },
     "person_pool": {
-      "title": "Core crew & skippers",
+      "title": "Core Crew & skippers",
       "subtitle": "Maintain your person pool here — skippers and crew for all logbooks. Select active crew per logbook and travel day from this pool.",
       "loading": "Loading person pool…",
       "skippers_section": "Skippers",
-      "crew_section": "Core crew",
+      "crew_section": "Core Crew",
       "add_skipper": "Add skipper",
       "add_crew": "Add crew member",
       "edit_skipper": "Edit skipper",
@@ -906,7 +906,7 @@
           "body": "Enter your yacht's name, dimensions, and technical details – fill once, use on every travel day."
         },
         "profile_crew_pool": {
-          "title": "Core crew & skippers",
+          "title": "Core Crew & skippers",
           "body": "In your user profile you maintain a person pool — multiple skippers (e.g. charter) and crew for all logbooks."
         },
         "nav_logbook_crew": {
