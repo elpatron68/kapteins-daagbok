@@ -273,7 +273,7 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'logbookVessel') {
-          const { hasVesselPoolPrismaModels, VESSEL_POOL_MIGRATION_HINT } =
+          const { hasVesselPoolPrismaModels, isMissingPrismaTable, VESSEL_POOL_MIGRATION_HINT } =
             await import('../utils/crewPoolSchema.js')
           if (!hasVesselPoolPrismaModels()) {
             results.push({
@@ -283,7 +283,7 @@ router.post('/push', async (req: any, res) => {
             })
             continue
           }
-          {
+          try {
             const existing = await prisma.logbookVesselSelectionPayload.findUnique({ where: { logbookId } })
             if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
               results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
@@ -294,6 +294,12 @@ router.post('/push', async (req: any, res) => {
               create: { logbookId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
               update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
             })
+          } catch (err: unknown) {
+            if (isMissingPrismaTable(err)) {
+              results.push({ payloadId, status: 'error', error: VESSEL_POOL_MIGRATION_HINT })
+              continue
+            }
+            throw err
           }
         }
 
@@ -360,19 +366,10 @@ router.get('/pull', async (req: any, res) => {
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
-    let logbookCrewSelection = null
-    let logbookVesselSelection = null
-    const { hasCrewPoolPrismaModels, hasVesselPoolPrismaModels } = await import('../utils/crewPoolSchema.js')
-    if (hasCrewPoolPrismaModels()) {
-      logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
-        where: { logbookId }
-      })
-    }
-    if (hasVesselPoolPrismaModels()) {
-      logbookVesselSelection = await prisma.logbookVesselSelectionPayload.findUnique({
-        where: { logbookId }
-      })
-    }
+    const { findLogbookCrewSelectionSafe, findLogbookVesselSelectionSafe } =
+      await import('../utils/crewPoolSchema.js')
+    const logbookCrewSelection = await findLogbookCrewSelectionSafe(logbookId)
+    const logbookVesselSelection = await findLogbookVesselSelectionSafe(logbookId)
 
     return res.json({
       yacht,

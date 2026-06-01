@@ -159,6 +159,29 @@ else
   echo "Warning: Docker command not found. Skipping PostgreSQL container management."
 fi
 
+# Sync Prisma client and database schema (dev)
+sync_prisma_schema() {
+  local server_dir="$REPO_ROOT/server"
+  if [ ! -f "$server_dir/prisma/schema.prisma" ]; then
+    return 0
+  fi
+  if [ ! -d "$server_dir/node_modules" ]; then
+    echo "Warning: server/node_modules missing — skipping Prisma sync. Run: cd server && npm ci"
+    return 0
+  fi
+  echo "Syncing Prisma client and database schema..."
+  (
+    cd "$server_dir" || exit 1
+    npx prisma generate && npx prisma db push
+  ) || {
+    echo "Error: Prisma generate/db push failed. Check DATABASE_URL in .env and PostgreSQL."
+    exit 1
+  }
+  echo "Prisma schema is in sync."
+}
+
+sync_prisma_schema
+
 # Start backend server
 echo "Starting backend API server..."
 cd "$REPO_ROOT/server" || exit 1

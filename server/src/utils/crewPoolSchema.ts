@@ -37,3 +37,25 @@ export function isMissingPrismaTable(error: unknown): boolean {
     (error as { code: string }).code === 'P2021'
   )
 }
+
+/** Pull-safe: returns null when models or DB tables are missing (P2021). */
+export async function findLogbookCrewSelectionSafe(logbookId: string) {
+  if (!hasCrewPoolPrismaModels()) return null
+  try {
+    return await prisma.logbookCrewSelectionPayload.findUnique({ where: { logbookId } })
+  } catch (error) {
+    if (isMissingPrismaTable(error)) return null
+    throw error
+  }
+}
+
+/** Pull-safe: returns null when models or DB tables are missing (P2021). */
+export async function findLogbookVesselSelectionSafe(logbookId: string) {
+  if (!hasVesselPoolPrismaModels()) return null
+  try {
+    return await prisma.logbookVesselSelectionPayload.findUnique({ where: { logbookId } })
+  } catch (error) {
+    if (isMissingPrismaTable(error)) return null
+    throw error
+  }
+}
