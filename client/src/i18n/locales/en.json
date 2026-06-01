@@ -468,6 +468,7 @@
       "role_read": "Read only",
       "role_read_hint": "Shared logbook — view only, no editing",
       "open_profile": "Open profile for {{name}}",
+      "open_logbook": "Open logbook “{{title}}”",
       "edit_title": "Rename Logbook",
       "edit_placeholder": "New name of the logbook",
       "edit_success": "Logbook renamed successfully",

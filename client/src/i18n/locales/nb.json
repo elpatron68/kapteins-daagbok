@@ -468,6 +468,7 @@
       "role_read": "Bare les",
       "role_read_hint": "Delt loggbok - kun visning, ingen redigering",
       "open_profile": "Åpne profilen til {{name}}",
+      "open_logbook": "Åpne loggbok «{{title}}»",
       "edit_title": "Endre navn på loggbok",
       "edit_placeholder": "Nytt navn på loggboken",
       "edit_success": "Loggboken har fått nytt navn",

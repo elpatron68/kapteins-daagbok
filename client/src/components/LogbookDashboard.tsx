@@ -226,14 +226,18 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
     return (
     <div
       key={lb.id}
-      className={`logbook-card glass${lb.isShared ? ' logbook-card--shared' : ''}`}
+      className={`logbook-card glass${lb.isShared ? ' logbook-card--shared' : ''}${isEditingTitle ? ' logbook-card--editing-title' : ''}`}
     >
-      <button
-        type="button"
-        className="logbook-card-select"
-        onClick={() => onSelectLogbook(lb.id, lb.title)}
-      >
-      <div className="card-icon">
+      {!isEditingTitle && (
+        <button
+          type="button"
+          className="logbook-card-select"
+          onClick={() => onSelectLogbook(lb.id, lb.title)}
+          aria-label={t('dashboard.open_logbook', { title: lb.title })}
+        />
+      )}
+
+      <div className="card-icon" aria-hidden>
         <BookOpen size={24} />
       </div>
 
@@ -246,7 +250,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
               className="logbook-title-inline-edit input-text"
               value={editingTitleDraft}
               onChange={(e) => setEditingTitleDraft(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
@@ -287,7 +290,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           </span>
         </div>
       </div>
-      </button>
 
       {!lb.isShared && (
         <div className="logbook-card-actions">

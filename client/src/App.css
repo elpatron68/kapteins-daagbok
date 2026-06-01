@@ -1800,19 +1800,39 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .logbook-card-select {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
   padding: 0;
   margin: 0;
   border: none;
+  border-radius: inherit;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
   cursor: pointer;
+}
+
+.logbook-card > .card-icon,
+.logbook-card > .card-info {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.logbook-card > .card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.logbook-card .logbook-title-editable,
+.logbook-card .logbook-title-inline-edit,
+.logbook-card .card-title-row {
+  pointer-events: auto;
+}
+
+.logbook-card--editing-title > .card-info {
+  pointer-events: auto;
 }
 
 .logbook-card {
@@ -1930,6 +1950,8 @@ html.scheme-dark .themed-select-option.is-selected {
   display: flex;
   align-items: center;
   margin-top: -2px;
+  position: relative;
+  z-index: 2;
 }
 
 .logbook-card-actions .btn-delete {

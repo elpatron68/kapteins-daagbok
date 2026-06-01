@@ -468,6 +468,7 @@
       "role_read": "Læs kun",
       "role_read_hint": "Opdelt logbog - kun visning, ingen redigering",
       "open_profile": "Åben profil af {{name}}",
+      "open_logbook": "Åbn logbog „{{title}}“",
       "edit_title": "Omdøb logbog",
       "edit_placeholder": "Nyt navn på logbogen",
       "edit_success": "Logbog omdøbt med succes",
