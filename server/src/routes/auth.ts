@@ -14,6 +14,8 @@ import {
   setSessionCookie,
   setSessionTokenCookie
 } from '../session.js'
+import { ChallengeMap, ChallengeSet } from '../utils/challengeStore.js'
+import { sendInternalError } from '../utils/httpErrors.js'
 
 const router = Router()
 
@@ -21,10 +23,10 @@ const rpName = 'Kapteins Daagbok'
 const rpID = process.env.RP_ID || 'localhost'
 const origin = process.env.ORIGIN || 'http://localhost:5173'
 
-const registrationChallenges = new Map<string, string>()
+const registrationChallenges = new ChallengeMap()
 /** WebAuthn registration challenges for add-credential flow: challenge -> userId */
-const addCredentialChallenges = new Map<string, string>()
-const activeChallenges = new Set<string>()
+const addCredentialChallenges = new ChallengeSet<string>()
+const activeChallenges = new ChallengeSet()
 
 function previewCredentialId(credentialId: string): string {
   if (credentialId.length <= 16) return credentialId
@@ -76,7 +78,7 @@ router.post('/register-options', async (req, res) => {
     })
 
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' })
+      return res.status(400).json({ error: 'Could not start registration' })
     }
 
     const userID = Buffer.from(username, 'utf8').toString('base64url')
@@ -98,9 +100,8 @@ router.post('/register-options', async (req, res) => {
     registrationChallenges.set(username, options.challenge)
 
     return res.json(options)
-  } catch (error: any) {
-    console.error('Error generating registration options:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/register-options')
   }
 })
 
@@ -163,9 +164,8 @@ router.post('/register-verify', async (req, res) => {
     setSessionCookie(res, user.id, true)
 
     return res.json({ verified: true, userId: user.id })
-  } catch (error: any) {
-    console.error('Error verifying registration response:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/register-verify')
   }
 })
 
@@ -197,9 +197,8 @@ router.post('/login-options', async (req, res) => {
     activeChallenges.add(options.challenge)
 
     return res.json(options)
-  } catch (error: any) {
-    console.error('Error generating authentication options:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/login-options')
   }
 })
 
@@ -260,9 +259,8 @@ router.post('/login-verify', async (req, res) => {
       encryptedMasterKeyRecIv: user.encryptedMasterKeyRecIv,
       encryptedMasterKeyRecTag: user.encryptedMasterKeyRecTag
     })
-  } catch (error: any) {
-    console.error('Error verifying authentication response:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/login-verify')
   }
 })
 
@@ -305,9 +303,8 @@ router.post('/reauth-options', requireUser, async (req: any, res) => {
     activeChallenges.add(options.challenge)
 
     return res.json(options)
-  } catch (error: any) {
-    console.error('Error generating reauth options:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/reauth-options')
   }
 })
 
@@ -362,9 +359,8 @@ router.post('/reauth-verify', requireUser, async (req: any, res) => {
     }
 
     return res.json({ verified: true })
-  } catch (error: any) {
-    console.error('Error verifying reauth:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/reauth-verify')
   }
 })
 
@@ -384,9 +380,8 @@ router.delete('/delete-account', requireReauth, async (req: any, res) => {
 
     clearSessionCookie(res)
     return res.json({ success: true })
-  } catch (error: any) {
-    console.error('Error deleting account:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/delete-account')
   }
 })
 
@@ -415,9 +410,8 @@ router.post('/enroll-prf', requireReauth, async (req: any, res) => {
     })
 
     return res.json({ success: true })
-  } catch (error: any) {
-    console.error('Error enrolling PRF key:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/enroll-prf')
   }
 })
 
@@ -446,9 +440,8 @@ router.post('/rotate-recovery', requireReauth, async (req: any, res) => {
     })
 
     return res.json({ success: true })
-  } catch (error: any) {
-    console.error('Error rotating recovery key:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/rotate-recovery')
   }
 })
 
@@ -468,9 +461,7 @@ router.get('/appearance-prefs', requireUser, async (req: any, res) => {
       console.warn('UserAppearancePrefs table missing — run: npx prisma db push (in server/)')
       return res.json({ ...DEFAULT_APPEARANCE_PREFS })
     }
-    console.error('Error reading appearance prefs:', error)
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return res.status(500).json({ error: message })
+    return sendInternalError(res, error, 'auth/appearance-prefs-get')
   }
 })
 
@@ -509,9 +500,7 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
         error: 'Appearance preferences storage is not migrated. Run prisma db push on the server.'
       })
     }
-    console.error('Error updating appearance prefs:', error)
-    const message = error instanceof Error ? error.message : 'Internal server error'
-    return res.status(500).json({ error: message })
+    return sendInternalError(res, error, 'auth/appearance-prefs-put')
   }
 })
 
@@ -552,9 +541,8 @@ router.get('/profile', requireUser, async (req: any, res) => {
         collaborationCount: user._count.collaborations
       }
     })
-  } catch (error: any) {
-    console.error('Error fetching user profile:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/profile')
   }
 })
 
@@ -591,12 +579,11 @@ router.post('/add-credential-options', requireReauth, async (req: any, res) => {
       excludeCredentials
     })
 
-    addCredentialChallenges.set(options.challenge, req.userId)
+    addCredentialChallenges.add(options.challenge, req.userId)
 
     return res.json(options)
-  } catch (error: any) {
-    console.error('Error generating add-credential options:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/add-credential-options')
   }
 })
 
@@ -670,9 +657,8 @@ router.post('/add-credential-verify', requireReauth, async (req: any, res) => {
         transports: credential.transports
       }
     })
-  } catch (error: any) {
-    console.error('Error verifying add-credential response:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/add-credential-verify')
   }
 })
 
@@ -702,9 +688,8 @@ router.patch('/credentials/:id', requireReauth, async (req: any, res) => {
         transports: updated.transports
       }
     })
-  } catch (error: any) {
-    console.error('Error updating credential label:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/credentials-patch')
   }
 })
 
@@ -733,9 +718,8 @@ router.delete('/credentials/:id', requireReauth, async (req: any, res) => {
     })
 
     return res.json({ success: true })
-  } catch (error: any) {
-    console.error('Error deleting credential:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/credentials-delete')
   }
 })
 

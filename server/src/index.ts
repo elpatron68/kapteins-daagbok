@@ -25,6 +25,24 @@ dotenv.config({ path: resolve(__dirname, '../.env') })
 const app = express()
 const PORT = process.env.PORT || 5000
 
+/** Behind Nginx Proxy Manager (172.16.10.10 → app). See docs/deployment/npm-security.md */
+function configureTrustProxy(): void {
+  const raw = process.env.TRUST_PROXY?.trim()
+  if (raw === '1' || raw === 'true') {
+    app.set('trust proxy', 1)
+    return
+  }
+  if (raw) {
+    app.set('trust proxy', raw)
+    return
+  }
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1)
+  }
+}
+
+configureTrustProxy()
+
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -50,7 +68,17 @@ const apiLimiter = rateLimit({
   legacyHeaders: false
 })
 
+/** Unauthenticated collaboration reads — stricter than global API limit */
+const publicCollaborationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
 app.use('/api/auth', authLimiter)
+app.use('/api/collaboration/invite-details', publicCollaborationLimiter)
+app.use('/api/collaboration/share-pull', publicCollaborationLimiter)
 app.use('/api', apiLimiter)
 
 // Mount routes

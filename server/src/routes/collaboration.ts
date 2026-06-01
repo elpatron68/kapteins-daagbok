@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireUser } from '../middleware/auth.js'
+import { sendInternalError } from '../utils/httpErrors.js'
 
 const router = Router()
 
@@ -39,9 +40,8 @@ router.get('/invite-details', async (req: any, res) => {
       encryptedTitle: invitation.logbook.encryptedTitle,
       role: invitation.role
     })
-  } catch (error: any) {
-    console.error('Error fetching invite details:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/invite-details')
   }
 })
 
@@ -90,9 +90,8 @@ router.get('/share-pull', async (req: any, res) => {
       photos,
       gpsTracks
     })
-  } catch (error: any) {
-    console.error('Error in share-pull:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/share-pull')
   }
 })
 
@@ -159,9 +158,8 @@ router.post('/accept', requireUser, async (req: any, res) => {
       logbookId: invitation.logbookId,
       role: invitation.role
     })
-  } catch (error: any) {
-    console.error('Error accepting invitation:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/accept')
   }
 })
 
@@ -205,9 +203,8 @@ router.post('/invite', async (req: any, res) => {
       token: invitation.token,
       expiresAt: invitation.expiresAt
     })
-  } catch (error: any) {
-    console.error('Error creating invitation:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/invite')
   }
 })
 
@@ -247,9 +244,8 @@ router.get('/collaborators', async (req: any, res) => {
       role: c.role,
       createdAt: c.createdAt
     })))
-  } catch (error: any) {
-    console.error('Error fetching collaborators:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/collaborators')
   }
 })
 
@@ -277,9 +273,8 @@ router.delete('/collaborators/:id', async (req: any, res) => {
     })
 
     return res.json({ success: true })
-  } catch (error: any) {
-    console.error('Error revoking collaboration:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/revoke')
   }
 })
 
@@ -317,9 +312,8 @@ router.get('/share-link', async (req: any, res) => {
       token: invitation ? invitation.token : null,
       expiresAt: invitation ? invitation.expiresAt : null
     })
-  } catch (error: any) {
-    console.error('Error fetching share link:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/share-link-get')
   }
 })
 
@@ -384,9 +378,8 @@ router.post('/share-link', async (req: any, res) => {
 
       return res.json({ success: true })
     }
-  } catch (error: any) {
-    console.error('Error toggling share link:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'collaboration/share-link-post')
   }
 })
 

@@ -237,7 +237,7 @@ Gesamten Stack lokal bauen und starten:
 
 Frontend: http://localhost · API: http://localhost/api/health · Demo: http://localhost/demo
 
-Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`) und `SESSION_SECRET`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`). Für Feedback `NTFY_*` setzen.
+Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`), `SESSION_SECRET` und für Docker Compose `POSTGRES_PASSWORD`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`). Für Feedback `NTFY_*` setzen.
 
 ## Deployment
 
@@ -249,12 +249,15 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
 Standard-Ziel: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
 
-Auf dem Server müssen `server/.env` (oder gleichwertige Umgebung) u. a. `DATABASE_URL`, `RP_ID`, `ORIGIN`, `SESSION_SECRET` (≥ 32 Zeichen) und bei Push `VAPID_*` enthalten. Optional `NTFY_*` für Feedback. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
+Auf dem Server müssen `.env` u. a. `POSTGRES_PASSWORD`, `RP_ID`, `ORIGIN` (`https://kapteins-daagbok.eu`), `SESSION_SECRET` (≥ 32 Zeichen), `TRUST_PROXY` (NPM, z. B. `172.16.10.10` oder `1`) und bei Push `VAPID_*` enthalten. Optional `NTFY_*` für Feedback. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
+
+Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deployment/npm-security.md).
 
 ## Dokumentation
 
 | Dokument | Inhalt |
 |----------|--------|
+| [docs/deployment/npm-security.md](docs/deployment/npm-security.md) | NPM, TLS, `trust proxy`, Security-Header |
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
 | [docs/plan-compass-course-dial.md](docs/plan-compass-course-dial.md) | Kompass-Dial: UX- und Implementierungsplan |
