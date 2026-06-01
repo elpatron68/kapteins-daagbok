@@ -91,5 +91,5 @@ void bootstrap().catch((err) => {
   renderBootstrapError(
     'Die App konnte nicht gestartet werden. Bitte neu laden oder die App vollständig beenden und erneut öffnen.',
   )
-  window.__KDB_APP_BOOTSTRAPPED = true
+  window.__KDB_APP_BOOTSTRAPPED = false
 })
