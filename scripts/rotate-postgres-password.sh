@@ -156,8 +156,8 @@ umask 077
 chmod 600 "$CREDS_FILE"
 echo "Credentials written to $CREDS_FILE (chmod 600)"
 
-echo "Restarting backend to pick up DATABASE_URL..."
-docker compose -f "$COMPOSE_FILE" up -d backend
+echo "Recreating backend (and db if compose env changed) to pick up DATABASE_URL..."
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate backend
 
 echo "Waiting for backend health..."
 for _ in $(seq 1 45); do
