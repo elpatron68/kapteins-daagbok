@@ -33,7 +33,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "vessel": "Vessel Profile",
-      "crew": "Crew List",
+      "crew": "Crew",
       "deviation": "Deviation Table",
       "logs": "Logbook Entries",
       "stats": "Statistics",
@@ -607,6 +607,41 @@
       "push_ios_install_hint": "On iPhone/iPad: add the app to your Home Screen (iOS 16.4+) to use push notifications.",
       "push_error": "Could not enable push notifications."
     },
+    "person_pool": {
+      "title": "Core crew & skippers",
+      "subtitle": "Maintain your person pool here — skippers and crew for all logbooks. Select active crew per logbook and travel day from this pool.",
+      "loading": "Loading person pool…",
+      "skippers_section": "Skippers",
+      "crew_section": "Core crew",
+      "add_skipper": "Add skipper",
+      "add_crew": "Add crew member",
+      "edit_skipper": "Edit skipper",
+      "no_skippers": "No skippers in the pool yet.",
+      "no_crew": "No crew members in the pool yet.",
+      "delete_confirm": "Remove this person from the pool?"
+    },
+    "logbook_crew": {
+      "title": "Crew for this logbook",
+      "subtitle": "Choose skipper and crew for this logbook. New travel days inherit this selection by default.",
+      "loading": "Loading crew…",
+      "active_skipper": "Skipper for this logbook",
+      "active_crew": "Crew for this logbook",
+      "no_skippers_in_pool": "No skipper in the pool — add one in your user profile first.",
+      "no_crew_in_pool": "No crew in the pool — add members in your user profile first.",
+      "no_skipper": "No skipper selected",
+      "unnamed": "Unnamed",
+      "save": "Save crew",
+      "saved": "Logbook crew saved.",
+      "selection_only_hint": "You see the crew set by the owner (shared logbook)."
+    },
+    "entry_crew": {
+      "title": "Crew on this travel day",
+      "subtitle": "May differ from the logbook default. Following days inherit from the previous day.",
+      "day_skipper": "Skipper on this day",
+      "day_crew": "Crew on this day",
+      "no_skipper": "No skipper selected",
+      "no_crew": "No crew selected"
+    },
     "crew": {
       "title": "Skipper & Crew Profiles",
       "skipper_section": "Skipper Profile",
@@ -869,9 +904,13 @@
           "title": "Vessel data",
           "body": "Enter your yacht's name, dimensions, and technical details – fill once, use on every travel day."
         },
-        "nav_crew": {
-          "title": "Crew list",
-          "body": "Manage crew members and assign them to travel days later."
+        "profile_crew_pool": {
+          "title": "Core crew & skippers",
+          "body": "In your user profile you maintain a person pool — multiple skippers (e.g. charter) and crew for all logbooks."
+        },
+        "nav_logbook_crew": {
+          "title": "Crew per logbook",
+          "body": "Pick skipper and crew from the pool for this logbook. Travel days inherit this selection by default."
         },
         "nav_stats": {
           "title": "Statistics dashboard",

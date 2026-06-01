@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import AccountDangerZone from './AccountDangerZone.tsx'
 import UserProfilePreferences from './UserProfilePreferences.tsx'
+import PersonPoolForm from './PersonPoolForm.tsx'
 import BetaBadge from './BetaBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import {
@@ -486,6 +487,8 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
 
             <UserProfilePreferences userId={profile.userId} />
             </div>
+
+            <PersonPoolForm />
 
             <section className="member-editor-card glass">
               <div className="profile-section-header">

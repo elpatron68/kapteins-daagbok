@@ -16,6 +16,7 @@ const PUBLIC_DEMO_ENTRY_IDS = [
   'a0000001-0000-4000-8000-000000000003'
 ] as const
 
+export const PUBLIC_DEMO_SKIPPER_ID = 'skipper'
 const PUBLIC_DEMO_CREW_MEMBER_ID = 'a0000001-0000-4000-8000-000000000010'
 
 export interface DemoDaySpec {
@@ -52,7 +53,14 @@ export interface DemoCrewRecord {
 export interface PublicDemoFixture {
   title: string
   yacht: Record<string, unknown>
+  /** @deprecated legacy share payload */
   crews: DemoCrewRecord[]
+  personPool: DemoCrewRecord[]
+  logbookCrewSelection: {
+    activeSkipperId: string
+    activeCrewIds: string[]
+    snapshotsById: Record<string, DemoCrewRecord['data'] & { id: string }>
+  }
   entries: Array<Record<string, unknown> & { payloadId: string }>
   gpsTracks: Array<{ entryId: string; waypoints: unknown[]; filename: string; gpxContent?: string; fileType: string }>
   photos: never[]
@@ -188,11 +196,15 @@ export function buildDemoYachtData(): Record<string, unknown> {
   }
 }
 
+export function buildDemoPersonPool(): DemoCrewRecord[] {
+  return buildDemoCrewRecords()
+}
+
 export function buildDemoCrewRecords(): DemoCrewRecord[] {
   const isDe = isGermanLocale(i18n.language)
   return [
     {
-      payloadId: 'skipper',
+      payloadId: PUBLIC_DEMO_SKIPPER_ID,
       data: {
         name: 'Demo Skipper',
         address: isDe ? 'Am Hafen 12, 24103 Kiel' : 'Harbour Quay 12, 24103 Kiel',
@@ -226,10 +238,26 @@ export function buildDemoCrewRecords(): DemoCrewRecord[] {
   ]
 }
 
+function buildDemoLogbookCrewSelection(pool: DemoCrewRecord[]) {
+  const skipper = pool.find((p) => p.data.role === 'skipper')
+  const crew = pool.filter((p) => p.data.role === 'crew')
+  const snapshotsById: Record<string, DemoCrewRecord['data'] & { id: string }> = {}
+  for (const p of pool) {
+    snapshotsById[p.payloadId] = { id: p.payloadId, ...p.data }
+  }
+  return {
+    activeSkipperId: skipper?.payloadId ?? PUBLIC_DEMO_SKIPPER_ID,
+    activeCrewIds: crew.map((c) => c.payloadId),
+    snapshotsById
+  }
+}
+
 export function buildPublicDemoFixture(): PublicDemoFixture {
   const title = i18n.t('demo.logbook_title')
   const yacht = buildDemoYachtData()
-  const crews = buildDemoCrewRecords()
+  const personPool = buildDemoPersonPool()
+  const crews = personPool
+  const logbookCrewSelection = buildDemoLogbookCrewSelection(personPool)
   const days = buildDemoDays()
   const entries: PublicDemoFixture['entries'] = []
   const gpsTracks: PublicDemoFixture['gpsTracks'] = []
@@ -247,6 +275,9 @@ export function buildPublicDemoFixture(): PublicDemoFixture {
       destination: day.destination,
       freshwater: { ...day.freshwater },
       fuel: { ...day.fuel },
+      selectedSkipperId: logbookCrewSelection.activeSkipperId,
+      selectedCrewIds: [...logbookCrewSelection.activeCrewIds],
+      crewSnapshotsById: { ...logbookCrewSelection.snapshotsById },
       signSkipper: '',
       signCrew: '',
       events: day.events
@@ -280,6 +311,8 @@ export function buildPublicDemoFixture(): PublicDemoFixture {
     title,
     yacht,
     crews,
+    personPool,
+    logbookCrewSelection,
     entries,
     gpsTracks,
     photos: [],
@@ -297,6 +330,7 @@ export function buildDemoEntryPayloads(): Array<{
   entryPayload: Record<string, unknown>
   trackData: { waypoints: unknown[]; gpxContent: string; filename: string; fileType: string }
 }> {
+  const logbookCrewSelection = buildDemoLogbookCrewSelection(buildDemoPersonPool())
   const days = buildDemoDays()
   return days.map((day) => {
     const entryId = crypto.randomUUID()
@@ -310,6 +344,9 @@ export function buildDemoEntryPayloads(): Array<{
       destination: day.destination,
       freshwater: { ...day.freshwater },
       fuel: { ...day.fuel },
+      selectedSkipperId: logbookCrewSelection.activeSkipperId,
+      selectedCrewIds: [...logbookCrewSelection.activeCrewIds],
+      crewSnapshotsById: { ...logbookCrewSelection.snapshotsById },
       signSkipper: '',
       signCrew: '',
       events: day.events

@@ -277,6 +277,12 @@ export default function LogEntriesList({
       const nowStr = new Date().toISOString()
       const todayStr = nowStr.substring(0, 10)
 
+      const { loadDefaultEntryCrewForNewDay } = await import('./EntryCrewSection.js')
+      const entryCrew = await loadDefaultEntryCrewForNewDay(
+        logbookId,
+        previousEntry as Record<string, unknown> | null
+      )
+
       const initialPayload = {
         date: todayStr,
         dayOfTravel: getNextTravelDayNumber(decryptedEntries),
@@ -285,6 +291,9 @@ export default function LogEntriesList({
         freshwater,
         fuel,
         ...(greywaterLevel > 0 ? { greywater: { level: greywaterLevel } } : {}),
+        selectedSkipperId: entryCrew.selectedSkipperId,
+        selectedCrewIds: entryCrew.selectedCrewIds,
+        crewSnapshotsById: entryCrew.crewSnapshotsById,
         signSkipper: '',
         signCrew: '',
         events: []

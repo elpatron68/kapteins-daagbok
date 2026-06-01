@@ -33,7 +33,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "vessel": "Schiffsdaten",
-      "crew": "Crew-Liste",
+      "crew": "Mannschaft",
       "deviation": "Ablenkungstabelle",
       "logs": "Logbucheinträge",
       "stats": "Statistik",
@@ -607,6 +607,41 @@
       "push_ios_install_hint": "Auf dem iPhone/iPad: App zum Home-Bildschirm hinzufügen (iOS 16.4+), um Push zu nutzen.",
       "push_error": "Push-Benachrichtigungen konnten nicht aktiviert werden."
     },
+    "person_pool": {
+      "title": "Stammcrew & Skipper",
+      "subtitle": "Lege hier deinen Personen-Pool an – Skipper und Crew für alle Logbücher. Aus diesem Pool wählst du pro Logbuch und Reisetag die aktive Mannschaft.",
+      "loading": "Personen-Pool wird geladen…",
+      "skippers_section": "Stammskipper",
+      "crew_section": "Stammcrew",
+      "add_skipper": "Skipper hinzufügen",
+      "add_crew": "Crew-Mitglied hinzufügen",
+      "edit_skipper": "Skipper bearbeiten",
+      "no_skippers": "Noch kein Skipper im Pool.",
+      "no_crew": "Noch keine Crew-Mitglieder im Pool.",
+      "delete_confirm": "Diese Person wirklich aus dem Pool entfernen?"
+    },
+    "logbook_crew": {
+      "title": "Mannschaft für dieses Logbuch",
+      "subtitle": "Wähle Skipper und Crew für dieses Logbuch. Neue Reisetage übernehmen diese Auswahl standardmäßig.",
+      "loading": "Mannschaft wird geladen…",
+      "active_skipper": "Skipper für dieses Logbuch",
+      "active_crew": "Crew für dieses Logbuch",
+      "no_skippers_in_pool": "Kein Skipper im Pool – zuerst im Benutzerprofil anlegen.",
+      "no_crew_in_pool": "Keine Crew im Pool – zuerst im Benutzerprofil anlegen.",
+      "no_skipper": "Kein Skipper gewählt",
+      "unnamed": "Unbenannt",
+      "save": "Mannschaft speichern",
+      "saved": "Mannschaft für das Logbuch gespeichert.",
+      "selection_only_hint": "Du siehst die vom Eigner festgelegte Mannschaft (geteiltes Logbuch)."
+    },
+    "entry_crew": {
+      "title": "Mannschaft an diesem Reisetag",
+      "subtitle": "Kann vom Logbuch-Standard abweichen. Folge-Reisetage übernehmen den Vortag.",
+      "day_skipper": "Skipper an diesem Tag",
+      "day_crew": "Crew an diesem Tag",
+      "no_skipper": "Kein Skipper gewählt",
+      "no_crew": "Keine Crew gewählt"
+    },
     "crew": {
       "title": "Skipper- & Crew-Profile",
       "skipper_section": "Skipper-Profil",
@@ -847,7 +882,7 @@
         },
         "welcome_public": {
           "title": "Willkommen an Bord!",
-          "body": "Erkunde unser Demo-Logbuch mit drei Reisetagen in der Kieler Förde – ganz ohne Account. Diese kurze Tour zeigt dir Schiffsdaten, Crew und Logbucheinträge."
+          "body": "Erkunde unser Demo-Logbuch mit drei Reisetagen in der Kieler Förde – ganz ohne Account. Diese Tour zeigt dir Schiffsdaten, Mannschaftsauswahl und Logbucheinträge. Die Stammcrew pflegst du später im Benutzerprofil."
         },
         "nav_logs": {
           "title": "Logbucheinträge",
@@ -869,9 +904,13 @@
           "title": "Schiffsdaten",
           "body": "Hinterlege Name, Maße und technische Daten deiner Yacht – einmal ausfüllen, für alle Reisetage verfügbar."
         },
-        "nav_crew": {
-          "title": "Crew-Liste",
-          "body": "Verwalte Besatzungsmitglieder und weise sie später Reisetagen zu."
+        "profile_crew_pool": {
+          "title": "Stammcrew & Skipper",
+          "body": "Im Benutzerprofil pflegst du deinen Personen-Pool – mehrere Skipper (z. B. Charter) und Crew-Mitglieder für alle Logbücher."
+        },
+        "nav_logbook_crew": {
+          "title": "Mannschaft pro Logbuch",
+          "body": "Wähle aus dem Pool, wer auf diesem Logbuch als Skipper und Crew gilt. Reisetage übernehmen diese Auswahl standardmäßig."
         },
         "nav_stats": {
           "title": "Statistik-Dashboard",

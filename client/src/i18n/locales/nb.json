@@ -607,6 +607,41 @@
       "push_ios_install_hint": "På iPhone/iPad: Legg til app på startskjermen (iOS 16.4+) for å bruke push.",
       "push_error": "Push-varsler kunne ikke aktiveres."
     },
+    "person_pool": {
+      "title": "Stammmannskap og skippere",
+      "subtitle": "Hold personpoolen din her – skippere og mannskap for alle loggbøker. Velg aktivt mannskap per loggbok og reisedag fra poolen.",
+      "loading": "Laster personpool…",
+      "skippers_section": "Skippere",
+      "crew_section": "Stammmannskap",
+      "add_skipper": "Legg til skipper",
+      "add_crew": "Legg til mannskapsmedlem",
+      "edit_skipper": "Rediger skipper",
+      "no_skippers": "Ingen skipper i poolen ennå.",
+      "no_crew": "Ingen mannskapsmedlemmer i poolen ennå.",
+      "delete_confirm": "Fjerne denne personen fra poolen?"
+    },
+    "logbook_crew": {
+      "title": "Mannskap for denne loggboken",
+      "subtitle": "Velg skipper og mannskap for denne loggboken. Nye reisedager arver valget som standard.",
+      "loading": "Laster mannskap…",
+      "active_skipper": "Skipper for denne loggboken",
+      "active_crew": "Mannskap for denne loggboken",
+      "no_skippers_in_pool": "Ingen skipper i poolen – legg til i brukerprofilen først.",
+      "no_crew_in_pool": "Ingen mannskap i poolen – legg til i brukerprofilen først.",
+      "no_skipper": "Ingen skipper valgt",
+      "unnamed": "Uten navn",
+      "save": "Lagre mannskap",
+      "saved": "Loggbokmannskap lagret.",
+      "selection_only_hint": "Du ser mannskapet eieren har valgt (delt loggbok)."
+    },
+    "entry_crew": {
+      "title": "Mannskap på denne reisedagen",
+      "subtitle": "Kan avvike fra loggbokstandard. Følgende dager arver fra forrige dag.",
+      "day_skipper": "Skipper denne dagen",
+      "day_crew": "Mannskap denne dagen",
+      "no_skipper": "Ingen skipper valgt",
+      "no_crew": "Ingen mannskap valgt"
+    },
     "crew": {
       "title": "Skipper- og mannskapsprofiler",
       "skipper_section": "Skipperprofil",
@@ -869,9 +904,13 @@
           "title": "Skipsdata",
           "body": "Skriv inn navn, dimensjoner og tekniske data for båten din - fyll inn én gang, tilgjengelig for alle reisedager."
         },
-        "nav_crew": {
-          "title": "Mannskapsliste",
-          "body": "Administrer mannskapet og tilordne dem til reisedager senere."
+        "profile_crew_pool": {
+          "title": "Stammmannskap og skippere",
+          "body": "I brukerprofilen vedlikeholder du en personpool – flere skippere (f.eks. charter) og mannskap for alle loggbøker."
+        },
+        "nav_logbook_crew": {
+          "title": "Mannskap per loggbok",
+          "body": "Velg skipper og mannskap fra poolen for denne loggboken. Reisedager arver valget som standard."
         },
         "nav_stats": {
           "title": "Dashbord for statistikk",

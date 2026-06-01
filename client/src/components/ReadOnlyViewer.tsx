@@ -4,7 +4,11 @@ import { cycleAppLanguage, getNextLanguage, isGermanLocale } from '../utils/i18n
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import VesselForm from './VesselForm.tsx'
-import CrewForm from './CrewForm.tsx'
+import LogbookCrewPicker from './LogbookCrewPicker.tsx'
+import type { LogbookCrewSelectionData } from '../types/person.js'
+import { emptyLogbookCrewSelection } from '../types/person.js'
+import { personToSnapshot } from '../utils/personSnapshots.js'
+import type { PersonData } from '../types/person.js'
 import LogEntriesList from './LogEntriesList.tsx'
 import { Ship, Users, FileText, Lock, AlertCircle, Globe } from 'lucide-react'
 
@@ -31,7 +35,10 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
   // Logbook data states
   const [logbookTitle, setLogbookTitle] = useState('Logbook')
   const [yacht, setYacht] = useState<any>(null)
-  const [crews, setCrews] = useState<any[]>([])
+  const [logbookCrewSelection, setLogbookCrewSelection] = useState<LogbookCrewSelectionData>(
+    emptyLogbookCrewSelection()
+  )
+  const [legacyCrews, setLegacyCrews] = useState<any[]>([])
   const [entries, setEntries] = useState<any[]>([])
   const [photos, setPhotos] = useState<any[]>([])
   const [gpsTracks, setGpsTracks] = useState<any[]>([])
@@ -71,18 +78,53 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
       }
       setYacht(decYacht)
 
-      // Decrypt Crews
-      const decCrews = []
-      if (data.crews) {
-        for (const c of data.crews) {
-          const dec = await decryptJson(c.encryptedData, c.iv, c.tag, keyBuffer)
-          decCrews.push({
-            payloadId: c.payloadId,
-            data: dec
+      if (data.logbookCrewSelection) {
+        const decSel = await decryptJson(
+          data.logbookCrewSelection.encryptedData,
+          data.logbookCrewSelection.iv,
+          data.logbookCrewSelection.tag,
+          keyBuffer
+        )
+        if (decSel) {
+          setLogbookCrewSelection({
+            activeSkipperId: decSel.activeSkipperId ?? null,
+            activeCrewIds: Array.isArray(decSel.activeCrewIds) ? decSel.activeCrewIds : [],
+            snapshotsById:
+              decSel.snapshotsById && typeof decSel.snapshotsById === 'object'
+                ? decSel.snapshotsById
+                : {}
           })
         }
       }
-      setCrews(decCrews)
+
+      const decCrews: Array<{ payloadId: string; data: PersonData }> = []
+      if (data.crews) {
+        for (const c of data.crews) {
+          const dec = await decryptJson(c.encryptedData, c.iv, c.tag, keyBuffer)
+          if (dec) {
+            decCrews.push({
+              payloadId: c.payloadId,
+              data: dec as PersonData
+            })
+          }
+        }
+      }
+      setLegacyCrews(decCrews)
+
+      if (!data.logbookCrewSelection && decCrews.length > 0) {
+        const snapshotsById: LogbookCrewSelectionData['snapshotsById'] = {}
+        let activeSkipperId: string | null = null
+        const activeCrewIds: string[] = []
+        for (const c of decCrews) {
+          snapshotsById[c.payloadId] = personToSnapshot(c.payloadId, c.data)
+          if (c.payloadId === 'skipper' || c.data.role === 'skipper') {
+            activeSkipperId = c.payloadId
+          } else {
+            activeCrewIds.push(c.payloadId)
+          }
+        }
+        setLogbookCrewSelection({ activeSkipperId, activeCrewIds, snapshotsById })
+      }
 
       // Decrypt Entries
       const decEntries = []
@@ -234,10 +276,12 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
           )}
 
           {activeTab === 'crew' && (
-            <CrewForm
+            <LogbookCrewPicker
               logbookId="shared"
               readOnly={true}
-              preloadedData={crews}
+              selectionOnly={true}
+              preloadedPool={legacyCrews.length > 0 ? legacyCrews : undefined}
+              preloadedSelection={logbookCrewSelection}
             />
           )}
         </main>

@@ -607,6 +607,41 @@
       "push_ios_install_hint": "På iPhone/iPad: Føj app til startskærmen (iOS 16.4+) for at bruge push.",
       "push_error": "Push-meddelelser kunne ikke aktiveres."
     },
+    "person_pool": {
+      "title": "Stambesætning og skippere",
+      "subtitle": "Administrer din personpulje her – skippere og besætning til alle logbøger. Vælg aktiv besætning per logbog og rejsedag fra puljen.",
+      "loading": "Indlæser personpulje…",
+      "skippers_section": "Skippere",
+      "crew_section": "Stambesætning",
+      "add_skipper": "Tilføj skipper",
+      "add_crew": "Tilføj besætningsmedlem",
+      "edit_skipper": "Rediger skipper",
+      "no_skippers": "Ingen skipper i puljen endnu.",
+      "no_crew": "Ingen besætningsmedlemmer i puljen endnu.",
+      "delete_confirm": "Fjern denne person fra puljen?"
+    },
+    "logbook_crew": {
+      "title": "Besætning for denne logbog",
+      "subtitle": "Vælg skipper og besætning for denne logbog. Nye rejsedage arver valget som standard.",
+      "loading": "Indlæser besætning…",
+      "active_skipper": "Skipper for denne logbog",
+      "active_crew": "Besætning for denne logbog",
+      "no_skippers_in_pool": "Ingen skipper i puljen – tilføj i brugerprofilen først.",
+      "no_crew_in_pool": "Ingen besætning i puljen – tilføj i brugerprofilen først.",
+      "no_skipper": "Ingen skipper valgt",
+      "unnamed": "Uden navn",
+      "save": "Gem besætning",
+      "saved": "Logbogbesætning gemt.",
+      "selection_only_hint": "Du ser den besætning ejeren har valgt (delt logbog)."
+    },
+    "entry_crew": {
+      "title": "Besætning på denne rejsedag",
+      "subtitle": "Kan afvige fra logbogstandard. Følgende dage arver fra foregående dag.",
+      "day_skipper": "Skipper denne dag",
+      "day_crew": "Besætning denne dag",
+      "no_skipper": "Ingen skipper valgt",
+      "no_crew": "Ingen besætning valgt"
+    },
     "crew": {
       "title": "Skipper- og besætningsprofiler",
       "skipper_section": "Skipper-profil",
@@ -869,9 +904,13 @@
           "title": "Skibsdata",
           "body": "Indtast navn, dimensioner og tekniske data for din yacht - udfyld én gang, tilgængelig for alle rejsedage."
         },
-        "nav_crew": {
-          "title": "Besætningsliste",
-          "body": "Administrer besætningsmedlemmer og tildel dem rejsedage senere."
+        "profile_crew_pool": {
+          "title": "Stambesætning og skippere",
+          "body": "I brugerprofilen vedligeholder du en personpulje – flere skippere (f.eks. charter) og besætning til alle logbøger."
+        },
+        "nav_logbook_crew": {
+          "title": "Besætning per logbog",
+          "body": "Vælg skipper og besætning fra puljen til denne logbog. Rejsedage arver valget som standard."
         },
         "nav_stats": {
           "title": "Statistik-dashboard",

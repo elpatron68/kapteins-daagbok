@@ -11,6 +11,9 @@ import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import SignatureSection from './SignatureSection.tsx'
+import EntryCrewSection from './EntryCrewSection.tsx'
+import { emptyEntryCrewFields, type EntryCrewFields } from '../types/person.js'
+import { entryCrewFromPreviousEntry } from '../utils/personSnapshots.js'
 import TrackMap from './TrackMap.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import {
@@ -108,7 +111,8 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
       motorHoursRaw != null && motorHoursRaw !== ''
         ? parseFloat(String(motorHoursRaw))
         : undefined,
-    events: (decrypted.events as LogEventPayload[]) || []
+    events: (decrypted.events as LogEventPayload[]) || [],
+    entryCrew: entryCrewFromPreviousEntry(decrypted as Record<string, unknown>)
   })
 
   return JSON.stringify({
@@ -167,6 +171,8 @@ export default function LogEntryEditor({
 
   const [greywaterLevel, setGreywaterLevel] = useState('0')
   const [tankCapacities, setTankCapacities] = useState<VesselTankCapacities>({})
+
+  const [entryCrew, setEntryCrew] = useState<EntryCrewFields>(emptyEntryCrewFields())
 
   // Signatures
   const [signSkipper, setSignSkipper] = useState<SignatureValue | ''>('')
@@ -279,7 +285,8 @@ export default function LogEntryEditor({
       trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
       trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
       motorHours: motorHours.trim() ? parseFloat(motorHours) : undefined,
-      events: eventsOverride ?? events
+      events: eventsOverride ?? events,
+      entryCrew
     })
   }, [
     date, dayOfTravel, departure, destination,
@@ -287,7 +294,8 @@ export default function LogEntryEditor({
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
     greywaterLevel,
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
-    events
+    events,
+    entryCrew
   ])
 
   useEffect(() => {
@@ -706,6 +714,7 @@ export default function LogEntryEditor({
 
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
+          setEntryCrew(entryCrewFromPreviousEntry(preloadedEntry as Record<string, unknown>))
           loadTrackStatsFromEntry(preloadedEntry)
           setEvents(sortLogEventsByTime((preloadedEntry.events || []).map(normalizeLogEvent)))
           setSavedFingerprint(fingerprintFromStoredEntry(preloadedEntry))
@@ -744,6 +753,7 @@ export default function LogEntryEditor({
 
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
+            setEntryCrew(entryCrewFromPreviousEntry(decrypted as Record<string, unknown>))
             loadTrackStatsFromEntry(decrypted)
             setEvents(sortLogEventsByTime((decrypted.events || []).map(normalizeLogEvent)))
             setSavedFingerprint(fingerprintFromStoredEntry(decrypted))
@@ -2031,6 +2041,13 @@ export default function LogEntryEditor({
         </div>
 
         <PhotoCapture entryId={entryId} logbookId={logbookId} readOnly={readOnly} preloadedPhotos={preloadedPhotos} />
+
+        <EntryCrewSection
+          logbookId={logbookId}
+          readOnly={readOnly}
+          value={entryCrew}
+          onChange={setEntryCrew}
+        />
 
         <SignatureSection
           readOnly={readOnly}

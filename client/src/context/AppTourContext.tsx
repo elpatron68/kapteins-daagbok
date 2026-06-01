@@ -26,7 +26,8 @@ export type TourStepId =
   | 'entry_open'
   | 'entry_track'
   | 'nav_vessel'
-  | 'nav_crew'
+  | 'profile_crew_pool'
+  | 'nav_logbook_crew'
   | 'nav_stats'
   | 'nav_feedback'
   | 'nav_profile'
@@ -71,7 +72,8 @@ export const FULL_STEP_ORDER: TourStepId[] = [
   'entry_open',
   'entry_track',
   'nav_vessel',
-  'nav_crew',
+  'profile_crew_pool',
+  'nav_logbook_crew',
   'nav_stats',
   'nav_feedback',
   'nav_profile',
@@ -81,6 +83,7 @@ export const FULL_STEP_ORDER: TourStepId[] = [
 
 /** Public demo has no stats/feedback/profile UI — skip those steps. */
 export const DEMO_EXCLUDED_STEPS: TourStepId[] = [
+  'profile_crew_pool',
   'nav_stats',
   'nav_feedback',
   'nav_profile',
@@ -97,7 +100,7 @@ const LOGBOOK_TOUR_STEPS = new Set<TourStepId>([
   'entry_open',
   'entry_track',
   'nav_vessel',
-  'nav_crew',
+  'nav_logbook_crew',
   'nav_stats',
   'nav_feedback'
 ])
@@ -112,7 +115,8 @@ const TARGET_BY_STEP: Partial<Record<TourStepId, string>> = {
   entry_open: '[data-tour="entry-first"]',
   entry_track: '[data-tour="entry-track"]',
   nav_vessel: '[data-tour="nav-vessel"]',
-  nav_crew: '[data-tour="nav-crew"]',
+  profile_crew_pool: '[data-tour="profile-crew-pool"]',
+  nav_logbook_crew: '[data-tour="nav-logbook-crew"]',
   nav_stats: '[data-tour="stats-dashboard"]',
   nav_feedback: '[data-tour="feedback-form"]',
   nav_profile: '[data-tour="nav-profile"]',
@@ -127,7 +131,9 @@ export function tourStepOpensEntry(stepId: TourStepId): boolean {
 export function getTourTargetDelay(stepId: TourStepId): number {
   if (stepId === 'entry_track') return 400
   if (stepId === 'nav_feedback') return 180
-  if (stepId === 'nav_profile' || stepId === 'profile_preferences') return 250
+  if (stepId === 'nav_profile' || stepId === 'profile_preferences' || stepId === 'profile_crew_pool') {
+    return 250
+  }
   return 0
 }
 
@@ -183,8 +189,15 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       nav.setSelectedEntryId(null)
       nav.setActiveTab('vessel')
     }
-    if (stepId === 'nav_crew') {
+    if (stepId === 'profile_crew_pool') {
       nav.setSelectedEntryId(null)
+      nav.setLogbookActive(false)
+      nav.setProfileOpen(true)
+    }
+    if (stepId === 'nav_logbook_crew') {
+      nav.setSelectedEntryId(null)
+      nav.setProfileOpen(false)
+      nav.setLogbookActive(true)
       nav.setActiveTab('crew')
     }
     if (stepId === 'nav_stats') {

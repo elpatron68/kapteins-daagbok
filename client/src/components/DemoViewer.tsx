@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
 import VesselForm from './VesselForm.tsx'
-import CrewForm from './CrewForm.tsx'
+import LogbookCrewPicker from './LogbookCrewPicker.tsx'
+import type { LogbookCrewSelectionData } from '../types/person.js'
+import { personToSnapshot } from '../utils/personSnapshots.js'
 import LogEntriesList from './LogEntriesList.tsx'
 import { Ship, Users, FileText, Lock, Globe, ChevronLeft, UserPlus } from 'lucide-react'
 import { buildPublicDemoFixture, type PublicDemoFixture } from '../services/demoLogbookData.js'
@@ -52,7 +54,19 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
     cycleAppLanguage(i18n)
   }
 
-  const { title, yacht, crews, entries, gpsTracks, photos, firstEntryId } = fixture
+  const { title, yacht, personPool, logbookCrewSelection, entries, gpsTracks, photos, firstEntryId } =
+    fixture
+
+  const demoSelection: LogbookCrewSelectionData = {
+    activeSkipperId: logbookCrewSelection.activeSkipperId,
+    activeCrewIds: logbookCrewSelection.activeCrewIds,
+    snapshotsById: Object.fromEntries(
+      Object.entries(logbookCrewSelection.snapshotsById).map(([id, snap]) => [
+        id,
+        personToSnapshot(id, snap)
+      ])
+    )
+  }
 
   return (
     <div className="app-layout">
@@ -115,7 +129,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
           <button
             className={`sidebar-btn ${activeTab === 'crew' ? 'active' : ''}`}
             onClick={() => setActiveTab('crew')}
-            data-tour="nav-crew"
+            data-tour="nav-logbook-crew"
           >
             <Users size={18} />
             {t('nav.crew')}
@@ -142,7 +156,12 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
           )}
 
           {activeTab === 'crew' && (
-            <CrewForm logbookId="demo" readOnly={true} preloadedData={crews} />
+            <LogbookCrewPicker
+              logbookId="demo"
+              readOnly={true}
+              preloadedPool={personPool}
+              preloadedSelection={demoSelection}
+            />
           )}
         </main>
       </div>

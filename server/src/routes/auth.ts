@@ -504,6 +504,75 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
   }
 })
 
+router.get('/person-pool', requireUser, async (req: any, res) => {
+  try {
+    const persons = await prisma.personPayload.findMany({
+      where: { userId: req.userId }
+    })
+    return res.json({ persons })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/person-pool-get')
+  }
+})
+
+router.post('/person-pool/push', requireUser, async (req: any, res) => {
+  try {
+    const { items } = req.body
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: 'items array is required' })
+    }
+
+    const results: Array<{ payloadId: string; status: string; error?: string; reason?: string }> = []
+
+    for (const item of items) {
+      const { action, payloadId, data, updatedAt } = item
+      const itemUpdatedAt = new Date(updatedAt)
+
+      try {
+        if (action === 'delete') {
+          await prisma.personPayload.deleteMany({
+            where: { userId: req.userId, payloadId }
+          })
+          results.push({ payloadId, status: 'success' })
+          continue
+        }
+
+        const parsed = JSON.parse(data)
+        const encryptedData = parsed.encryptedData || parsed.ciphertext
+        const { iv, tag } = parsed
+
+        const existing = await prisma.personPayload.findUnique({
+          where: { userId_payloadId: { userId: req.userId, payloadId } }
+        })
+        if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+          results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+          continue
+        }
+
+        await prisma.personPayload.upsert({
+          where: { userId_payloadId: { userId: req.userId, payloadId } },
+          create: {
+            userId: req.userId,
+            payloadId,
+            encryptedData,
+            iv,
+            tag,
+            updatedAt: itemUpdatedAt
+          },
+          update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+        })
+        results.push({ payloadId, status: 'success' })
+      } catch (err: any) {
+        results.push({ payloadId, status: 'error', error: err.message || 'Operation failed' })
+      }
+    }
+
+    return res.json({ results })
+  } catch (error: unknown) {
+    return sendInternalError(res, error, 'auth/person-pool-push')
+  }
+})
+
 router.get('/profile', requireUser, async (req: any, res) => {
   try {
     const user = await prisma.user.findUnique({

@@ -145,6 +145,8 @@ router.post('/push', async (req: any, res) => {
             await prisma.photoPayload.deleteMany({ where: { logbookId, payloadId } })
           } else if (type === 'gpsTrack') {
             await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
+          } else if (type === 'logbookCrew') {
+            await prisma.logbookCrewSelectionPayload.deleteMany({ where: { logbookId } })
           } else {
             results.push({ payloadId, status: 'error', error: `Unsupported delete type: ${type}` })
             continue
@@ -245,6 +247,19 @@ router.post('/push', async (req: any, res) => {
               update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
             })
           }
+        } else if (type === 'logbookCrew') {
+          {
+            const existing = await prisma.logbookCrewSelectionPayload.findUnique({ where: { logbookId } })
+            if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+              results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+              continue
+            }
+            await prisma.logbookCrewSelectionPayload.upsert({
+              where: { logbookId },
+              create: { logbookId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
+              update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+            })
+          }
         }
 
         recordCollaboratorChange(
@@ -310,11 +325,15 @@ router.get('/pull', async (req: any, res) => {
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
+    const logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
+      where: { logbookId }
+    })
 
     return res.json({
       yacht,
       deviation,
       crews,
+      logbookCrewSelection,
       entries,
       photos,
       gpsTracks

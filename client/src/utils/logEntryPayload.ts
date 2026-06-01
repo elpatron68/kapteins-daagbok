@@ -2,6 +2,7 @@ import {
   normalizeCourseAngleString,
   normalizeWindDirectionString
 } from './courseAngle.js'
+import type { EntryCrewFields } from '../types/person.js'
 
 export interface LogEventPayload {
   time: string
@@ -150,6 +151,7 @@ export interface LogEntryPayloadInput {
   trackSpeedAvgKn?: number
   motorHours?: number
   events: LogEventPayload[]
+  entryCrew?: EntryCrewFields
 }
 
 export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string, unknown> {
@@ -175,6 +177,12 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
     if (level > 0) {
       payload.greywater = { level: Number(level.toFixed(1)) }
     }
+  }
+
+  if (input.entryCrew) {
+    payload.selectedSkipperId = input.entryCrew.selectedSkipperId
+    payload.selectedCrewIds = [...input.entryCrew.selectedCrewIds]
+    payload.crewSnapshotsById = { ...input.entryCrew.crewSnapshotsById }
   }
 
   return payload

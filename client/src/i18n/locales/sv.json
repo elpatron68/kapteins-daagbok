@@ -607,6 +607,41 @@
       "push_ios_install_hint": "På iPhone/iPad: Lägg till app på startskärmen (iOS 16.4+) för att använda push.",
       "push_error": "Push-meddelanden kunde inte aktiveras."
     },
+    "person_pool": {
+      "title": "Stambesättning och skeppare",
+      "subtitle": "Underhåll din personpool här – skeppare och besättning för alla loggböcker. Välj aktiv besättning per loggbok och resdag från poolen.",
+      "loading": "Laddar personpool…",
+      "skippers_section": "Skeppare",
+      "crew_section": "Stambesättning",
+      "add_skipper": "Lägg till skeppare",
+      "add_crew": "Lägg till besättningsmedlem",
+      "edit_skipper": "Redigera skeppare",
+      "no_skippers": "Ingen skeppare i poolen ännu.",
+      "no_crew": "Inga besättningsmedlemmar i poolen ännu.",
+      "delete_confirm": "Ta bort denna person från poolen?"
+    },
+    "logbook_crew": {
+      "title": "Besättning för denna loggbok",
+      "subtitle": "Välj skeppare och besättning för denna loggbok. Nya resdagar ärver valet som standard.",
+      "loading": "Laddar besättning…",
+      "active_skipper": "Skeppare för denna loggbok",
+      "active_crew": "Besättning för denna loggbok",
+      "no_skippers_in_pool": "Ingen skeppare i poolen – lägg till i användarprofilen först.",
+      "no_crew_in_pool": "Ingen besättning i poolen – lägg till i användarprofilen först.",
+      "no_skipper": "Ingen skeppare vald",
+      "unnamed": "Namnlös",
+      "save": "Spara besättning",
+      "saved": "Loggbokbesättning sparad.",
+      "selection_only_hint": "Du ser den besättning ägaren valt (delad loggbok)."
+    },
+    "entry_crew": {
+      "title": "Besättning denna resdag",
+      "subtitle": "Kan skilja sig från loggboksstandard. Följande dagar ärver från föregående dag.",
+      "day_skipper": "Skeppare denna dag",
+      "day_crew": "Besättning denna dag",
+      "no_skipper": "Ingen skeppare vald",
+      "no_crew": "Ingen besättning vald"
+    },
     "crew": {
       "title": "Profiler för skeppare och besättning",
       "skipper_section": "Skepparens profil",
@@ -869,9 +904,13 @@
           "title": "Fartygsdata",
           "body": "Ange namn, dimensioner och tekniska data för din yacht - fyll i en gång, tillgänglig för alla resdagar."
         },
-        "nav_crew": {
-          "title": "Besättningslista",
-          "body": "Hantera besättningsmedlemmar och tilldela dem resdagar senare."
+        "profile_crew_pool": {
+          "title": "Stambesättning och skeppare",
+          "body": "I användarprofilen underhåller du en personpool – flera skeppare (t.ex. charter) och besättning för alla loggböcker."
+        },
+        "nav_logbook_crew": {
+          "title": "Besättning per loggbok",
+          "body": "Välj skeppare och besättning från poolen för denna loggbok. Resdagar ärver valet som standard."
         },
         "nav_stats": {
           "title": "Kontrollpanel för statistik",

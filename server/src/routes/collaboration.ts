@@ -77,6 +77,9 @@ router.get('/share-pull', async (req: any, res) => {
     const yacht = await prisma.yachtPayload.findUnique({ where: { logbookId } })
     const deviation = await prisma.deviationPayload.findUnique({ where: { logbookId } })
     const crews = await prisma.crewPayload.findMany({ where: { logbookId } })
+    const logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
+      where: { logbookId }
+    })
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
@@ -86,6 +89,7 @@ router.get('/share-pull', async (req: any, res) => {
       yacht,
       deviation,
       crews,
+      logbookCrewSelection,
       entries,
       photos,
       gpsTracks

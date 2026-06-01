@@ -4,9 +4,12 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { encryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
+import { syncPersonPool } from './personPoolSync.js'
 import i18n from '../i18n/index.js'
+import type { PersonData } from '../types/person.js'
+import { buildLogbookCrewSelection } from '../utils/personSnapshots.js'
 import {
-  buildDemoCrewRecords,
+  buildDemoPersonPool,
   buildDemoEntryPayloads,
   buildDemoYachtData
 } from './demoLogbookData.js'
@@ -24,7 +27,7 @@ export function getDemoFirstEntryStorageKey(userId: string): string {
 async function putEncryptedRecord(
   logbookId: string,
   key: ArrayBuffer,
-  type: 'entry' | 'crew' | 'yacht' | 'gpsTrack',
+  type: 'entry' | 'yacht' | 'gpsTrack' | 'logbookCrew',
   payloadId: string,
   data: unknown,
   now: string
@@ -33,15 +36,6 @@ async function putEncryptedRecord(
 
   if (type === 'entry') {
     await db.entries.put({
-      payloadId,
-      logbookId,
-      encryptedData: encrypted.ciphertext,
-      iv: encrypted.iv,
-      tag: encrypted.tag,
-      updatedAt: now
-    })
-  } else if (type === 'crew') {
-    await db.crews.put({
       payloadId,
       logbookId,
       encryptedData: encrypted.ciphertext,
@@ -66,25 +60,62 @@ async function putEncryptedRecord(
       tag: encrypted.tag,
       updatedAt: now
     })
+  } else if (type === 'logbookCrew') {
+    await db.logbookCrewSelections.put({
+      logbookId,
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      updatedAt: now
+    })
   }
 
   await db.syncQueue.put({
-    action: type === 'yacht' ? 'update' : 'create',
+    action: type === 'yacht' || type === 'logbookCrew' ? 'update' : 'create',
     type,
-    payloadId: type === 'yacht' ? logbookId : payloadId,
+    payloadId: type === 'yacht' || type === 'logbookCrew' ? logbookId : payloadId,
     logbookId,
     data: JSON.stringify(encrypted),
     updatedAt: now
   })
 }
 
+async function seedPersonPool(masterKey: ArrayBuffer, now: string): Promise<Map<string, PersonData>> {
+  const poolMap = new Map<string, PersonData>()
+  for (const person of buildDemoPersonPool()) {
+    poolMap.set(person.payloadId, person.data)
+    const encrypted = await encryptJson(person.data, masterKey)
+    await db.personPool.put({
+      payloadId: person.payloadId,
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      updatedAt: now
+    })
+    await db.userSyncQueue.put({
+      action: 'create',
+      type: 'person',
+      payloadId: person.payloadId,
+      data: JSON.stringify(encrypted),
+      updatedAt: now
+    })
+  }
+  syncPersonPool().catch((err) => console.warn('Demo person pool sync failed:', err))
+  return poolMap
+}
+
 async function seedYachtAndCrew(logbookId: string, key: ArrayBuffer, now: string): Promise<void> {
+  const masterKey = getActiveMasterKey()
+  if (!masterKey) throw new Error('Encryption key not available')
+
   const yachtData = buildDemoYachtData()
   await putEncryptedRecord(logbookId, key, 'yacht', logbookId, yachtData, now)
 
-  for (const crew of buildDemoCrewRecords()) {
-    await putEncryptedRecord(logbookId, key, 'crew', crew.payloadId, crew.data, now)
-  }
+  const poolMap = await seedPersonPool(masterKey, now)
+  const skipperId = [...poolMap.entries()].find(([, d]) => d.role === 'skipper')?.[0] ?? null
+  const crewIds = [...poolMap.entries()].filter(([, d]) => d.role === 'crew').map(([id]) => id)
+  const selection = buildLogbookCrewSelection(skipperId, crewIds, poolMap)
+  await putEncryptedRecord(logbookId, key, 'logbookCrew', logbookId, selection, now)
 }
 
 export interface DemoSeedResult {

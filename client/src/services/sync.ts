@@ -7,6 +7,7 @@ import {
   reportSyncConflict,
   type SyncConflict
 } from './syncConflicts.js'
+import { syncPersonPool } from './personPoolSync.js'
 
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
@@ -61,6 +62,8 @@ async function entityExistsLocally(item: SyncQueueItem): Promise<boolean> {
       return !!(await db.photos.get(item.payloadId))
     case 'gpsTrack':
       return !!(await db.gpsTracks.get(item.payloadId))
+    case 'logbookCrew':
+      return !!(await db.logbookCrewSelections.get(item.logbookId))
     default:
       return false
   }
@@ -224,6 +227,7 @@ async function flushPushQueue(logbookId: string): Promise<boolean> {
 type PulledServerPayload = {
   yacht?: { updatedAt: string } | null
   deviation?: { updatedAt: string } | null
+  logbookCrewSelection?: { updatedAt: string } | null
   crews?: Array<{ payloadId: string; updatedAt: string }>
   entries?: Array<{ payloadId: string; updatedAt: string }>
   photos?: Array<{ payloadId: string; updatedAt: string }>
@@ -241,6 +245,9 @@ async function pruneAcknowledgedQueueItems(
   const serverTimes = new Map<string, string>()
   if (server.yacht) serverTimes.set('yacht:' + logbookId, server.yacht.updatedAt)
   if (server.deviation) serverTimes.set('deviation:' + logbookId, server.deviation.updatedAt)
+  if (server.logbookCrewSelection) {
+    serverTimes.set('logbookCrew:' + logbookId, server.logbookCrewSelection.updatedAt)
+  }
   for (const c of server.crews ?? []) serverTimes.set('crew:' + c.payloadId, c.updatedAt)
   for (const e of server.entries ?? []) serverTimes.set('entry:' + e.payloadId, e.updatedAt)
   for (const p of server.photos ?? []) serverTimes.set('photo:' + p.payloadId, p.updatedAt)
@@ -257,7 +264,12 @@ async function pruneAcknowledgedQueueItems(
       continue
     }
 
-    const key = item.type === 'yacht' ? 'yacht:' + logbookId : `${item.type}:${item.payloadId}`
+    const key =
+      item.type === 'yacht'
+        ? 'yacht:' + logbookId
+        : item.type === 'logbookCrew'
+          ? 'logbookCrew:' + logbookId
+          : `${item.type}:${item.payloadId}`
     const serverUpdatedAt = serverTimes.get(key)
     if (serverUpdatedAt && !isNewer(item.updatedAt, serverUpdatedAt)) {
       if (item.id !== undefined) staleIds.push(item.id)
@@ -283,8 +295,17 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       return false
     }
 
-    const { yacht, deviation, crews, entries, photos, gpsTracks } = await response.json()
-    const serverSnapshot: PulledServerPayload = { yacht, deviation, crews, entries, photos, gpsTracks }
+    const { yacht, deviation, crews, logbookCrewSelection, entries, photos, gpsTracks } =
+      await response.json()
+    const serverSnapshot: PulledServerPayload = {
+      yacht,
+      deviation,
+      logbookCrewSelection,
+      crews,
+      entries,
+      photos,
+      gpsTracks
+    }
 
     // 1. Sync Yacht Payload
     if (yacht) {
@@ -314,7 +335,21 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       }
     }
 
-    // 3. Sync Crew List Payloads
+    // 2b. Sync Logbook Crew Selection
+    if (logbookCrewSelection) {
+      const local = await db.logbookCrewSelections.get(logbookId)
+      if (!local || isNewer(logbookCrewSelection.updatedAt, local.updatedAt)) {
+        await db.logbookCrewSelections.put({
+          logbookId,
+          encryptedData: logbookCrewSelection.encryptedData,
+          iv: logbookCrewSelection.iv,
+          tag: logbookCrewSelection.tag,
+          updatedAt: logbookCrewSelection.updatedAt
+        })
+      }
+    }
+
+    // 3. Sync Crew List Payloads (legacy)
     const serverCrewMap = new Map<string, any>()
     if (crews && Array.isArray(crews)) {
       for (const c of crews) {
@@ -490,6 +525,8 @@ export async function syncAllLogbooks(): Promise<void> {
   syncAllInFlight++
   recomputeSyncingState()
   try {
+    await syncPersonPool()
+
     // 1. Fetch latest logbook lists first (synchronizes db.logbooks index)
     const logbooks = await db.logbooks.toArray()
 

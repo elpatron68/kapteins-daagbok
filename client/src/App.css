@@ -5536,3 +5536,24 @@ body.app-tour-active .disclaimer-modal-overlay.feedback-modal-overlay--tour {
 body.app-tour-active .feedback-modal-overlay--tour .disclaimer-modal-panel {
   pointer-events: none;
 }
+
+.crew-selection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.crew-selection-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  cursor: pointer;
+}
+
+.crew-selection-item input {
+  flex-shrink: 0;
+}

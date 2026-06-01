@@ -4,7 +4,9 @@ import AuthOnboarding from './components/AuthOnboarding.tsx'
 import UserProfilePage from './components/UserProfilePage.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
 import VesselForm from './components/VesselForm.tsx'
-import CrewForm from './components/CrewForm.tsx'
+import LogbookCrewPicker from './components/LogbookCrewPicker.tsx'
+import { migrateLegacyCrewToPoolIfNeeded } from './services/crewMigration.js'
+import { syncPersonPool } from './services/personPoolSync.js'
 // Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert (Komponente bleibt erhalten)
 // import DeviationForm from './components/DeviationForm.tsx'
 import LogEntriesList from './components/LogEntriesList.tsx'
@@ -161,6 +163,7 @@ function App() {
     const userId = localStorage.getItem('active_userid')
     if (!userId) return
     void syncAppearancePrefs(userId)
+    void migrateLegacyCrewToPoolIfNeeded().then(() => syncPersonPool())
   }, [isAuthenticated])
 
   useEffect(() => {
@@ -701,7 +704,7 @@ function App() {
           <button
             className={`sidebar-btn ${activeTab === 'crew' ? 'active' : ''}`}
             onClick={() => void handleTabChange('crew')}
-            data-tour="nav-crew"
+            data-tour="nav-logbook-crew"
           >
             <Users size={18} />
             {t('nav.crew')}
@@ -752,10 +755,10 @@ function App() {
           )}
 
           {activeTab === 'crew' && (
-            <CrewForm
+            <LogbookCrewPicker
               logbookId={activeLogbookId}
               readOnly={logbookReadOnly}
-              skipperReadOnly={!isLogbookOwner}
+              selectionOnly={!isLogbookOwner && activeLogbookRecord?.isShared === 1}
             />
           )}
 
@@ -800,7 +803,7 @@ function App() {
             type="button"
             className={`bottom-nav-btn ${activeTab === 'crew' ? 'active' : ''}`}
             onClick={() => void handleTabChange('crew')}
-            data-tour="nav-crew"
+            data-tour="nav-logbook-crew"
           >
             <Users size={20} />
             <span>{t('nav.crew')}</span>
