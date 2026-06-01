@@ -3607,6 +3607,44 @@ html.theme-cupertino .events-scroll-container {
   gap: 8px;
 }
 
+.live-camera-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.live-camera-preview-still {
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+
+.live-camera-native-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.live-camera-open-native {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.live-camera-actions {
+  flex-wrap: wrap;
+}
+
 .stats-event-series-block + .stats-event-series-block {
   margin-top: 16px;
 }
