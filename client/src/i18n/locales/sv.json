@@ -27,8 +27,10 @@
     "common": {
       "unsaved_changes_title": "Osparade ändringar",
       "unsaved_changes_message": "Du har ändringar som inte sparats. Vill du verkligen lämna sidan? Dina ändringar kommer att gå förlorade.",
-      "unsaved_changes_leave": "Övergivande",
-      "unsaved_changes_stay": "Stanna kvar"
+      "unsaved_changes_stay": "Stanna kvar",
+      "unsaved_changes_save_leave": "Spara och lämna",
+      "unsaved_changes_discard": "Kasta",
+      "unsaved_changes_leave": "Övergivande"
     },
     "nav": {
       "dashboard": "Instrumentpanel",
@@ -484,7 +486,7 @@
       "edit_success": "Loggboken har framgångsrikt bytt namn",
       "edit_btn": "Byt namn på",
       "filter_label": "Filtrera loggböcker",
-      "filter_placeholder": "Namn, årtal eller datum ...",
+      "filter_placeholder": "Namn, årtal, datum, crew eller fartyg …",
       "filter_clear": "Återställ filter",
       "filter_results": "{{count}} Träffar",
       "filter_no_results": "Inga loggböcker matchar din sökning. Försök med ett annat namn eller ett annat år.",

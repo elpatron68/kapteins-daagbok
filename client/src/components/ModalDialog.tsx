@@ -10,9 +10,19 @@ import React, {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+export type ConfirmLeaveChoice = 'stay' | 'save' | 'discard'
+
 interface DialogContextType {
   showAlert: (message: string, title?: string, confirmText?: string) => Promise<void>
   showConfirm: (message: string, title?: string, confirmText?: string, cancelText?: string) => Promise<boolean>
+  showConfirmLeave: (
+    message: string,
+    title?: string,
+    stayLabel?: string,
+    saveLabel?: string,
+    discardLabel?: string,
+    options?: { showSave?: boolean }
+  ) => Promise<ConfirmLeaveChoice>
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined)
@@ -34,12 +44,16 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
-  const [type, setType] = useState<'alert' | 'confirm'>('alert')
+  const [type, setType] = useState<'alert' | 'confirm' | 'confirm-leave'>('alert')
   const [confirmLabel, setConfirmLabel] = useState('OK')
   const [cancelLabel, setCancelLabel] = useState('Cancel')
+  const [saveLabel, setSaveLabel] = useState('')
+  const [discardLabel, setDiscardLabel] = useState('')
+  const [showSaveOption, setShowSaveOption] = useState(false)
 
   const alertResolveRef = useRef<(() => void) | null>(null)
   const confirmResolveRef = useRef<((val: boolean) => void) | null>(null)
+  const confirmLeaveResolveRef = useRef<((val: ConfirmLeaveChoice) => void) | null>(null)
 
   const showAlert = useCallback((msg: string, headerTitle?: string, btnText?: string): Promise<void> => {
     setMessage(msg)
@@ -71,6 +85,36 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     })
   }, [t])
 
+  const showConfirmLeave = useCallback((
+    msg: string,
+    headerTitle?: string,
+    btnStay?: string,
+    btnSave?: string,
+    btnDiscard?: string,
+    options?: { showSave?: boolean }
+  ): Promise<ConfirmLeaveChoice> => {
+    setMessage(msg)
+    setTitle(headerTitle || '')
+    setType('confirm-leave')
+    setCancelLabel(btnStay || t('common.unsaved_changes_stay'))
+    setSaveLabel(btnSave || t('common.unsaved_changes_save_leave'))
+    setDiscardLabel(btnDiscard || t('common.unsaved_changes_discard'))
+    setShowSaveOption(options?.showSave !== false)
+    setIsOpen(true)
+
+    return new Promise<ConfirmLeaveChoice>((resolve) => {
+      confirmLeaveResolveRef.current = resolve
+    })
+  }, [t])
+
+  const closeConfirmLeave = useCallback((choice: ConfirmLeaveChoice) => {
+    setIsOpen(false)
+    if (confirmLeaveResolveRef.current) {
+      confirmLeaveResolveRef.current(choice)
+      confirmLeaveResolveRef.current = null
+    }
+  }, [])
+
   const handleConfirm = useCallback(() => {
     setIsOpen(false)
     if (type === 'confirm' && confirmResolveRef.current) {
@@ -83,19 +127,23 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
   }, [type])
 
   const handleCancel = useCallback(() => {
+    if (type === 'confirm-leave') {
+      closeConfirmLeave('stay')
+      return
+    }
     setIsOpen(false)
     if (confirmResolveRef.current) {
       confirmResolveRef.current(false)
       confirmResolveRef.current = null
     }
-  }, [])
+  }, [type, closeConfirmLeave])
 
   useEffect(() => {
     if (!isOpen) return
     confirmRef.current?.focus()
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (type === 'confirm') handleCancel()
+        if (type === 'confirm' || type === 'confirm-leave') handleCancel()
         else handleConfirm()
       }
     }
@@ -104,8 +152,8 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
   }, [isOpen, type, handleCancel, handleConfirm])
 
   const contextValue = useMemo(
-    () => ({ showAlert, showConfirm }),
-    [showAlert, showConfirm]
+    () => ({ showAlert, showConfirm, showConfirmLeave }),
+    [showAlert, showConfirm, showConfirmLeave]
   )
 
   return (
@@ -114,7 +162,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
       {isOpen && (
         <div
           className="custom-dialog-overlay"
-          onClick={type === 'confirm' ? handleCancel : handleConfirm}
+          onClick={type === 'confirm' || type === 'confirm-leave' ? handleCancel : handleConfirm}
         >
           <div
             className="custom-dialog-card glass scale-in"
@@ -133,25 +181,59 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
               {message}
             </p>
             <div className="custom-dialog-actions">
-              {type === 'confirm' && (
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={handleCancel}
-                  style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
-                >
-                  {cancelLabel}
-                </button>
+              {type === 'confirm-leave' ? (
+                <>
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    className="btn secondary"
+                    onClick={handleCancel}
+                    style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                  >
+                    {cancelLabel}
+                  </button>
+                  {showSaveOption && (
+                    <button
+                      type="button"
+                      className="btn primary"
+                      onClick={() => closeConfirmLeave('save')}
+                      style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                    >
+                      {saveLabel}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => closeConfirmLeave('discard')}
+                    style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                  >
+                    {discardLabel}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {type === 'confirm' && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={handleCancel}
+                      style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                    >
+                      {cancelLabel}
+                    </button>
+                  )}
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    className="btn primary"
+                    onClick={handleConfirm}
+                    style={{ width: 'auto', minWidth: '80px', padding: '8px 20px', margin: 0 }}
+                  >
+                    {confirmLabel}
+                  </button>
+                </>
               )}
-              <button
-                ref={confirmRef}
-                type="button"
-                className="btn primary"
-                onClick={handleConfirm}
-                style={{ width: 'auto', minWidth: '80px', padding: '8px 20px', margin: 0 }}
-              >
-                {confirmLabel}
-              </button>
             </div>
           </div>
         </div>

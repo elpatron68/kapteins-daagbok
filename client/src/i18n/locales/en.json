@@ -27,8 +27,10 @@
     "common": {
       "unsaved_changes_title": "Unsaved changes",
       "unsaved_changes_message": "You have unsaved changes. Leave this page anyway? Your changes will be lost.",
-      "unsaved_changes_leave": "Leave",
-      "unsaved_changes_stay": "Stay"
+      "unsaved_changes_stay": "Stay",
+      "unsaved_changes_save_leave": "Save & leave",
+      "unsaved_changes_discard": "Discard",
+      "unsaved_changes_leave": "Leave"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -484,7 +486,7 @@
       "edit_success": "Logbook renamed successfully",
       "edit_btn": "Rename",
       "filter_label": "Filter logbooks",
-      "filter_placeholder": "Name, year or date …",
+      "filter_placeholder": "Name, year, date, crew or vessel …",
       "filter_clear": "Clear filter",
       "filter_results": "{{count}} matches",
       "filter_no_results": "No logbooks match your search. Try a different name or year.",

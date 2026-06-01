@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage } from '../utils/i18nLanguages.js'
 import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type DecryptedLogbook } from '../services/logbook.js'
+import { loadLogbookSearchFieldsBatch } from '../services/logbookSearchIndex.js'
+import { logbookMatchesFilter, type LogbookSearchFields } from '../utils/logbookFilter.js'
 import LogbookRoleBadge from './LogbookRoleBadge.tsx'
 import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -18,26 +20,6 @@ interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
   onLogout: () => void
   onOpenProfile: () => void
-}
-
-function logbookMatchesFilter(lb: DecryptedLogbook, query: string, locale: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-
-  if (lb.title.toLowerCase().includes(q)) return true
-
-  const updated = new Date(lb.updatedAt)
-  const year = updated.getFullYear().toString()
-  if (year.includes(q)) return true
-
-  const dateLabel = updated.toLocaleDateString(locale, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  }).toLowerCase()
-  if (dateLabel.includes(q)) return true
-
-  return false
 }
 
 type LogbookSortKey = 'name' | 'date'
@@ -72,6 +54,9 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filterQuery, setFilterQuery] = useState('')
+  const [searchFieldsByLogbookId, setSearchFieldsByLogbookId] = useState<Map<string, LogbookSearchFields>>(
+    () => new Map()
+  )
   const [sortBy, setSortBy] = useState<LogbookSortKey>('date')
   const [sortDirection, setSortDirection] = useState<LogbookSortDirection>('desc')
   const filterInputRef = useRef<HTMLInputElement>(null)
@@ -95,6 +80,23 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   useEffect(() => {
     loadLogbooks()
   }, [])
+
+  useEffect(() => {
+    const ids = logbooks.map((lb) => lb.id)
+    if (ids.length === 0) {
+      setSearchFieldsByLogbookId(new Map())
+      return
+    }
+
+    let cancelled = false
+    void loadLogbookSearchFieldsBatch(ids).then((index) => {
+      if (!cancelled) setSearchFieldsByLogbookId(index)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [logbooks])
 
   const loadLogbooks = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true)
@@ -203,12 +205,18 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
 
   const filterActive = filterQuery.trim().length > 0
   const filteredOwnedLogbooks = useMemo(
-    () => ownedLogbooks.filter((lb) => logbookMatchesFilter(lb, filterQuery, i18n.language)),
-    [ownedLogbooks, filterQuery, i18n.language]
+    () =>
+      ownedLogbooks.filter((lb) =>
+        logbookMatchesFilter(lb, filterQuery, i18n.language, searchFieldsByLogbookId.get(lb.id))
+      ),
+    [ownedLogbooks, filterQuery, i18n.language, searchFieldsByLogbookId]
   )
   const filteredSharedLogbooks = useMemo(
-    () => sharedLogbooks.filter((lb) => logbookMatchesFilter(lb, filterQuery, i18n.language)),
-    [sharedLogbooks, filterQuery, i18n.language]
+    () =>
+      sharedLogbooks.filter((lb) =>
+        logbookMatchesFilter(lb, filterQuery, i18n.language, searchFieldsByLogbookId.get(lb.id))
+      ),
+    [sharedLogbooks, filterQuery, i18n.language, searchFieldsByLogbookId]
   )
   const sortedOwnedLogbooks = useMemo(
     () => sortLogbooks(filteredOwnedLogbooks, sortBy, sortDirection, i18n.language),

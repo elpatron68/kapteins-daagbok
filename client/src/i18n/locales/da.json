@@ -27,8 +27,10 @@
     "common": {
       "unsaved_changes_title": "Ikke gemte ændringer",
       "unsaved_changes_message": "Du har ændringer, der ikke er gemt. Vil du virkelig forlade siden? Dine ændringer vil gå tabt.",
-      "unsaved_changes_leave": "Forladelse",
-      "unsaved_changes_stay": "Bliv her"
+      "unsaved_changes_stay": "Bliv her",
+      "unsaved_changes_save_leave": "Gem og forlad",
+      "unsaved_changes_discard": "Kassér",
+      "unsaved_changes_leave": "Forladelse"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -484,7 +486,7 @@
       "edit_success": "Logbog omdøbt med succes",
       "edit_btn": "Omdøb",
       "filter_label": "Filtrer logbøger",
-      "filter_placeholder": "Navn, årstal eller dato ...",
+      "filter_placeholder": "Navn, årstal, dato, crew eller skib …",
       "filter_clear": "Nulstil filter",
       "filter_results": "{{count}} Hits",
       "filter_no_results": "Ingen logbøger matcher din søgning. Prøv med et andet navn eller et andet år.",

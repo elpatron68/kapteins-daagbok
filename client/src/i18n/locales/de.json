@@ -27,8 +27,10 @@
     "common": {
       "unsaved_changes_title": "Ungespeicherte Änderungen",
       "unsaved_changes_message": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen? Deine Änderungen gehen verloren.",
-      "unsaved_changes_leave": "Verlassen",
-      "unsaved_changes_stay": "Bleiben"
+      "unsaved_changes_stay": "Bleiben",
+      "unsaved_changes_save_leave": "Speichern & verlassen",
+      "unsaved_changes_discard": "Verwerfen",
+      "unsaved_changes_leave": "Verlassen"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -484,7 +486,7 @@
       "edit_success": "Logbuch erfolgreich umbenannt",
       "edit_btn": "Umbenennen",
       "filter_label": "Logbücher filtern",
-      "filter_placeholder": "Name, Jahr oder Datum …",
+      "filter_placeholder": "Name, Jahr, Datum, Crew oder Schiff …",
       "filter_clear": "Filter zurücksetzen",
       "filter_results": "{{count}} Treffer",
       "filter_no_results": "Keine Logbücher passen zu deiner Suche. Probiere einen anderen Namen oder ein anderes Jahr.",

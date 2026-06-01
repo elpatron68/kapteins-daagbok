@@ -412,9 +412,15 @@ export default function LogEntryEditor({
     currentFingerprint !== savedFingerprint || hasPendingEventForm
   )
 
+  const saveBeforeLeaveRef = useRef<(() => Promise<void>) | null>(null)
+  const invokeSaveBeforeLeave = useCallback(async () => {
+    if (saveBeforeLeaveRef.current) await saveBeforeLeaveRef.current()
+  }, [])
+
   const { confirmLeave } = useRegisterUnsavedChanges(
     `log-entry-${entryId}`,
-    !readOnly && !loading && isDirty
+    !readOnly && !loading && isDirty,
+    invokeSaveBeforeLeave
   )
 
   const handleBack = async () => {
@@ -1207,8 +1213,7 @@ export default function LogEntryEditor({
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const saveEntryChanges = useCallback(async () => {
     if (readOnly) return
 
     let eventsToSave = events
@@ -1236,7 +1241,6 @@ export default function LogEntryEditor({
 
     setSaving(true)
     setError(null)
-    setSuccess(false)
 
     try {
       await persistEntryToDb({
@@ -1245,9 +1249,28 @@ export default function LogEntryEditor({
       })
 
       await clearEntryDraft(logbookId, entryId)
-
-      setSuccess(true)
       trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
+    } finally {
+      setSaving(false)
+    }
+  }, [
+    readOnly, events, hasPendingEventForm, editingEventIndex, isDirty,
+    resolveSignaturesAfterContentChange, applyEventFormToEvents, buildEventFromForm,
+    clearEventForm, persistEntryToDb, logbookId, entryId, t
+  ])
+
+  useEffect(() => {
+    saveBeforeLeaveRef.current = readOnly ? null : saveEntryChanges
+  }, [readOnly, saveEntryChanges])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (readOnly) return
+
+    setSuccess(false)
+    try {
+      await saveEntryChanges()
+      setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
         onBack()
@@ -1255,8 +1278,6 @@ export default function LogEntryEditor({
     } catch (err: unknown) {
       console.error('Failed to save entry details:', err)
       setError(getErrorMessage(err, t('errors.save_failed')))
-    } finally {
-      setSaving(false)
     }
   }
 

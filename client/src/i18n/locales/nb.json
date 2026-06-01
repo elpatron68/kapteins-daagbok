@@ -27,8 +27,10 @@
     "common": {
       "unsaved_changes_title": "Ikke-lagrede endringer",
       "unsaved_changes_message": "Du har endringer som ikke er lagret. Vil du virkelig forlate siden? Endringene dine vil gå tapt.",
-      "unsaved_changes_leave": "Oppgivelse",
-      "unsaved_changes_stay": "Bli"
+      "unsaved_changes_stay": "Bli",
+      "unsaved_changes_save_leave": "Lagre og forlat",
+      "unsaved_changes_discard": "Forkast",
+      "unsaved_changes_leave": "Oppgivelse"
     },
     "nav": {
       "dashboard": "Dashbord",
@@ -484,7 +486,7 @@
       "edit_success": "Loggboken har fått nytt navn",
       "edit_btn": "Gi nytt navn",
       "filter_label": "Filtrer loggbøker",
-      "filter_placeholder": "Navn, årstall eller dato ...",
+      "filter_placeholder": "Navn, årstall, dato, crew eller skip …",
       "filter_clear": "Tilbakestill filter",
       "filter_results": "{{count}} Treff",
       "filter_no_results": "Ingen loggbøker samsvarer med søket ditt. Prøv et annet navn eller et annet år.",
