@@ -268,6 +268,7 @@
       "live_comment_placeholder": "Freitext eingeben…",
       "live_comment_confirm": "Eintragen",
       "live_gps_error": "GPS-Position konnte nicht ermittelt werden.",
+      "live_gps_start_hint": "Beginne deine Tagesreise immer mit einem Standort.",
       "live_event_generic": "Ereignis",
       "live_weather_btn": "Wetter",
       "live_weather_owm_btn": "OpenWeatherMap Wetter abrufen",

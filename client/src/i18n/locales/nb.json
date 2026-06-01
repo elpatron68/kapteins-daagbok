@@ -268,6 +268,7 @@
       "live_comment_placeholder": "Skriv inn tekst…",
       "live_comment_confirm": "Loggfør",
       "live_gps_error": "GPS-posisjon kunne ikke bestemmes.",
+      "live_gps_start_hint": "Start alltid dagsreisen med en posisjon.",
       "live_event_generic": "Hendelse",
       "live_weather_btn": "Vær",
       "live_weather_owm_btn": "Hent OpenWeatherMap-vær",

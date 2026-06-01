@@ -506,17 +506,33 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
 
 router.get('/person-pool', requireUser, async (req: any, res) => {
   try {
+    const { hasCrewPoolPrismaModels, isMissingPrismaTable, CREW_POOL_MIGRATION_HINT } =
+      await import('../utils/crewPoolSchema.js')
+    if (!hasCrewPoolPrismaModels()) {
+      console.warn('Person pool Prisma models missing — run prisma generate')
+      return res.status(503).json({ error: CREW_POOL_MIGRATION_HINT, persons: [] })
+    }
     const persons = await prisma.personPayload.findMany({
       where: { userId: req.userId }
     })
     return res.json({ persons })
   } catch (error: unknown) {
+    const { isMissingPrismaTable, CREW_POOL_MIGRATION_HINT } = await import('../utils/crewPoolSchema.js')
+    if (isMissingPrismaTable(error)) {
+      return res.status(503).json({ error: CREW_POOL_MIGRATION_HINT, persons: [] })
+    }
     return sendInternalError(res, error, 'auth/person-pool-get')
   }
 })
 
 router.post('/person-pool/push', requireUser, async (req: any, res) => {
   try {
+    const { hasCrewPoolPrismaModels, isMissingPrismaTable, CREW_POOL_MIGRATION_HINT } =
+      await import('../utils/crewPoolSchema.js')
+    if (!hasCrewPoolPrismaModels()) {
+      return res.status(503).json({ error: CREW_POOL_MIGRATION_HINT })
+    }
+
     const { items } = req.body
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ error: 'items array is required' })
@@ -569,6 +585,10 @@ router.post('/person-pool/push', requireUser, async (req: any, res) => {
 
     return res.json({ results })
   } catch (error: unknown) {
+    const { isMissingPrismaTable, CREW_POOL_MIGRATION_HINT } = await import('../utils/crewPoolSchema.js')
+    if (isMissingPrismaTable(error)) {
+      return res.status(503).json({ error: CREW_POOL_MIGRATION_HINT })
+    }
     return sendInternalError(res, error, 'auth/person-pool-push')
   }
 })

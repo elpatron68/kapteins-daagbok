@@ -3359,6 +3359,31 @@ html.theme-cupertino .events-scroll-container {
   color: var(--app-text-muted);
 }
 
+.live-log-gps-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--app-text-muted);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.live-log-gps-hint svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--app-accent-light, #93c5fd);
+}
+
+.live-log-gps-hint-modal {
+  font-weight: 500;
+  color: var(--app-text, inherit);
+}
+
 .live-log-layout {
   display: grid;
   grid-template-columns: minmax(148px, 200px) 1fr;

@@ -248,6 +248,16 @@ router.post('/push', async (req: any, res) => {
             })
           }
         } else if (type === 'logbookCrew') {
+          const { hasCrewPoolPrismaModels, CREW_POOL_MIGRATION_HINT } =
+            await import('../utils/crewPoolSchema.js')
+          if (!hasCrewPoolPrismaModels()) {
+            results.push({
+              payloadId,
+              status: 'error',
+              error: CREW_POOL_MIGRATION_HINT
+            })
+            continue
+          }
           {
             const existing = await prisma.logbookCrewSelectionPayload.findUnique({ where: { logbookId } })
             if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
@@ -325,9 +335,13 @@ router.get('/pull', async (req: any, res) => {
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
-    const logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
-      where: { logbookId }
-    })
+    let logbookCrewSelection = null
+    const { hasCrewPoolPrismaModels } = await import('../utils/crewPoolSchema.js')
+    if (hasCrewPoolPrismaModels()) {
+      logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
+        where: { logbookId }
+      })
+    }
 
     return res.json({
       yacht,

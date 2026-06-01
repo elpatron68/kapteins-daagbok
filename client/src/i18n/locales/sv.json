@@ -268,6 +268,7 @@
       "live_comment_placeholder": "Ange text…",
       "live_comment_confirm": "Logga",
       "live_gps_error": "GPS-position kunde inte bestämmas.",
+      "live_gps_start_hint": "Börja alltid dagsresan med en position.",
       "live_event_generic": "Händelse",
       "live_weather_btn": "Väder",
       "live_weather_owm_btn": "Hämta OpenWeatherMap-väder",

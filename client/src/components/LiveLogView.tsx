@@ -52,7 +52,11 @@ import {
 } from '../utils/liveEventCodes.js'
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
-import { getCurrentPosition, normalizeGpsCoordinates } from '../utils/geolocation.js'
+import {
+  getCurrentPosition,
+  normalizeGpsCoordinates,
+  queryGeolocationPermission
+} from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
 import {
   dedupeSailNames,
@@ -167,11 +171,13 @@ export default function LiveLogView({
   const undoPhotoIdRef = useRef<string | null>(null)
   const undoTimerRef = useRef<number | null>(null)
   const autoPositionBusyRef = useRef(false)
+  const busyRef = useRef(busy)
   const initSeqRef = useRef(0)
   const eventsRef = useRef(events)
   const dateRef = useRef(date)
   eventsRef.current = events
   dateRef.current = date
+  busyRef.current = busy
 
   const defaultSails = useMemo(
     () => (i18n.language === 'de'
@@ -185,6 +191,10 @@ export default function LiveLogView({
   )
   const motorRunning = isMotorRunningFromEvents(events)
   const motorLabel = t('logs.motor_propulsion')
+  const hasPositionFix = useMemo(
+    () => (date ? getLatestPositionFix(events, date) != null : false),
+    [events, date]
+  )
 
   const applyLoadedEntry = useCallback((loaded: NonNullable<Awaited<ReturnType<typeof loadEntry>>>) => {
     const entryEvents = (loaded.data.events as LogEventPayload[]) || []
@@ -276,7 +286,9 @@ export default function LiveLogView({
     return () => {
       initSeqRef.current += 1
     }
-  }, [runInit])
+    // Only re-init when the logbook changes — not when i18n `t` identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runInit
+  }, [logbookId])
 
   useEffect(() => {
     if (!loading && entryId) {
@@ -297,15 +309,34 @@ export default function LiveLogView({
   useEffect(() => {
     if (!entryId || loading) return
 
+    let cancelled = false
+    let startTimer: number | undefined
+    let intervalRef: number | undefined
+
     const maybeAutoPosition = async () => {
-      if (document.visibilityState !== 'visible' || autoPositionBusyRef.current || busy) return
+      if (
+        cancelled
+        || document.visibilityState !== 'visible'
+        || autoPositionBusyRef.current
+        || busyRef.current
+      ) {
+        return
+      }
+
+      const permission = await queryGeolocationPermission()
+      if (cancelled || permission !== 'granted') return
 
       const lastMs = getLastAutoPositionMs(eventsRef.current, dateRef.current)
       if (lastMs != null && Date.now() - lastMs < AUTO_POSITION_INTERVAL_MS) return
 
       autoPositionBusyRef.current = true
       try {
-        const coords = await getCurrentPosition(8000)
+        const coords = await getCurrentPosition({
+          timeoutMs: 8000,
+          enableHighAccuracy: false,
+          maximumAge: 120_000
+        })
+        if (cancelled || busyRef.current) return
         await appendQuickEvent(logbookId, entryId, {
           gpsLat: coords.lat,
           gpsLng: coords.lng,
@@ -313,23 +344,26 @@ export default function LiveLogView({
         })
         await refreshEntry(entryId)
       } catch {
-        // Silent — auto-position is best-effort
+        // Best-effort; hint banner shows when no position fix exists yet.
       } finally {
         autoPositionBusyRef.current = false
       }
     }
 
-    let intervalRef: number | undefined
-    const startTimer = window.setTimeout(() => {
-      void maybeAutoPosition()
-      intervalRef = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
-    }, AUTO_POSITION_START_DELAY_MS)
+    void queryGeolocationPermission().then((permission) => {
+      if (cancelled || permission !== 'granted') return
+      startTimer = window.setTimeout(() => {
+        void maybeAutoPosition()
+        intervalRef = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
+      }, AUTO_POSITION_START_DELAY_MS)
+    })
 
     return () => {
-      window.clearTimeout(startTimer)
+      cancelled = true
+      if (startTimer !== undefined) window.clearTimeout(startTimer)
       if (intervalRef !== undefined) window.clearInterval(intervalRef)
     }
-  }, [entryId, loading, logbookId, refreshEntry, busy])
+  }, [entryId, loading, logbookId, refreshEntry])
 
   const runQuickAction = async (
     action: () => Promise<boolean | void>,
@@ -364,8 +398,15 @@ export default function LiveLogView({
   const openSogModal = async () => {
     let prefill = ''
     try {
-      const pos = await getCurrentPosition()
-      if (pos.speedKn != null) prefill = String(pos.speedKn)
+      const permission = await queryGeolocationPermission()
+      if (permission === 'granted') {
+        const pos = await getCurrentPosition({
+          timeoutMs: 8000,
+          enableHighAccuracy: false,
+          maximumAge: 60_000
+        })
+        if (pos.speedKn != null) prefill = String(pos.speedKn)
+      }
     } catch {
       // Manual entry when GPS speed unavailable
     }
@@ -405,7 +446,16 @@ export default function LiveLogView({
     setFixGpsLoading(true)
     setModal('fix')
     try {
-      const coords = await getCurrentPosition()
+      const permission = await queryGeolocationPermission()
+      if (permission !== 'granted') {
+        setFixGpsUnavailable(true)
+        return
+      }
+      const coords = await getCurrentPosition({
+        timeoutMs: 10_000,
+        enableHighAccuracy: false,
+        maximumAge: 60_000
+      })
       setFixLat(coords.lat)
       setFixLng(coords.lng)
     } catch {
@@ -419,12 +469,28 @@ export default function LiveLogView({
     setFixGpsLoading(true)
     setFixGpsUnavailable(false)
     try {
-      const coords = await getCurrentPosition()
+      const permission = await queryGeolocationPermission()
+      if (permission !== 'granted') {
+        setFixGpsUnavailable(true)
+        await showAlert(
+          `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
+          t('logs.live_fix')
+        )
+        return
+      }
+      const coords = await getCurrentPosition({
+        timeoutMs: 10_000,
+        enableHighAccuracy: false,
+        maximumAge: 60_000
+      })
       setFixLat(coords.lat)
       setFixLng(coords.lng)
     } catch {
       setFixGpsUnavailable(true)
-      await showAlert(t('logs.live_gps_error'), t('logs.live_fix'))
+      await showAlert(
+        `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
+        t('logs.live_fix')
+      )
     } finally {
       setFixGpsLoading(false)
     }
@@ -786,6 +852,13 @@ export default function LiveLogView({
 
       {error && <div className="auth-error mb-4">{error}</div>}
 
+      {!hasPositionFix && (
+        <p className="live-log-gps-hint" role="status">
+          <MapPin size={16} aria-hidden />
+          {t('logs.live_gps_start_hint')}
+        </p>
+      )}
+
       <div className="live-log-layout">
         <aside className="live-log-actions" aria-label={t('logs.live_actions_label')}>
           <button type="button" className={`live-log-action-btn ${motorRunning ? 'is-active' : ''}`} onClick={handleMotorToggle} disabled={busy}>
@@ -974,7 +1047,10 @@ export default function LiveLogView({
           <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_fix')}</h3>
             {fixGpsUnavailable && (
-              <p className="live-log-modal-hint">{t('logs.live_fix_manual_hint')}</p>
+              <>
+                <p className="live-log-modal-hint live-log-gps-hint-modal">{t('logs.live_gps_start_hint')}</p>
+                <p className="live-log-modal-hint">{t('logs.live_fix_manual_hint')}</p>
+              </>
             )}
             <fieldset className="live-log-fix-coords" disabled={busy}>
               <legend className="live-log-fix-label">{t('logs.event_gps')}</legend>
