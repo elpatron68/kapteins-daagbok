@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import type { AuthedRequest } from './auth.js'
 
 const MIN_SUBMIT_MS = 2_000
@@ -69,7 +69,11 @@ export const feedbackLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req as AuthedRequest).userId ?? req.ip ?? 'unknown',
+  keyGenerator: (req) => {
+    const authed = req as AuthedRequest
+    if (authed.userId) return authed.userId
+    return ipKeyGenerator(req.ip ?? 'unknown')
+  },
   handler: (_req, res) => {
     res.status(429).json({
       error: 'Too many feedback submissions. Please try again later.',

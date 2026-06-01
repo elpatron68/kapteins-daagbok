@@ -219,13 +219,19 @@ cd server && npx prisma db push && cd ..
 | Health Check | http://localhost:5000/api/health |
 | Public Demo | http://localhost:5173/demo |
 
-### 5. Tests (Frontend)
+### 5. Qualität & Tests
+
+Vor jedem Deploy auf [kapteins-daagbok.eu](https://kapteins-daagbok.eu/) (kein externes CI):
 
 ```bash
-cd client && npm test
+npm run check
+# oder: ./scripts/predeploy-check.sh
 ```
 
-Vitest-Unit-Tests für Utils, i18n und Services (z. B. Kurswinkel, Benutzereinstellungen).
+Einzeln: `npm test` (Client + Server) · `npm run build` · optional `npm run lint` (Client, noch nicht in `check`)
+
+- **Client:** Vitest für Utils, i18n, Services
+- **Server:** Smoke-Tests (`/api/health`, Auth-Guards) mit Supertest — siehe `server/src/api.smoke.test.ts`
 
 ## Docker (produktionsnah)
 
@@ -240,6 +246,8 @@ Frontend: http://localhost · API: http://localhost/api/health · Demo: http://l
 Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `http://localhost`), `SESSION_SECRET` und für Docker Compose `POSTGRES_PASSWORD`. Für Push die VAPID-Variablen an den Backend-Container durchreichen (`docker-compose.yml` → `backend.environment`). Für Feedback `NTFY_*` setzen.
 
 ## Deployment
+
+**Vor dem Deploy:** `npm run check` lokal ausführen.
 
 Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
@@ -258,6 +266,7 @@ Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deploymen
 | Dokument | Inhalt |
 |----------|--------|
 | [docs/deployment/npm-security.md](docs/deployment/npm-security.md) | NPM, TLS, `trust proxy`, Security-Header |
+| [docs/deployment/predeploy.md](docs/deployment/predeploy.md) | Pre-Deploy-Checks ohne CI |
 | [docs/deployment/postgres-password.md](docs/deployment/postgres-password.md) | PostgreSQL-Passwort rotieren / App-Rolle |
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
