@@ -14,6 +14,7 @@ import {
   Gauge,
   MapPin,
   MessageSquare,
+  Camera,
   Radio,
   Sailboat,
   Undo2,
@@ -42,6 +43,7 @@ import {
   LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS,
   liveCommentRemark,
   liveFuelRemark,
+  livePhotoRemark,
   livePrecipRemark,
   liveSailsRemark,
   liveSogRemark,
@@ -61,6 +63,9 @@ import {
 } from '../utils/sailSelection.js'
 import { useDialog } from './ModalDialog.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
+import LiveCameraCapture from './LiveCameraCapture.tsx'
+import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
+import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import i18n from '../i18n/index.js'
 
 interface LiveLogViewProps {
@@ -84,6 +89,7 @@ type LiveModal =
   | 'sog'
   | 'stw'
   | 'fix'
+  | 'photo'
 
 const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
 const AUTO_POSITION_CHECK_MS = 60_000
@@ -155,8 +161,12 @@ export default function LiveLogView({
   const [fixLng, setFixLng] = useState('')
   const [fixGpsLoading, setFixGpsLoading] = useState(false)
   const [fixGpsUnavailable, setFixGpsUnavailable] = useState(false)
+  const [photoCaption, setPhotoCaption] = useState('')
+  const [photoSaving, setPhotoSaving] = useState(false)
+  const [undoHint, setUndoHint] = useState<'event' | 'photo'>('event')
 
   const streamEndRef = useRef<HTMLDivElement | null>(null)
+  const undoPhotoIdRef = useRef<string | null>(null)
   const undoTimerRef = useRef<number | null>(null)
   const autoPositionBusyRef = useRef(false)
   const initSeqRef = useRef(0)
@@ -191,12 +201,14 @@ export default function LiveLogView({
     applyLoadedEntry(loaded)
   }, [logbookId, applyLoadedEntry])
 
-  const showUndo = useCallback(() => {
+  const showUndo = useCallback((hint: 'event' | 'photo' = 'event') => {
+    setUndoHint(hint)
     setUndoVisible(true)
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current)
     undoTimerRef.current = window.setTimeout(() => {
       setUndoVisible(false)
       undoTimerRef.current = null
+      undoPhotoIdRef.current = null
     }, UNDO_TIMEOUT_MS)
   }, [])
 
@@ -438,7 +450,7 @@ export default function LiveLogView({
   }
 
   const handleFetchOwmWeather = () => {
-    if (!entryId || weatherOwmLoading) return
+    if (!entryId || busy || weatherOwmLoading) return
 
     const position = getLastPositionFixWithin(
       events,
@@ -517,14 +529,65 @@ export default function LiveLogView({
 
   const handleUndo = () => {
     if (!entryId || busy) return
+    const photoId = undoPhotoIdRef.current
     setUndoVisible(false)
+    undoPhotoIdRef.current = null
     if (undoTimerRef.current) {
       window.clearTimeout(undoTimerRef.current)
       undoTimerRef.current = null
     }
     void runQuickAction(async () => {
+      if (photoId) {
+        await deleteEntryPhoto(logbookId, photoId)
+      }
       await removeLastEvent(logbookId, entryId)
     }, 'undo', false)
+  }
+
+  const openPhotoModal = () => {
+    setPhotoCaption('')
+    setModal('photo')
+  }
+
+  const closePhotoModal = () => {
+    if (photoSaving) return
+    setModal('none')
+    setPhotoCaption('')
+  }
+
+  const handlePhotoCapture = (blob: Blob) => {
+    if (!entryId || photoSaving) return
+    const caption = photoCaption.trim()
+    setPhotoSaving(true)
+    void (async () => {
+      try {
+        const imageDataUrl = await blobToCompressedJpegDataUrl(blob)
+        const photoId = await saveEntryPhoto({
+          logbookId,
+          entryId,
+          imageDataUrl,
+          caption,
+          analyticsContext: 'live_log'
+        })
+        await appendQuickEvent(logbookId, entryId, {
+          remarks: livePhotoRemark(caption)
+        })
+        await refreshEntry(entryId)
+        undoPhotoIdRef.current = photoId
+        setModal('none')
+        setPhotoCaption('')
+        showUndo('photo')
+        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'photo' })
+      } catch (err: unknown) {
+        console.error('Live log photo save failed:', err)
+        void showAlert(
+          err instanceof Error ? err.message : t('logs.live_photo_error'),
+          t('logs.live_photo_btn')
+        )
+      } finally {
+        setPhotoSaving(false)
+      }
+    })()
   }
 
   const confirmSails = () => {
@@ -781,8 +844,8 @@ export default function LiveLogView({
                   type="button"
                   className="live-log-subaction-btn live-log-subaction-btn-owm"
                   onClick={handleFetchOwmWeather}
-                  disabled={weatherOwmLoading}
-                  aria-busy={weatherOwmLoading}
+                  disabled={busy || weatherOwmLoading}
+                  aria-busy={busy || weatherOwmLoading}
                 >
                   {weatherOwmLoading ? t('logs.live_weather_owm_loading') : t('logs.live_weather_owm_btn')}
                 </button>
@@ -813,6 +876,10 @@ export default function LiveLogView({
             <MessageSquare size={18} />
             {t('logs.live_comment_btn')}
           </button>
+          <button type="button" className="live-log-action-btn" onClick={openPhotoModal} disabled={busy || photoSaving}>
+            <Camera size={18} />
+            {t('logs.live_photo_btn')}
+          </button>
         </aside>
 
         <section className="live-log-stream-panel" aria-label={t('logs.live_stream_label')}>
@@ -839,7 +906,9 @@ export default function LiveLogView({
       {undoVisible && events.length > 0 && (
         <div className="live-log-undo-bar" role="status">
           <div className="live-log-undo-bar-inner">
-            <span>{t('logs.live_undo_hint')}</span>
+            <span>
+              {undoHint === 'photo' ? t('logs.live_undo_photo_hint') : t('logs.live_undo_hint')}
+            </span>
             <button type="button" className="btn secondary" onClick={handleUndo} disabled={busy}>
               <Undo2 size={16} />
               {t('logs.live_undo_btn')}
@@ -1076,6 +1145,15 @@ export default function LiveLogView({
           </div>
         </div>
       )}
+
+      <LiveCameraCapture
+        open={modal === 'photo'}
+        busy={photoSaving}
+        caption={photoCaption}
+        onCaptionChange={setPhotoCaption}
+        onClose={closePhotoModal}
+        onCapture={handlePhotoCapture}
+      />
       </>,
       document.body
     )}

@@ -4,6 +4,7 @@ import {
   LIVE_EVENT_CODES,
   parseLiveCommentRemark,
   parseLiveFuelRemark,
+  parseLivePhotoRemark,
   parseLivePrecipRemark,
   parseLiveSailsRemark,
   parseLiveSogRemark,
@@ -25,6 +26,13 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
 
   const comment = parseLiveCommentRemark(code)
   if (comment) return comment
+
+  const photo = parseLivePhotoRemark(code)
+  if (photo !== null) {
+    return photo
+      ? t('logs.live_photo_entry', { caption: photo })
+      : t('logs.live_photo_entry_plain')
+  }
 
   const temp = parseLiveTempRemark(code)
   if (temp) return t('logs.live_temp_entry', { temp })

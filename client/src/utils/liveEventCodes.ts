@@ -38,6 +38,17 @@ export function liveWaterRemark(liters: string): string {
   return `__live:water:${liters}`
 }
 
+export function livePhotoRemark(caption?: string): string {
+  const text = caption?.trim()
+  return text ? `__live:photo:${text}` : '__live:photo'
+}
+
+export function parseLivePhotoRemark(remarks: string): string | null {
+  if (remarks === '__live:photo') return ''
+  const prefix = '__live:photo:'
+  return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
+}
+
 export function liveSogRemark(speedKn: string): string {
   return `__live:sog:${speedKn}`
 }

@@ -6,6 +6,7 @@ import {
   liveSailsRemark,
   liveSogRemark,
   parseLiveCommentRemark,
+  livePhotoRemark,
   parseLiveSailsRemark
 } from './liveEventCodes.js'
 import { formatEventSummary } from './formatEventSummary.js'
@@ -24,6 +25,8 @@ const t = (key: string, opts?: Record<string, unknown>) => {
     'logs.live_temp_entry': `Temperature ${opts?.temp} °C`,
     'logs.live_pressure_entry': `Pressure ${opts?.value} hPa`,
     'logs.live_wind_entry': `Wind ${opts?.value}`,
+    'logs.live_photo_entry': `Photo: ${opts?.caption}`,
+    'logs.live_photo_entry_plain': 'Photo captured',
     'logs.live_course_entry': `Course ${opts?.course}`,
     'logs.live_sog_entry': `SOG ${opts?.speed} kn`,
     'logs.live_stw_entry': `STW ${opts?.speed} kn`,
@@ -105,5 +108,16 @@ describe('formatEventSummary', () => {
       remarks: '__live:stw:4.8'
     })
     expect(formatEventSummary(event, t)).toBe('STW 4.8 kn')
+  })
+
+  it('formats photo entry', () => {
+    const plain = normalizeLogEvent({ time: '11:00', remarks: livePhotoRemark() })
+    expect(formatEventSummary(plain, t)).toBe('Photo captured')
+
+    const captioned = normalizeLogEvent({
+      time: '11:05',
+      remarks: livePhotoRemark('Mastbruch')
+    })
+    expect(formatEventSummary(captioned, t)).toBe('Photo: Mastbruch')
   })
 })

@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
-import { encryptJson, decryptJson } from '../services/crypto.js'
-import { syncLogbook } from '../services/sync.js'
-import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { decryptJson } from '../services/crypto.js'
+import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
+import { fileToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
 import { Camera, Trash2 } from 'lucide-react'
@@ -90,109 +90,30 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
     setUploading(true)
     setError(null)
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const img = new Image()
-      img.onload = async () => {
-        try {
-          const canvas = document.createElement('canvas')
-          const ctx = canvas.getContext('2d')
-          if (!ctx) throw new Error('Could not get canvas context')
-
-          let width = img.width
-          let height = img.height
-          const MAX_WIDTH = 1280
-          const MAX_HEIGHT = 720
-
-          // Calculate resizing conserving aspect ratio
-          if (width > MAX_WIDTH || height > MAX_HEIGHT) {
-            const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height)
-            width = Math.round(width * ratio)
-            height = Math.round(height * ratio)
-          }
-
-          canvas.width = width
-          canvas.height = height
-          ctx.drawImage(img, 0, 0, width, height)
-
-          // Compress to JPEG, 70% quality
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
-
-          // Encrypt
-          const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-          if (!masterKey) throw new Error('Encryption key not found. Please log in.')
-
-          const photoId = window.crypto.randomUUID()
-          const photoPayload = {
-            image: compressedBase64,
-            caption: caption.trim()
-          }
-
-          const encrypted = await encryptJson(photoPayload, masterKey)
-          const now = new Date().toISOString()
-
-          // Store locally
-          await db.photos.put({
-            payloadId: photoId,
-            entryId,
-            logbookId,
-            encryptedData: encrypted.ciphertext,
-            iv: encrypted.iv,
-            tag: encrypted.tag,
-            caption: '', // stored encrypted inside payload
-            updatedAt: now
-          })
-
-          // Queue for background sync
-          await db.syncQueue.put({
-            action: 'create',
-            type: 'photo',
-            payloadId: photoId,
-            logbookId,
-            data: JSON.stringify({
-              encryptedData: encrypted.ciphertext,
-              iv: encrypted.iv,
-              tag: encrypted.tag,
-              entryId
-            }),
-            updatedAt: now
-          })
-
-          setCaption('')
-          if (fileInputRef.current) fileInputRef.current.value = ''
-          trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'logbook' })
-
-          syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
-        } catch (err: any) {
-          console.error('Failed to process image:', err)
-          setError(err.message || 'Failed to process image')
-        } finally {
-          setUploading(false)
-        }
-      }
-      img.src = event.target?.result as string
+    try {
+      const compressedBase64 = await fileToCompressedJpegDataUrl(file)
+      await saveEntryPhoto({
+        logbookId,
+        entryId,
+        imageDataUrl: compressedBase64,
+        caption: caption.trim(),
+        analyticsContext: 'logbook'
+      })
+      setCaption('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (err: unknown) {
+      console.error('Failed to process image:', err)
+      setError(err instanceof Error ? err.message : 'Failed to process image')
+    } finally {
+      setUploading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   const handleDelete = async (photoId: string) => {
     if (await showConfirm(t('logs.photo_delete_confirm'), t('logs.photos_title'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       try {
-        const now = new Date().toISOString()
-        
-        await db.photos.delete(photoId)
-        
-        await db.syncQueue.put({
-          action: 'delete',
-          type: 'photo',
-          payloadId: photoId,
-          logbookId,
-          data: '',
-          updatedAt: now
-        })
-
-        syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
-      } catch (err: any) {
+        await deleteEntryPhoto(logbookId, photoId)
+      } catch (err: unknown) {
         console.error('Failed to delete photo:', err)
       }
     }
