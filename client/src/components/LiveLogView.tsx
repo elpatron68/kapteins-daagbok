@@ -765,7 +765,7 @@ export default function LiveLogView({
             <h2>{t('logs.live_title')}</h2>
             {date && (
               <p className="live-log-subtitle">
-                {t('logs.day_of_travel')} {dayOfTravel} · {new Date(date).toLocaleDateString()}
+                {t('logs.travel_day_number', { number: dayOfTravel })} · {new Date(date).toLocaleDateString()}
               </p>
             )}
           </div>

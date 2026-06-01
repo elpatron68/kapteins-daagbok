@@ -474,7 +474,7 @@ export default function LogEntriesList({
                 </h3>
                 <div className="card-meta">
                   <span className="sync-badge synced">
-                    {t('logs.day_of_travel')} {item.dayOfTravel}
+                    {t('logs.travel_day_number', { number: item.dayOfTravel })}
                   </span>
                   <EntrySkipperSignBadge status={item.skipperSignStatus} />
                   <span className="date-badge">
