@@ -12,6 +12,7 @@ import { clearLogbookKeysCache } from './logbookKeys.js'
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 import { db } from './db.js'
 import { apiFetch, apiJson } from './api.js'
+import { isWebAuthnUserAbortError } from '../utils/passkeyHost.js'
 
 const API_BASE = '/api/auth'
 
@@ -361,7 +362,11 @@ export async function loginUser(username?: string): Promise<LoginResult> {
   const prfRequested = !!options.extensions?.prf
   try {
     credentialResponse = await startAuthentication({ optionsJSON: options })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    // User cancelled or timed out — never open a second platform prompt.
+    if (isWebAuthnUserAbortError(err)) {
+      throw err
+    }
     if (prfRequested) {
       console.warn('Passkey authentication with PRF extension failed, retrying without PRF:', err)
       if (options.extensions) {

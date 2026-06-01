@@ -149,17 +149,19 @@ export default function LogEntriesList({
   }, [logbookId, readOnly, preloadedEntries])
 
   useEffect(() => {
+    if (viewMode === 'live') return
     loadEntries()
-  }, [loadEntries])
+  }, [loadEntries, viewMode])
 
   useEffect(() => {
+    if (viewMode === 'live') return
     const prevSelectedEntryId = prevSelectedEntryIdRef.current
     prevSelectedEntryIdRef.current = selectedEntryId
 
     if (prevSelectedEntryId !== undefined && prevSelectedEntryId !== null && selectedEntryId === null) {
       loadEntries()
     }
-  }, [selectedEntryId, loadEntries])
+  }, [selectedEntryId, loadEntries, viewMode])
 
   const handleDownloadCsv = async () => {
     setExporting(true)

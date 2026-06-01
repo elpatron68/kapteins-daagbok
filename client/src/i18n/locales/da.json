@@ -68,7 +68,12 @@
       "enter_pin_placeholder": "Indtast din pinkode...",
       "decrypt_with_pin": "Afkodning",
       "use_recovery_instead": "Brug genoprettelsesnøgler i stedet",
-      "error_incorrect_pin": "Forkert PIN-kode. Dekryptering mislykkedes."
+      "error_incorrect_pin": "Forkert PIN-kode. Dekryptering mislykkedes.",
+      "error_invalid_host": "Passkeys virker ikke via 127.0.0.1. Åbn appen via localhost.",
+      "use_localhost_link": "Skift til localhost",
+      "error_passkey_cancelled": "Passkey-login blev annulleret eller udløb. Prøv igen.",
+      "error_invalid_rp_id": "Passkey-domæne matcher ikke (RP ID). Brug http://localhost:5173 med RP_ID=localhost i .env til lokal udvikling.",
+      "error_session_incomplete": "Login ufuldstændig. Log ind med passkey igen."
     },
     "pwa": {
       "title": "Installer app",
@@ -202,6 +207,7 @@
       "live_mode": "Live",
       "live_title": "Live-journal",
       "live_loading": "Live-journal indlæses...",
+      "live_retry": "Prøv igen",
       "live_load_error": "Live-journal kunne ikke indlæses.",
       "live_action_error": "Indtastning kunne ikke gemmes.",
       "live_open_editor": "Fuld editor",
@@ -215,7 +221,10 @@
       "live_moor": "Anløb",
       "live_sails_btn": "Sejl",
       "live_sails_pick": "Vælg sejl",
+      "live_sails_pick_hint": "Tryk på flere sejl (tryk igen for at fravælge), og indtast derefter.",
+      "live_sails_selected": "Valgt: {{sails}}",
       "live_sails_confirm": "Indtast",
+      "live_sails_confirm_count": "Indtast ({{count}})",
       "live_sails": "Sejl: {{sails}}",
       "live_fix": "Fix",
       "live_fix_coords": "Fix {{lat}}, {{lng}}",

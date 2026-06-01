@@ -3345,7 +3345,14 @@ html.theme-cupertino .events-scroll-container {
 }
 
 .live-log-sail-pills {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.live-log-sails-selection {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--app-accent-light, #93c5fd);
+  line-height: 1.4;
 }
 
 .live-log-modal-actions {

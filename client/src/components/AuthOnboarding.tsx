@@ -1,21 +1,28 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
-import { 
-  registerUser, 
-  loginUser, 
-  completeLoginWithRecovery, 
-  setLocalPin, 
-  hasLocalPin, 
-  decryptWithLocalPin, 
+import {
+  registerUser,
+  loginUser,
+  completeLoginWithRecovery,
+  setLocalPin,
+  hasLocalPin,
+  decryptWithLocalPin,
   getActiveMasterKey,
   getKnownUsernames,
-  forgetUsername
+  forgetUsername,
+  hasUnlockedLocalSession,
+  logoutUser
 } from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
 import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
 import DisclaimerModal from './DisclaimerModal.tsx'
 import BetaBadge from './BetaBadge.tsx'
+import {
+  isPasskeyCompatibleLocation,
+  localizeWebAuthnError,
+  toPasskeyCompatibleUrl
+} from '../utils/passkeyHost.ts'
 
 interface AuthOnboardingProps {
   onAuthenticated: () => void
@@ -54,6 +61,16 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
 
+  const passkeyHostOk = isPasskeyCompatibleLocation()
+  const passkeyCompatibleUrl = passkeyHostOk ? null : toPasskeyCompatibleUrl(window.location.href)
+
+  const formatAuthError = (message: string) =>
+    localizeWebAuthnError(message, {
+      invalidHost: t('auth.error_invalid_host'),
+      cancelled: t('auth.error_passkey_cancelled'),
+      invalidRpId: t('auth.error_invalid_rp_id')
+    })
+
   const finishAuth = () => {
     if (isNewRegistration) {
       setShowDisclaimer(true)
@@ -81,7 +98,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
         setRecoveryPhrase(result.recoveryPhrase)
       }
     } catch (err: any) {
-      setError(err.message || 'Registration failed')
+      setError(formatAuthError(err.message || 'Registration failed'))
     } finally {
       setLoading(false)
     }
@@ -121,7 +138,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      setError(formatAuthError(err.message || 'Login failed'))
     } finally {
       setLoading(false)
     }
@@ -185,19 +202,33 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
 
   const handlePinLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!pinLoginInput.trim()) return
+    if (!pinLoginInput.trim() || loading) return
+
+    const resolvedUser =
+      username.trim() ||
+      encryptedPayloads?.username ||
+      localStorage.getItem('active_username') ||
+      ''
+    if (!resolvedUser) {
+      setError(t('auth.error_session_incomplete'))
+      return
+    }
 
     setLoading(true)
     setError(null)
     try {
-      const resolvedUser = username.trim() || encryptedPayloads?.username
       const key = await decryptWithLocalPin(pinLoginInput.trim(), resolvedUser)
-      if (key) {
-        onAuthenticated()
-      } else {
+      if (!key) {
         setError(t('auth.error_incorrect_pin'))
+        return
       }
-    } catch (err: any) {
+      if (!hasUnlockedLocalSession()) {
+        setError(t('auth.error_session_incomplete'))
+        return
+      }
+      setShowPinLogin(false)
+      onAuthenticated()
+    } catch {
       setError(t('auth.error_incorrect_pin'))
     } finally {
       setLoading(false)
@@ -361,6 +392,24 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
             >
               {t('auth.use_recovery_instead')}
             </button>
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => {
+                void (async () => {
+                  setShowPinLogin(false)
+                  setPinLoginInput('')
+                  setEncryptedPayloads(null)
+                  setError(null)
+                  await logoutUser()
+                })()
+              }}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {t('auth.back')}
+            </button>
           </div>
         </form>
       </div>
@@ -445,12 +494,21 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
       </div>
 
       <div className="auth-form" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {!passkeyHostOk && passkeyCompatibleUrl && (
+          <div className="auth-error" role="alert">
+            <p style={{ margin: '0 0 8px' }}>{t('auth.error_invalid_host')}</p>
+            <a href={passkeyCompatibleUrl} className="btn secondary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+              {t('auth.use_localhost_link')}
+            </a>
+          </div>
+        )}
+
         {/* Prominent Login button */}
         <button
           type="button"
           className="btn primary"
           onClick={() => handleLogin()}
-          disabled={loading}
+          disabled={loading || !passkeyHostOk}
           style={{ width: '100%', padding: '16px' }}
         >
           {loading
@@ -583,7 +641,7 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
           <button
             type="submit"
             className="btn secondary"
-            disabled={loading || !username.trim()}
+            disabled={loading || !username.trim() || !passkeyHostOk}
             style={{ width: '100%' }}
           >
             {t('auth.register')}

@@ -46,6 +46,8 @@ export default defineConfig({
     include: ['leaflet']
   },
   server: {
+    // Passkeys require localhost or a real domain — not 127.0.0.1
+    host: 'localhost',
     port: 5173,
     proxy: {
       '/api': {

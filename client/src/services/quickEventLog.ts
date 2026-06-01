@@ -1,6 +1,6 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
-import { getLogbookKey } from './logbookKeys.js'
+import { ensureLogbookKey, getLogbookKey } from './logbookKeys.js'
 import { decryptJson, encryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
 import {
@@ -24,10 +24,34 @@ export interface LoadedEntry {
   data: Record<string, unknown>
 }
 
+type EncryptedRecord = {
+  encryptedData: string
+  iv: string
+  tag: string
+}
+
 async function getMasterKey(logbookId: string): Promise<ArrayBuffer> {
   const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
   if (!masterKey) throw new Error('Encryption key not found. Please log in.')
   return masterKey
+}
+
+/** Decrypt one record; skip corrupt or legacy entries instead of aborting the whole scan. */
+export async function tryDecryptEntryPayload(
+  record: EncryptedRecord,
+  key: ArrayBuffer
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await decryptJson(record.encryptedData, record.iv, record.tag, key)
+  } catch {
+    return null
+  }
+}
+
+function sortEntriesNewestFirst<T extends { updatedAt: string }>(entries: T[]): T[] {
+  return [...entries].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
 }
 
 function tankLevelsFromData(data: Record<string, unknown>) {
@@ -110,7 +134,7 @@ export async function loadEntry(logbookId: string, entryId: string): Promise<Loa
   const masterKey = await getMasterKey(logbookId)
   const record = await db.entries.get(entryId)
   if (!record) return null
-  const data = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
+  const data = await tryDecryptEntryPayload(record, masterKey)
   if (!data) return null
   return { payloadId: record.payloadId, updatedAt: record.updatedAt, data }
 }
@@ -118,10 +142,10 @@ export async function loadEntry(logbookId: string, entryId: string): Promise<Loa
 export async function findTodayEntryId(logbookId: string): Promise<string | null> {
   const todayStr = new Date().toISOString().substring(0, 10)
   const masterKey = await getMasterKey(logbookId)
-  const local = await db.entries.where({ logbookId }).toArray()
+  const local = sortEntriesNewestFirst(await db.entries.where({ logbookId }).toArray())
 
   for (const entry of local) {
-    const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+    const decrypted = await tryDecryptEntryPayload(entry, masterKey)
     if (decrypted && String(decrypted.date) === todayStr) {
       return entry.payloadId
     }
@@ -135,8 +159,10 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
   const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
 
   for (const entry of localEntries) {
-    const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
-    if (decrypted) decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+    const decrypted = await tryDecryptEntryPayload(entry, masterKey)
+    if (decrypted) {
+      decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+    }
   }
 
   decryptedEntries.sort(compareTravelDaysChronological)
@@ -185,6 +211,7 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
 }
 
 export async function findOrCreateTodayEntry(logbookId: string): Promise<string> {
+  await ensureLogbookKey(logbookId)
   const existing = await findTodayEntryId(logbookId)
   if (existing) return existing
   return createTodayEntry(logbookId)

@@ -12,6 +12,7 @@ import {
   markReloadAttempt,
   reconcileVersionOnStartup
 } from './services/pwaStartup.ts'
+import { redirectToPasskeyCompatibleHostIfNeeded } from './utils/passkeyHost.ts'
 
 /** Stale PWA precache on localhost can shadow Vite dev modules. */
 async function clearDevServiceWorkerCaches(): Promise<void> {
@@ -40,6 +41,10 @@ function renderBootstrapError(message: string): void {
 }
 
 async function bootstrap(): Promise<void> {
+  if (redirectToPasskeyCompatibleHostIfNeeded()) {
+    return
+  }
+
   applyAppearanceToDocument()
   installStaleAssetRecovery()
   await clearDevServiceWorkerCaches()

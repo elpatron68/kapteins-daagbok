@@ -68,7 +68,12 @@
       "enter_pin_placeholder": "Enter your PIN...",
       "decrypt_with_pin": "Decrypt",
       "use_recovery_instead": "Use recovery phrase instead",
-      "error_incorrect_pin": "Incorrect PIN. Decryption failed."
+      "error_incorrect_pin": "Incorrect PIN. Decryption failed.",
+      "error_invalid_host": "Passkeys do not work on 127.0.0.1. Please open the app via localhost.",
+      "use_localhost_link": "Switch to localhost",
+      "error_passkey_cancelled": "Passkey sign-in was cancelled or timed out. Please try again.",
+      "error_invalid_rp_id": "Passkey domain mismatch (RP ID). For local dev use http://localhost:5173 with RP_ID=localhost in .env.",
+      "error_session_incomplete": "Sign-in incomplete. Please sign in with your passkey again."
     },
     "pwa": {
       "title": "Install app",
@@ -202,6 +207,7 @@
       "live_mode": "Live",
       "live_title": "Live Journal",
       "live_loading": "Loading live journal...",
+      "live_retry": "Try again",
       "live_load_error": "Could not load live journal.",
       "live_action_error": "Could not save entry.",
       "live_open_editor": "Full editor",
@@ -215,7 +221,10 @@
       "live_moor": "Moor",
       "live_sails_btn": "Sails",
       "live_sails_pick": "Select sails",
+      "live_sails_pick_hint": "Tap multiple sails (tap again to deselect), then log.",
+      "live_sails_selected": "Selected: {{sails}}",
       "live_sails_confirm": "Log entry",
+      "live_sails_confirm_count": "Log entry ({{count}})",
       "live_sails": "Sails: {{sails}}",
       "live_fix": "Fix",
       "live_fix_coords": "Fix {{lat}}, {{lng}}",

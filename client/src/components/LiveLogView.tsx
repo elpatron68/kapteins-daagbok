@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -47,8 +47,15 @@ import {
 } from '../utils/liveEventCodes.js'
 import { getCurrentPosition } from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
+import {
+  dedupeSailNames,
+  isSailInSelection,
+  joinSailSelection,
+  toggleSailInSelection
+} from '../utils/sailSelection.js'
 import { useDialog } from './ModalDialog.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
+import i18n from '../i18n/index.js'
 
 interface LiveLogViewProps {
   logbookId: string
@@ -122,22 +129,37 @@ export default function LiveLogView({
   const streamEndRef = useRef<HTMLDivElement | null>(null)
   const undoTimerRef = useRef<number | null>(null)
   const autoPositionBusyRef = useRef(false)
+  const initSeqRef = useRef(0)
+  const eventsRef = useRef(events)
+  const dateRef = useRef(date)
+  eventsRef.current = events
+  dateRef.current = date
 
-  const defaultSails = i18n.language === 'de'
-    ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
-    : ['Mainsail', 'Genoa', 'Jib', 'Spinnaker', 'Gennaker']
-  const sailOptions = yachtSails.length > 0 ? yachtSails : defaultSails
+  const defaultSails = useMemo(
+    () => (i18n.language === 'de'
+      ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
+      : ['Mainsail', 'Genoa', 'Jib', 'Spinnaker', 'Gennaker']),
+    [i18n.language]
+  )
+  const sailOptions = useMemo(
+    () => dedupeSailNames(yachtSails.length > 0 ? yachtSails : defaultSails),
+    [yachtSails, defaultSails]
+  )
   const motorRunning = isMotorRunningFromEvents(events)
   const motorLabel = t('logs.motor_propulsion')
 
-  const refreshEntry = useCallback(async (id: string) => {
-    const loaded = await loadEntry(logbookId, id)
-    if (!loaded) return
+  const applyLoadedEntry = useCallback((loaded: NonNullable<Awaited<ReturnType<typeof loadEntry>>>) => {
     const entryEvents = (loaded.data.events as LogEventPayload[]) || []
     setDayOfTravel(String(loaded.data.dayOfTravel || ''))
     setDate(String(loaded.data.date || ''))
     setEvents(sortLogEventsByTime(entryEvents.map((e) => ({ ...e }))))
-  }, [logbookId])
+  }, [])
+
+  const refreshEntry = useCallback(async (id: string) => {
+    const loaded = await loadEntry(logbookId, id)
+    if (!loaded) return
+    applyLoadedEntry(loaded)
+  }, [logbookId, applyLoadedEntry])
 
   const showUndo = useCallback(() => {
     setUndoVisible(true)
@@ -148,42 +170,59 @@ export default function LiveLogView({
     }, UNDO_TIMEOUT_MS)
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
+  const runInit = useCallback(async () => {
+    const seq = ++initSeqRef.current
+    setLoading(true)
+    setError(null)
+    try {
+      const id = await findOrCreateTodayEntry(logbookId)
+      if (seq !== initSeqRef.current) return
+      setEntryId(id)
 
-    async function init() {
-      setLoading(true)
-      setError(null)
-      try {
-        const id = await findOrCreateTodayEntry(logbookId)
-        if (cancelled) return
-        setEntryId(id)
-
-        const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-        if (masterKey) {
-          const yacht = await db.yachts.get(logbookId)
-          if (yacht) {
-            const decrypted = await decryptJson(yacht.encryptedData, yacht.iv, yacht.tag, masterKey)
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (masterKey) {
+        const yacht = await db.yachts.get(logbookId)
+        if (yacht) {
+          try {
+            const decrypted = await decryptJson(
+              yacht.encryptedData,
+              yacht.iv,
+              yacht.tag,
+              masterKey
+            )
             if (decrypted?.sails && Array.isArray(decrypted.sails)) {
               setYachtSails(decrypted.sails as string[])
             }
+          } catch {
+            // Yacht profile optional for live log
           }
         }
+      }
 
-        await refreshEntry(id)
-      } catch (err: unknown) {
-        if (!cancelled) {
-          console.error('Failed to init live log:', err)
-          setError(err instanceof Error ? err.message : t('logs.live_load_error'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
+      const loaded = await loadEntry(logbookId, id)
+      if (seq !== initSeqRef.current) return
+      if (loaded) {
+        applyLoadedEntry(loaded)
+      } else {
+        throw new Error(i18n.t('logs.live_load_error'))
+      }
+    } catch (err: unknown) {
+      if (seq !== initSeqRef.current) return
+      console.error('Failed to init live log:', err)
+      setError(err instanceof Error ? err.message : i18n.t('logs.live_load_error'))
+    } finally {
+      if (seq === initSeqRef.current) {
+        setLoading(false)
       }
     }
+  }, [logbookId, applyLoadedEntry])
 
-    void init()
-    return () => { cancelled = true }
-  }, [logbookId, refreshEntry, t])
+  useEffect(() => {
+    void runInit()
+    return () => {
+      initSeqRef.current += 1
+    }
+  }, [runInit])
 
   useEffect(() => {
     if (!loading && entryId) {
@@ -207,7 +246,7 @@ export default function LiveLogView({
     const maybeAutoPosition = async () => {
       if (document.visibilityState !== 'visible' || autoPositionBusyRef.current || busy) return
 
-      const lastMs = getLastAutoPositionMs(events, date)
+      const lastMs = getLastAutoPositionMs(eventsRef.current, dateRef.current)
       if (lastMs != null && Date.now() - lastMs < AUTO_POSITION_INTERVAL_MS) return
 
       autoPositionBusyRef.current = true
@@ -228,7 +267,7 @@ export default function LiveLogView({
 
     const interval = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
     return () => window.clearInterval(interval)
-  }, [entryId, loading, events, date, logbookId, refreshEntry, busy])
+  }, [entryId, loading, logbookId, refreshEntry, busy])
 
   const runQuickAction = async (
     action: () => Promise<void>,
@@ -325,11 +364,11 @@ export default function LiveLogView({
   }
 
   const confirmSails = () => {
-    if (selectedSails.length === 0) {
+    const sailsLabel = joinSailSelection(selectedSails)
+    if (!sailsLabel) {
       setModal('none')
       return
     }
-    const sailsLabel = selectedSails.join(' + ')
     setModal('none')
     setSelectedSails([])
     void runQuickAction(async () => {
@@ -468,18 +507,24 @@ export default function LiveLogView({
   }
 
   const toggleSailSelection = (sail: string) => {
-    setSelectedSails((prev) =>
-      prev.some((s) => s.toLowerCase() === sail.toLowerCase())
-        ? prev.filter((s) => s.toLowerCase() !== sail.toLowerCase())
-        : [...prev, sail]
-    )
+    setSelectedSails((prev) => toggleSailInSelection(prev, sail))
   }
+
+  const closeModal = () => setModal('none')
 
   if (loading) {
     return (
       <div className="tab-placeholder">
         <Radio className="header-logo spin" size={48} />
         <p>{t('logs.live_loading')}</p>
+        {error && (
+          <>
+            <p className="auth-error" style={{ marginTop: 12 }}>{error}</p>
+            <button type="button" className="btn secondary" style={{ marginTop: 12 }} onClick={() => void runInit()}>
+              {t('logs.live_retry')}
+            </button>
+          </>
+        )}
       </div>
     )
   }
@@ -629,24 +674,50 @@ export default function LiveLogView({
       )}
 
       {modal === 'sails' && (
-        <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
+        <div
+          className="live-log-modal-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
+        >
           <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{t('logs.live_sails_pick')}</h3>
-            <div className="sails-picker-pills live-log-sail-pills">
-              {sailOptions.map((sail) => (
-                <button
-                  key={sail}
-                  type="button"
-                  className={`sail-pill ${selectedSails.some((s) => s.toLowerCase() === sail.toLowerCase()) ? 'active' : ''}`}
-                  onClick={() => toggleSailSelection(sail)}
-                >
-                  {sail}
-                </button>
-              ))}
+            <p className="live-log-modal-hint">{t('logs.live_sails_pick_hint')}</p>
+            <div
+              className="sails-picker-pills live-log-sail-pills"
+              role="group"
+              aria-label={t('logs.live_sails_pick')}
+            >
+              {sailOptions.map((sail) => {
+                const active = isSailInSelection(selectedSails, sail)
+                return (
+                  <button
+                    key={sail}
+                    type="button"
+                    className={`sail-pill ${active ? 'active' : ''}`}
+                    aria-pressed={active}
+                    onClick={() => toggleSailSelection(sail)}
+                  >
+                    {sail}
+                  </button>
+                )
+              })}
             </div>
+            {selectedSails.length > 0 && (
+              <p className="live-log-sails-selection" aria-live="polite">
+                {t('logs.live_sails_selected', { sails: joinSailSelection(selectedSails) })}
+              </p>
+            )}
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
-              <button type="button" className="btn primary" onClick={confirmSails} disabled={selectedSails.length === 0}>{t('logs.live_sails_confirm')}</button>
+              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.confirm_no')}</button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={confirmSails}
+                disabled={selectedSails.length === 0}
+              >
+                {selectedSails.length > 0
+                  ? t('logs.live_sails_confirm_count', { count: selectedSails.length })
+                  : t('logs.live_sails_confirm')}
+              </button>
             </div>
           </div>
         </div>

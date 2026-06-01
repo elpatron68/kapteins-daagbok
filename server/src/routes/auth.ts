@@ -49,6 +49,21 @@ function parseColorSchemePreference(value: unknown): string | null {
   return typeof value === 'string' && VALID_COLOR_SCHEMES.has(value) ? value : null
 }
 
+function isMissingAppearancePrefsTable(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code: string }).code === 'P2021'
+  )
+}
+
+const DEFAULT_APPEARANCE_PREFS = {
+  theme: 'auto',
+  colorScheme: 'auto',
+  persisted: false
+} as const
+
 router.post('/register-options', async (req, res) => {
   try {
     const { username } = req.body
@@ -448,9 +463,14 @@ router.get('/appearance-prefs', requireUser, async (req: any, res) => {
       colorScheme: prefs?.colorScheme ?? 'auto',
       persisted: prefs != null
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isMissingAppearancePrefsTable(error)) {
+      console.warn('UserAppearancePrefs table missing — run: npx prisma db push (in server/)')
+      return res.json({ ...DEFAULT_APPEARANCE_PREFS })
+    }
     console.error('Error reading appearance prefs:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return res.status(500).json({ error: message })
   }
 })
 
@@ -482,9 +502,16 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
       colorScheme: prefs.colorScheme,
       persisted: true
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (isMissingAppearancePrefsTable(error)) {
+      console.warn('UserAppearancePrefs table missing — run: npx prisma db push (in server/)')
+      return res.status(503).json({
+        error: 'Appearance preferences storage is not migrated. Run prisma db push on the server.'
+      })
+    }
     console.error('Error updating appearance prefs:', error)
-    return res.status(500).json({ error: error.message || 'Internal server error' })
+    const message = error instanceof Error ? error.message : 'Internal server error'
+    return res.status(500).json({ error: message })
   }
 })
 
