@@ -4174,7 +4174,7 @@ html.theme-cupertino .events-scroll-container {
   }
 }
 
-.tank-liter-input .tank-liter-slider {
+.tank-liter-slider {
   --tank-slider-track-h: 10px;
   --tank-slider-thumb: 26px;
   width: 100%;
@@ -4189,13 +4189,13 @@ html.theme-cupertino .events-scroll-container {
   touch-action: none;
 }
 
-.tank-liter-input .tank-liter-slider::-webkit-slider-runnable-track {
+.tank-liter-slider::-webkit-slider-runnable-track {
   height: var(--tank-slider-track-h);
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.35);
 }
 
-.tank-liter-input .tank-liter-slider::-webkit-slider-thumb {
+.tank-liter-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: var(--tank-slider-thumb);
   height: var(--tank-slider-thumb);
@@ -4206,13 +4206,13 @@ html.theme-cupertino .events-scroll-container {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-.tank-liter-input .tank-liter-slider::-moz-range-track {
+.tank-liter-slider::-moz-range-track {
   height: var(--tank-slider-track-h);
   border-radius: 999px;
   background: rgba(148, 163, 184, 0.35);
 }
 
-.tank-liter-input .tank-liter-slider::-moz-range-thumb {
+.tank-liter-slider::-moz-range-thumb {
   width: var(--tank-slider-thumb);
   height: var(--tank-slider-thumb);
   border-radius: 50%;
@@ -4221,7 +4221,7 @@ html.theme-cupertino .events-scroll-container {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
-.tank-liter-input .tank-liter-slider:disabled {
+.tank-liter-slider:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -4231,14 +4231,6 @@ html.theme-cupertino .events-scroll-container {
   color: #94a3b8;
   margin-bottom: 6px;
   text-align: center;
-}
-
-@media (max-width: 480px) {
-  .tank-liter-input .tank-liter-slider {
-    --tank-slider-track-h: 12px;
-    --tank-slider-thumb: 32px;
-    margin: 12px 0 8px;
-  }
 }
 
 /* Compact weather metric sliders (LogEntryEditor) */
@@ -4302,7 +4294,14 @@ html.theme-cupertino .events-scroll-container {
 }
 
 @media (max-width: 480px) {
+  .tank-liter-input .tank-liter-slider {
+    --tank-slider-track-h: 12px;
+    --tank-slider-thumb: 32px;
+    margin: 12px 0 8px;
+  }
+
   .metric-range-input--compact .metric-range-slider {
+    --tank-slider-track-h: 12px;
     --tank-slider-thumb: 28px;
   }
 
