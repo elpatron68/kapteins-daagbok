@@ -8,9 +8,10 @@ import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, User, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
+import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
+import ProfileHeaderButton from './ProfileHeaderButton.tsx'
 
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
@@ -74,7 +75,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [sortDirection, setSortDirection] = useState<LogbookSortDirection>('desc')
   const filterInputRef = useRef<HTMLInputElement>(null)
   const [online, setOnline] = useState(navigator.onLine)
-  const [username] = useState(localStorage.getItem('active_username') || 'Skipper')
 
   const { pendingCount, showSpinner, showPendingWarning, connStatusClassName } = useSyncIndicator()
 
@@ -370,18 +370,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
             )}
           </div>
 
-          {/* Skipper profile */}
-          <button
-            type="button"
-            className="btn-icon skipper-badge"
-            onClick={onOpenProfile}
-            title={t('dashboard.open_profile', { name: username })}
-            aria-label={t('dashboard.open_profile', { name: username })}
-            data-tour="nav-profile"
-          >
-            <User size={18} aria-hidden="true" />
-            <span className="skipper-badge__name">{username}</span>
-          </button>
+          <ProfileHeaderButton onClick={onOpenProfile} />
 
           {/* Lang toggle */}
           <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">

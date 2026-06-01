@@ -44,6 +44,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages, BarChart2 } from 'lucide-react'
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
+import ProfileHeaderButton from './components/ProfileHeaderButton.tsx'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage } from './utils/i18nLanguages.js'
 import {
@@ -557,22 +558,27 @@ function App() {
   const isLogbookOwner =
     activeAccessRole === 'OWNER' || activeLogbookRecord?.isShared !== 1
 
+  if (showUserProfile) {
+    return (
+      <div style={{ display: 'contents' }}>
+        {pwaInstallBanner}
+        <UserProfilePage
+          onBack={() => setShowUserProfile(false)}
+          onLogout={handleLogout}
+        />
+      </div>
+    )
+  }
+
   if (!activeLogbookId) {
     return (
       <div style={{ display: 'contents' }}>
         {pwaInstallBanner}
-        {showUserProfile ? (
-          <UserProfilePage
-            onBack={() => setShowUserProfile(false)}
-            onLogout={handleLogout}
-          />
-        ) : (
-          <LogbookDashboard
-            onSelectLogbook={selectLogbook}
-            onLogout={handleLogout}
-            onOpenProfile={() => setShowUserProfile(true)}
-          />
-        )}
+        <LogbookDashboard
+          onSelectLogbook={selectLogbook}
+          onLogout={handleLogout}
+          onOpenProfile={() => setShowUserProfile(true)}
+        />
       </div>
     )
   }
@@ -621,6 +627,8 @@ function App() {
             <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
               <Languages size={18} />
             </button>
+
+            <ProfileHeaderButton onClick={() => setShowUserProfile(true)} />
 
             <DisclaimerHeaderButton />
 
