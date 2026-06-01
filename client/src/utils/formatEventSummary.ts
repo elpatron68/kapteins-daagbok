@@ -81,6 +81,10 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
     return t('logs.live_sea_state_entry', { value: event.seaState })
   }
 
+  if (code === LIVE_EVENT_CODES.VISIBILITY && event.visibility) {
+    return t('logs.live_visibility_entry', { value: event.visibility })
+  }
+
   if (code && !code.startsWith('__live:')) {
     return code
   }
@@ -92,6 +96,7 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
     parts.push([event.windDirection, event.windStrength].filter(Boolean).join(' '))
   }
   if (event.windPressure) parts.push(`${t('logs.event_wind_pressure')}: ${event.windPressure}`)
+  if (event.visibility) parts.push(`${t('logs.event_visibility')}: ${event.visibility}`)
   if (event.gpsLat && event.gpsLng) {
     parts.push(`${event.gpsLat}, ${event.gpsLng}`)
   }

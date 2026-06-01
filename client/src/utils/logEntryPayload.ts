@@ -12,6 +12,7 @@ export interface LogEventPayload {
   windDirection: string
   windStrength: string
   seaState: string
+  visibility: string
   weatherIcon: string
   current: string
   heel: string
@@ -75,7 +76,7 @@ export function joinTimeHHMM(hours: string, minutes: string): string {
 
 const LOG_EVENT_FIELDS: (keyof LogEventPayload)[] = [
   'time', 'mgk', 'rwk', 'windPressure', 'windDirection', 'windStrength', 'seaState',
-  'weatherIcon', 'current', 'heel', 'sailsOrMotor', 'logReading', 'distance',
+  'visibility', 'weatherIcon', 'current', 'heel', 'sailsOrMotor', 'logReading', 'distance',
   'gpsLat', 'gpsLng', 'remarks'
 ]
 
@@ -91,6 +92,7 @@ export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<strin
     windDirection: normalizeWindDirectionString(String(e.windDirection ?? '')),
     windStrength: '',
     seaState: '',
+    visibility: '',
     weatherIcon: '',
     current: '',
     heel: '',

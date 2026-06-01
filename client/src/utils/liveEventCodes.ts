@@ -9,7 +9,8 @@ export const LIVE_EVENT_CODES = {
   COURSE: '__live:course',
   WIND: '__live:wind',
   PRESSURE: '__live:pressure',
-  SEA_STATE: '__live:sea_state'
+  SEA_STATE: '__live:sea_state',
+  VISIBILITY: '__live:visibility'
 } as const
 
 export type LiveEventCode = (typeof LIVE_EVENT_CODES)[keyof typeof LIVE_EVENT_CODES]

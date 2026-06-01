@@ -82,6 +82,7 @@ type LiveModal =
   | 'temp'
   | 'precip'
   | 'sea_state'
+  | 'visibility'
   | 'course'
   | 'fuel'
   | 'water'
@@ -557,6 +558,12 @@ export default function LiveLogView({
             remarks: LIVE_EVENT_CODES.PRESSURE
           })
         }
+        if (parsed.visibility) {
+          partials.push({
+            visibility: parsed.visibility,
+            remarks: LIVE_EVENT_CODES.VISIBILITY
+          })
+        }
         if (parsed.tempC) {
           partials.push({ remarks: liveTempRemark(parsed.tempC) })
         }
@@ -723,6 +730,16 @@ export default function LiveLogView({
             remarks: LIVE_EVENT_CODES.SEA_STATE
           })
         }, 'sea_state')
+        break
+      case 'visibility':
+        if (!primary) return
+        setModal('none')
+        void runQuickAction(async () => {
+          await appendQuickEvent(logbookId, entryId, {
+            visibility: primary,
+            remarks: LIVE_EVENT_CODES.VISIBILITY
+          })
+        }, 'visibility')
         break
       case 'course': {
         const course = primary || lastCourseFromEvents(events)
@@ -922,6 +939,9 @@ export default function LiveLogView({
                 </button>
                 <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('sea_state')} disabled={busy}>
                   {t('logs.live_sea_state_btn')}
+                </button>
+                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('visibility')} disabled={busy}>
+                  {t('logs.live_visibility_btn')}
                 </button>
               </div>
             )}
@@ -1165,7 +1185,7 @@ export default function LiveLogView({
         </div>
       )}
 
-      {['pressure', 'temp', 'precip', 'sea_state', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
+      {['pressure', 'temp', 'precip', 'sea_state', 'visibility', 'fuel', 'water', 'sog', 'stw'].includes(modal) && (
         <div className="live-log-modal-backdrop" onClick={() => setModal('none')}>
           <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
             <h3>
@@ -1173,6 +1193,7 @@ export default function LiveLogView({
               {modal === 'temp' && t('logs.live_temp_btn')}
               {modal === 'precip' && t('logs.live_precip_btn')}
               {modal === 'sea_state' && t('logs.live_sea_state_btn')}
+              {modal === 'visibility' && t('logs.live_visibility_btn')}
               {modal === 'fuel' && t('logs.live_fuel_btn')}
               {modal === 'water' && t('logs.live_water_btn')}
               {modal === 'sog' && t('logs.live_sog_btn')}
@@ -1192,7 +1213,8 @@ export default function LiveLogView({
                   : modal === 'temp' ? t('logs.live_temp_placeholder')
                     : modal === 'precip' ? t('logs.live_precip_placeholder')
                       : modal === 'sea_state' ? t('logs.live_sea_state_placeholder')
-                        : modal === 'fuel' ? t('logs.live_fuel_placeholder')
+                        : modal === 'visibility' ? t('logs.live_visibility_placeholder')
+                          : modal === 'fuel' ? t('logs.live_fuel_placeholder')
                           : modal === 'water' ? t('logs.live_water_placeholder')
                             : modal === 'sog' ? t('logs.live_sog_placeholder')
                               : t('logs.live_stw_placeholder')

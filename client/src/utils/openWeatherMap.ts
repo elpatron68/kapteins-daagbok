@@ -1,9 +1,14 @@
 import { degreesToCardinal } from './courseAngle.js'
+import { formatVisibilityMeters } from './weatherMetrics.js'
+
+/** @deprecated Use formatVisibilityMeters */
+export const formatOwmVisibilityMeters = formatVisibilityMeters
 
 export interface ParsedOwmCurrent {
   windDirection: string
   windStrength: string
   windPressure: string
+  visibility: string
   tempC: string | null
   precipText: string | null
   weatherIcon: string | null
@@ -57,10 +62,17 @@ export function parseOwmCurrentWeather(data: Record<string, unknown>): ParsedOwm
 
   const weatherIcon = firstWeather?.icon?.trim() ? firstWeather.icon.trim() : null
 
+  const visibilityRaw = data.visibility
+  const visibility =
+    typeof visibilityRaw === 'number'
+      ? formatVisibilityMeters(visibilityRaw)
+      : ''
+
   return {
     windDirection,
     windStrength,
     windPressure,
+    visibility,
     tempC,
     precipText,
     weatherIcon

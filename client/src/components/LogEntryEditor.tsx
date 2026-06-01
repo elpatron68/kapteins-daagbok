@@ -56,6 +56,25 @@ import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
 import TankLiterInput from './TankLiterInput.tsx'
+import MetricRangeInput from './MetricRangeInput.tsx'
+import {
+  formatHeelDeg,
+  formatPressureHpa,
+  formatSeaState,
+  formatVisibilityMeters,
+  HEEL_MAX_DEG,
+  HEEL_MIN_DEG,
+  parseHeelDeg,
+  parsePressureHpa,
+  parseSeaState,
+  parseVisibilityMeters,
+  PRESSURE_DEFAULT_HPA,
+  PRESSURE_MAX_HPA,
+  PRESSURE_MIN_HPA,
+  SEA_STATE_MAX,
+  SEA_STATE_MIN,
+  VISIBILITY_STEPS_M
+} from '../utils/weatherMetrics.js'
 import {
   computeEveningTankMaxLiters,
   computeRefilledTankMaxLiters,
@@ -201,6 +220,7 @@ export default function LogEntryEditor({
   const [evWindDirection, setEvWindDirection] = useState('')
   const [evWindStrength, setEvWindStrength] = useState('')
   const [evSeaState, setEvSeaState] = useState('')
+  const [evVisibility, setEvVisibility] = useState('')
   const [evWeatherIcon, setEvWeatherIcon] = useState('')
   const [evCurrent, setEvCurrent] = useState('')
   const [evHeel, setEvHeel] = useState('')
@@ -361,6 +381,7 @@ export default function LogEntryEditor({
       windDirection: evWindDirection,
       windStrength: evWindStrength,
       seaState: evSeaState,
+      visibility: evVisibility,
       weatherIcon: evWeatherIcon,
       current: evCurrent,
       heel: evHeel,
@@ -383,7 +404,7 @@ export default function LogEntryEditor({
     return hasUnsavedEventDraft(buildEventFromForm(), editingEventIndex, events)
   }, [
     evTime, evMgk, evRwk, evWindPressure, evWindDirection, evWindStrength, evSeaState,
-    evWeatherIcon, evCurrent, evHeel, evSailsOrMotor, evLogReading, evDistance,
+    evVisibility, evWeatherIcon, evCurrent, evHeel, evSailsOrMotor, evLogReading, evDistance,
     evGpsLat, evGpsLng, evRemarks, editingEventIndex, events
   ])
 
@@ -985,6 +1006,7 @@ export default function LogEntryEditor({
       setEvWindStrength(parsed.windStrength)
       setEvWindPressure(parsed.windPressure)
       if (parsed.windDirection) setEvWindDirection(parsed.windDirection)
+      if (parsed.visibility) setEvVisibility(parsed.visibility)
       if (parsed.weatherIcon) setEvWeatherIcon(parsed.weatherIcon)
 
       showAlert(t('settings.weather_success'))
@@ -1047,6 +1069,7 @@ export default function LogEntryEditor({
     setEvWindDirection('')
     setEvWindStrength('')
     setEvSeaState('')
+    setEvVisibility('')
     setEvWeatherIcon('')
     setEvCurrent('')
     setEvHeel('')
@@ -1070,6 +1093,7 @@ export default function LogEntryEditor({
     setEvWindDirection(normalized.windDirection)
     setEvWindStrength(normalized.windStrength)
     setEvSeaState(normalized.seaState)
+    setEvVisibility(normalized.visibility)
     setEvWeatherIcon(normalized.weatherIcon)
     setEvCurrent(normalized.current)
     setEvHeel(normalized.heel)
@@ -1698,8 +1722,8 @@ export default function LogEntryEditor({
               </div>
             </div>
 
-            <div className="form-grid mb-4">
-              <div className="input-group course-dial-section">
+            <div className="form-grid weather-metrics-grid mb-4">
+              <div className="input-group course-dial-section weather-metrics-span-2">
                 <label>{t('logs.event_wind_direction')}</label>
                 <CourseDialInput
                   value={evWindDirection}
@@ -1723,41 +1747,76 @@ export default function LogEntryEditor({
                 />
               </div>
 
-              <div className="input-group">
-                <label>{t('logs.event_wind_pressure')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 1013 hPa"
-                  className="input-text"
-                  value={evWindPressure}
-                  onChange={(e) => setEvWindPressure(e.target.value)}
-                  disabled={saving || weatherLoading}
-                />
-              </div>
+              <MetricRangeInput
+                label={t('logs.event_wind_pressure')}
+                value={evWindPressure}
+                onChange={setEvWindPressure}
+                disabled={saving || weatherLoading}
+                min={PRESSURE_MIN_HPA}
+                max={PRESSURE_MAX_HPA}
+                step={1}
+                defaultNumeric={PRESSURE_DEFAULT_HPA}
+                parse={parsePressureHpa}
+                format={formatPressureHpa}
+                formatDisplay={(hpa) =>
+                  t('logs.weather_slider_pressure', { value: hpa, defaultValue: `${hpa} hPa` })}
+                numberMin={PRESSURE_MIN_HPA}
+                numberMax={PRESSURE_MAX_HPA}
+                numberStep={1}
+                numberPlaceholder="1013"
+              />
 
-              <div className="input-group">
-                <label>{t('logs.event_sea_state')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 3"
-                  className="input-text"
-                  value={evSeaState}
-                  onChange={(e) => setEvSeaState(e.target.value)}
-                  disabled={saving}
-                />
-              </div>
+              <MetricRangeInput
+                label={t('logs.event_sea_state')}
+                value={evSeaState}
+                onChange={setEvSeaState}
+                disabled={saving}
+                min={SEA_STATE_MIN}
+                max={SEA_STATE_MAX}
+                step={1}
+                defaultNumeric={0}
+                parse={parseSeaState}
+                format={formatSeaState}
+                formatDisplay={(level) =>
+                  t('logs.weather_slider_sea_state', { value: level, defaultValue: `${level}` })}
+                numberMin={SEA_STATE_MIN}
+                numberMax={SEA_STATE_MAX}
+                numberStep={1}
+                numberPlaceholder="3"
+                allowLegacyText
+              />
 
-              <div className="input-group">
-                <label>{t('logs.event_heel')}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 5"
-                  className="input-text"
-                  value={evHeel}
-                  onChange={(e) => setEvHeel(e.target.value)}
-                  disabled={saving}
-                />
-              </div>
+              <MetricRangeInput
+                label={t('logs.event_visibility')}
+                value={evVisibility}
+                onChange={setEvVisibility}
+                disabled={saving || weatherLoading}
+                discreteValues={VISIBILITY_STEPS_M}
+                defaultNumeric={10000}
+                parse={parseVisibilityMeters}
+                format={formatVisibilityMeters}
+                formatDisplay={(m) => formatVisibilityMeters(m)}
+                hideNumberInput
+              />
+
+              <MetricRangeInput
+                label={t('logs.event_heel')}
+                value={evHeel}
+                onChange={setEvHeel}
+                disabled={saving}
+                min={HEEL_MIN_DEG}
+                max={HEEL_MAX_DEG}
+                step={1}
+                defaultNumeric={0}
+                parse={parseHeelDeg}
+                format={formatHeelDeg}
+                formatDisplay={(deg) =>
+                  t('logs.weather_slider_heel', { value: deg, defaultValue: `${deg}°` })}
+                numberMin={HEEL_MIN_DEG}
+                numberMax={HEEL_MAX_DEG}
+                numberStep={1}
+                numberPlaceholder="5"
+              />
             </div>
 
             <div className="form-grid mb-4">
