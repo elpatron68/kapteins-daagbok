@@ -249,6 +249,35 @@ export async function appendQuickEvent(
   return { events: nextEvents, hadSignature }
 }
 
+/** Append multiple events in one load/encrypt/persist cycle (avoids UI freezes). */
+export async function appendQuickEvents(
+  logbookId: string,
+  entryId: string,
+  partialEvents: Partial<LogEventPayload>[]
+): Promise<AppendQuickEventResult> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
+  const currentEvents = (loaded.data.events as LogEventPayload[]) || []
+  if (partialEvents.length === 0) {
+    return { events: currentEvents, hadSignature }
+  }
+
+  const time = currentLocalTimeHHMM()
+  const newEvents = partialEvents.map((partial) =>
+    normalizeLogEvent({ time, ...partial })
+  )
+  const nextEvents = sortLogEventsByTime([...currentEvents, ...newEvents])
+
+  await persistEntry(logbookId, entryId, loaded.data, {
+    events: nextEvents,
+    clearSignatures: hadSignature
+  })
+
+  return { events: nextEvents, hadSignature }
+}
+
 async function persistEntry(
   logbookId: string,
   entryId: string,

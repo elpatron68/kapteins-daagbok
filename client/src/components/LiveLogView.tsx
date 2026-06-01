@@ -26,6 +26,7 @@ import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import {
   appendQuickEvent,
+  appendQuickEvents,
   appendTankRefill,
   findOrCreateTodayEntry,
   loadEntry,
@@ -397,7 +398,7 @@ export default function LiveLogView({
   }
 
   const handleFetchOwmWeather = () => {
-    if (!entryId || busy || weatherOwmLoading) return
+    if (!entryId || weatherOwmLoading) return
 
     const position = getLastPositionFixWithin(
       events,
@@ -416,51 +417,62 @@ export default function LiveLogView({
     }
 
     const { lat, lng } = position
+    const id = entryId
     setWeatherOwmLoading(true)
-    void runQuickAction(async () => {
-      let data: Record<string, unknown>
+    setError(null)
+    void (async () => {
       try {
-        data = await fetchOpenWeatherCurrent({ lat, lon: lng })
-      } catch (err) {
-        if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
-          await showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
-          return false
+        let data: Record<string, unknown>
+        try {
+          data = await fetchOpenWeatherCurrent({ lat, lon: lng })
+        } catch (err) {
+          if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
+            void showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
+            return
+          }
+          console.error('Live log OWM weather failed:', err)
+          void showAlert(t('settings.weather_error'), t('logs.live_weather_owm_btn'))
+          return
         }
-        console.error('Live log OWM weather failed:', err)
-        await showAlert(t('settings.weather_error'), t('logs.live_weather_owm_btn'))
-        return false
-      }
 
-      const parsed = parseOwmCurrentWeather(data)
-      if (parsed.windDirection || parsed.windStrength) {
-        await appendQuickEvent(logbookId, entryId, {
-          windDirection: parsed.windDirection,
-          windStrength: parsed.windStrength,
-          weatherIcon: parsed.weatherIcon || undefined,
-          remarks: LIVE_EVENT_CODES.WIND
-        })
-      }
-      if (parsed.windPressure) {
-        await appendQuickEvent(logbookId, entryId, {
-          windPressure: parsed.windPressure,
-          remarks: LIVE_EVENT_CODES.PRESSURE
-        })
-      }
-      if (parsed.tempC) {
-        await appendQuickEvent(logbookId, entryId, {
-          remarks: liveTempRemark(parsed.tempC)
-        })
-      }
-      if (parsed.precipText) {
-        await appendQuickEvent(logbookId, entryId, {
-          remarks: livePrecipRemark(parsed.precipText)
-        })
-      }
+        const parsed = parseOwmCurrentWeather(data)
+        const partials: Partial<LogEventPayload>[] = []
+        if (parsed.windDirection || parsed.windStrength) {
+          partials.push({
+            windDirection: parsed.windDirection,
+            windStrength: parsed.windStrength,
+            weatherIcon: parsed.weatherIcon || undefined,
+            remarks: LIVE_EVENT_CODES.WIND
+          })
+        }
+        if (parsed.windPressure) {
+          partials.push({
+            windPressure: parsed.windPressure,
+            remarks: LIVE_EVENT_CODES.PRESSURE
+          })
+        }
+        if (parsed.tempC) {
+          partials.push({ remarks: liveTempRemark(parsed.tempC) })
+        }
+        if (parsed.precipText) {
+          partials.push({ remarks: livePrecipRemark(parsed.precipText) })
+        }
+        if (partials.length === 0) {
+          void showAlert(t('settings.weather_error'), t('logs.live_weather_owm_btn'))
+          return
+        }
 
-      await showAlert(t('settings.weather_success'), t('logs.live_weather_owm_btn'))
-    }, 'weather_owm').finally(() => {
-      setWeatherOwmLoading(false)
-    })
+        await appendQuickEvents(logbookId, id, partials)
+        await refreshEntry(id)
+        showUndo()
+        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'weather_owm' })
+      } catch (err: unknown) {
+        console.error('Live log OWM weather save failed:', err)
+        setError(err instanceof Error ? err.message : t('logs.live_action_error'))
+      } finally {
+        setWeatherOwmLoading(false)
+      }
+    })()
   }
 
   const handleUndo = () => {
@@ -729,7 +741,8 @@ export default function LiveLogView({
                   type="button"
                   className="live-log-subaction-btn live-log-subaction-btn-owm"
                   onClick={handleFetchOwmWeather}
-                  disabled={busy || weatherOwmLoading}
+                  disabled={weatherOwmLoading}
+                  aria-busy={weatherOwmLoading}
                 >
                   {weatherOwmLoading ? t('logs.live_weather_owm_loading') : t('logs.live_weather_owm_btn')}
                 </button>

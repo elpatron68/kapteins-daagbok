@@ -11,6 +11,8 @@ export class WeatherApiError extends Error {
   }
 }
 
+const OWM_FETCH_TIMEOUT_MS = 20_000
+
 export async function fetchOpenWeatherCurrent(params: {
   lat?: string
   lon?: string
@@ -31,7 +33,22 @@ export async function fetchOpenWeatherCurrent(params: {
   const headers: Record<string, string> = {}
   if (userKey) headers['X-OWM-Api-Key'] = userKey
 
-  const res = await apiFetch(`/api/weather/current?${searchParams.toString()}`, { headers })
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), OWM_FETCH_TIMEOUT_MS)
+  let res: Response
+  try {
+    res = await apiFetch(`/api/weather/current?${searchParams.toString()}`, {
+      headers,
+      signal: controller.signal
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new WeatherApiError('Weather request timed out')
+    }
+    throw err
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
 
   if (res.status === 503) {
     throw new WeatherApiError('No OpenWeatherMap API key configured', 'NO_KEY')
