@@ -247,9 +247,8 @@ Umgebungsvariablen in `.env` setzen — mindestens `RP_ID`, `ORIGIN` (z. B. `htt
 
 ## Deployment
 
-**Vor dem Deploy:** `npm run check` lokal ausführen.
+Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen). Führt vor dem SSH-Deploy automatisch [`predeploy-check.sh`](scripts/predeploy-check.sh) aus (`npm run check`):
 
-Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen):
 
 ```bash
 ./scripts/update-prod.sh

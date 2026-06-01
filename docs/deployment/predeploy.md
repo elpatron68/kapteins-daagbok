@@ -31,8 +31,12 @@ cd server && npm test
 
 ## Nach erfolgreichem Check
 
+[`scripts/update-prod.sh`](../../scripts/update-prod.sh) führt `predeploy-check.sh` **automatisch** aus (nach Release-Vorbereitung, vor dem SSH-Deploy).
+
 ```bash
 ./scripts/update-prod.sh
 ```
 
-Oder manuell auf dem Server: `git pull`, `docker compose build`, `docker compose up -d` (siehe [npm-security.md](npm-security.md)).
+Notfall ohne Checks (nur wenn nötig): `SKIP_PREDEPLOY_CHECK=1 ./scripts/update-prod.sh`
+
+Manuell auf dem Server: `git pull`, `docker compose build`, `docker compose up -d` (siehe [npm-security.md](npm-security.md)).

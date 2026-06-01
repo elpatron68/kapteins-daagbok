@@ -125,6 +125,15 @@ prepare_release() {
 
 prepare_release
 
+if [[ "${SKIP_PREDEPLOY_CHECK:-}" == "1" ]]; then
+  echo "Skipping pre-deploy checks (SKIP_PREDEPLOY_CHECK=1)."
+else
+  echo "=================================================="
+  echo "    Pre-deploy checks (local)"
+  echo "=================================================="
+  "$SCRIPT_DIR/predeploy-check.sh"
+fi
+
 echo "=================================================="
 echo "Deploying ${APP_VERSION} to ${REMOTE_TARGET}:${REMOTE_DIR}"
 echo "=================================================="
