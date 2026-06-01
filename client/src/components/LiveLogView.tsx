@@ -20,9 +20,6 @@ import {
   Undo2,
   Zap
 } from 'lucide-react'
-import { db } from '../services/db.js'
-import { getLogbookKey } from '../services/logbookKeys.js'
-import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import {
   appendQuickEvent,
@@ -243,24 +240,14 @@ export default function LiveLogView({
       if (seq !== initSeqRef.current) return
       setEntryId(id)
 
-      const logbookKey = await getLogbookKey(logbookId)
-      if (logbookKey) {
-        const yacht = await db.yachts.get(logbookId)
-        if (yacht) {
-          try {
-            const decrypted = await decryptJson(
-              yacht.encryptedData,
-              yacht.iv,
-              yacht.tag,
-              logbookKey
-            )
-            if (decrypted?.sails && Array.isArray(decrypted.sails)) {
-              setYachtSails(decrypted.sails as string[])
-            }
-          } catch {
-            // Yacht profile optional for live log
-          }
+      try {
+        const { resolveVesselForLogbook } = await import('../services/resolveVessel.js')
+        const vessel = await resolveVesselForLogbook(logbookId)
+        if (vessel?.sails && Array.isArray(vessel.sails)) {
+          setYachtSails(vessel.sails)
         }
+      } catch {
+        // Vessel profile optional for live log
       }
 
       const loaded = await loadEntry(logbookId, id)

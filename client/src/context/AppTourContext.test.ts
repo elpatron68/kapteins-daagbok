@@ -17,9 +17,13 @@ describe('AppTourContext step order', () => {
     expect(profileIndex).toBeGreaterThan(FULL_STEP_ORDER.indexOf('nav_feedback'))
     expect(prefsIndex).toBe(profileIndex + 1)
     expect(finishIndex).toBe(prefsIndex + 1)
+    expect(FULL_STEP_ORDER).toContain('profile_vessel_pool')
     expect(FULL_STEP_ORDER).toContain('profile_crew_pool')
     expect(FULL_STEP_ORDER).toContain('nav_logbook_crew')
-    expect(FULL_STEP_ORDER).toHaveLength(13)
+    expect(FULL_STEP_ORDER.indexOf('profile_vessel_pool')).toBeLessThan(
+      FULL_STEP_ORDER.indexOf('profile_crew_pool')
+    )
+    expect(FULL_STEP_ORDER).toHaveLength(14)
   })
 
   it('excludes profile, stats and feedback from demo tour', () => {

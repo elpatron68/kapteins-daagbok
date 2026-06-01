@@ -17,6 +17,7 @@ const PUBLIC_DEMO_ENTRY_IDS = [
 ] as const
 
 export const PUBLIC_DEMO_SKIPPER_ID = 'skipper'
+export const PUBLIC_DEMO_VESSEL_ID = 'demo-vessel-1'
 const PUBLIC_DEMO_CREW_MEMBER_ID = 'a0000001-0000-4000-8000-000000000010'
 
 export interface DemoDaySpec {
@@ -50,9 +51,19 @@ export interface DemoCrewRecord {
   }
 }
 
+export interface DemoVesselRecord {
+  payloadId: string
+  data: Record<string, unknown> & { name: string }
+}
+
 export interface PublicDemoFixture {
   title: string
   yacht: Record<string, unknown>
+  vesselPool: DemoVesselRecord[]
+  logbookVesselSelection: {
+    activeVesselId: string | null
+    vesselSnapshot: Record<string, unknown> | null
+  }
   /** @deprecated legacy share payload */
   crews: DemoCrewRecord[]
   personPool: DemoCrewRecord[]
@@ -238,6 +249,24 @@ export function buildDemoCrewRecords(): DemoCrewRecord[] {
   ]
 }
 
+function buildDemoVesselPool(yacht: Record<string, unknown>): DemoVesselRecord[] {
+  return [
+    {
+      payloadId: PUBLIC_DEMO_VESSEL_ID,
+      data: { name: String(yacht.name ?? 'Demo'), ...yacht }
+    }
+  ]
+}
+
+function buildDemoLogbookVesselSelection(
+  yacht: Record<string, unknown>
+): PublicDemoFixture['logbookVesselSelection'] {
+  return {
+    activeVesselId: PUBLIC_DEMO_VESSEL_ID,
+    vesselSnapshot: { id: PUBLIC_DEMO_VESSEL_ID, ...yacht }
+  }
+}
+
 function buildDemoLogbookCrewSelection(pool: DemoCrewRecord[]) {
   const skipper = pool.find((p) => p.data.role === 'skipper')
   const crew = pool.filter((p) => p.data.role === 'crew')
@@ -255,6 +284,8 @@ function buildDemoLogbookCrewSelection(pool: DemoCrewRecord[]) {
 export function buildPublicDemoFixture(): PublicDemoFixture {
   const title = i18n.t('demo.logbook_title')
   const yacht = buildDemoYachtData()
+  const vesselPool = buildDemoVesselPool(yacht)
+  const logbookVesselSelection = buildDemoLogbookVesselSelection(yacht)
   const personPool = buildDemoPersonPool()
   const crews = personPool
   const logbookCrewSelection = buildDemoLogbookCrewSelection(personPool)
@@ -310,6 +341,8 @@ export function buildPublicDemoFixture(): PublicDemoFixture {
   return {
     title,
     yacht,
+    vesselPool,
+    logbookVesselSelection,
     crews,
     personPool,
     logbookCrewSelection,

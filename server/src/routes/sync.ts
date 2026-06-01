@@ -147,6 +147,8 @@ router.post('/push', async (req: any, res) => {
             await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
           } else if (type === 'logbookCrew') {
             await prisma.logbookCrewSelectionPayload.deleteMany({ where: { logbookId } })
+          } else if (type === 'logbookVessel') {
+            await prisma.logbookVesselSelectionPayload.deleteMany({ where: { logbookId } })
           } else {
             results.push({ payloadId, status: 'error', error: `Unsupported delete type: ${type}` })
             continue
@@ -270,6 +272,29 @@ router.post('/push', async (req: any, res) => {
               update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
             })
           }
+        } else if (type === 'logbookVessel') {
+          const { hasVesselPoolPrismaModels, VESSEL_POOL_MIGRATION_HINT } =
+            await import('../utils/crewPoolSchema.js')
+          if (!hasVesselPoolPrismaModels()) {
+            results.push({
+              payloadId,
+              status: 'error',
+              error: VESSEL_POOL_MIGRATION_HINT
+            })
+            continue
+          }
+          {
+            const existing = await prisma.logbookVesselSelectionPayload.findUnique({ where: { logbookId } })
+            if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+              results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+              continue
+            }
+            await prisma.logbookVesselSelectionPayload.upsert({
+              where: { logbookId },
+              create: { logbookId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
+              update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+            })
+          }
         }
 
         recordCollaboratorChange(
@@ -336,9 +361,15 @@ router.get('/pull', async (req: any, res) => {
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
     let logbookCrewSelection = null
-    const { hasCrewPoolPrismaModels } = await import('../utils/crewPoolSchema.js')
+    let logbookVesselSelection = null
+    const { hasCrewPoolPrismaModels, hasVesselPoolPrismaModels } = await import('../utils/crewPoolSchema.js')
     if (hasCrewPoolPrismaModels()) {
       logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
+        where: { logbookId }
+      })
+    }
+    if (hasVesselPoolPrismaModels()) {
+      logbookVesselSelection = await prisma.logbookVesselSelectionPayload.findUnique({
         where: { logbookId }
       })
     }
@@ -348,6 +379,7 @@ router.get('/pull', async (req: any, res) => {
       deviation,
       crews,
       logbookCrewSelection,
+      logbookVesselSelection,
       entries,
       photos,
       gpsTracks

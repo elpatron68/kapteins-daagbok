@@ -64,6 +64,8 @@ async function entityExistsLocally(item: SyncQueueItem): Promise<boolean> {
       return !!(await db.gpsTracks.get(item.payloadId))
     case 'logbookCrew':
       return !!(await db.logbookCrewSelections.get(item.logbookId))
+    case 'logbookVessel':
+      return !!(await db.logbookVesselSelections.get(item.logbookId))
     default:
       return false
   }
@@ -228,6 +230,7 @@ type PulledServerPayload = {
   yacht?: { updatedAt: string } | null
   deviation?: { updatedAt: string } | null
   logbookCrewSelection?: { updatedAt: string } | null
+  logbookVesselSelection?: { updatedAt: string } | null
   crews?: Array<{ payloadId: string; updatedAt: string }>
   entries?: Array<{ payloadId: string; updatedAt: string }>
   photos?: Array<{ payloadId: string; updatedAt: string }>
@@ -247,6 +250,9 @@ async function pruneAcknowledgedQueueItems(
   if (server.deviation) serverTimes.set('deviation:' + logbookId, server.deviation.updatedAt)
   if (server.logbookCrewSelection) {
     serverTimes.set('logbookCrew:' + logbookId, server.logbookCrewSelection.updatedAt)
+  }
+  if (server.logbookVesselSelection) {
+    serverTimes.set('logbookVessel:' + logbookId, server.logbookVesselSelection.updatedAt)
   }
   for (const c of server.crews ?? []) serverTimes.set('crew:' + c.payloadId, c.updatedAt)
   for (const e of server.entries ?? []) serverTimes.set('entry:' + e.payloadId, e.updatedAt)
@@ -269,7 +275,9 @@ async function pruneAcknowledgedQueueItems(
         ? 'yacht:' + logbookId
         : item.type === 'logbookCrew'
           ? 'logbookCrew:' + logbookId
-          : `${item.type}:${item.payloadId}`
+          : item.type === 'logbookVessel'
+            ? 'logbookVessel:' + logbookId
+            : `${item.type}:${item.payloadId}`
     const serverUpdatedAt = serverTimes.get(key)
     if (serverUpdatedAt && !isNewer(item.updatedAt, serverUpdatedAt)) {
       if (item.id !== undefined) staleIds.push(item.id)
@@ -295,12 +303,13 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       return false
     }
 
-    const { yacht, deviation, crews, logbookCrewSelection, entries, photos, gpsTracks } =
+    const { yacht, deviation, crews, logbookCrewSelection, logbookVesselSelection, entries, photos, gpsTracks } =
       await response.json()
     const serverSnapshot: PulledServerPayload = {
       yacht,
       deviation,
       logbookCrewSelection,
+      logbookVesselSelection,
       crews,
       entries,
       photos,
@@ -345,6 +354,20 @@ async function pullChanges(logbookId: string): Promise<boolean> {
           iv: logbookCrewSelection.iv,
           tag: logbookCrewSelection.tag,
           updatedAt: logbookCrewSelection.updatedAt
+        })
+      }
+    }
+
+    // 2c. Sync Logbook Vessel Selection
+    if (logbookVesselSelection) {
+      const local = await db.logbookVesselSelections.get(logbookId)
+      if (!local || isNewer(logbookVesselSelection.updatedAt, local.updatedAt)) {
+        await db.logbookVesselSelections.put({
+          logbookId,
+          encryptedData: logbookVesselSelection.encryptedData,
+          iv: logbookVesselSelection.iv,
+          tag: logbookVesselSelection.tag,
+          updatedAt: logbookVesselSelection.updatedAt
         })
       }
     }

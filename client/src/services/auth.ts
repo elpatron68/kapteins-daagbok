@@ -558,7 +558,12 @@ export async function deleteAccount(): Promise<boolean> {
         db.photos.clear(),
         db.gpsTracks.clear(),
         db.syncQueue.clear(),
-        db.logbookKeys.clear()
+        db.logbookKeys.clear(),
+        db.personPool.clear(),
+        db.vesselPool.clear(),
+        db.logbookCrewSelections.clear(),
+        db.logbookVesselSelections.clear(),
+        db.userSyncQueue.clear()
       ])
 
       // Wipe localStorage and session variables

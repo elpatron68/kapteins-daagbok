@@ -12,8 +12,22 @@ export function hasCrewPoolPrismaModels(): boolean {
   )
 }
 
+export function hasVesselPoolPrismaModels(): boolean {
+  const client = prisma as unknown as {
+    vesselPayload?: { findMany: unknown }
+    logbookVesselSelectionPayload?: { findUnique: unknown }
+  }
+  return (
+    typeof client.vesselPayload?.findMany === 'function' &&
+    typeof client.logbookVesselSelectionPayload?.findUnique === 'function'
+  )
+}
+
 export const CREW_POOL_MIGRATION_HINT =
   'Crew-Pool-Datenbank fehlt. Im Ordner server ausführen: npx prisma generate && npx prisma db push — danach Server neu starten.'
+
+export const VESSEL_POOL_MIGRATION_HINT =
+  'Schiffs-Pool-Datenbank fehlt. Im Ordner server ausführen: npx prisma generate && npx prisma db push — danach Server neu starten.'
 
 export function isMissingPrismaTable(error: unknown): boolean {
   return (

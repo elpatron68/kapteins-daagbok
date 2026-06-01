@@ -606,7 +606,37 @@
       "push_unsupported": "Push-meddelanden stöds inte i den här webbläsaren.",
       "push_denied_hint": "Meddelanden är blockerade. Tillåt dem i webbläsarens eller enhetens inställningar.",
       "push_ios_install_hint": "På iPhone/iPad: Lägg till app på startskärmen (iOS 16.4+) för att använda push.",
-      "push_error": "Push-meddelanden kunde inte aktiveras."
+      "push_error": "Push-meddelanden kunde inte aktiveras.",
+      "sections": {
+        "account": "Konto och inställningar",
+        "fleet": "Flotta och besättning",
+        "security": "Säkerhet och enhet",
+        "stats": "Statistik",
+        "danger": "Riskzon"
+      }
+    },
+    "vessel_pool": {
+      "title": "Skipsflotta",
+      "section_title": "Dina fartyg",
+      "subtitle": "Underhåll alla fartyg för dina loggböcker här. Välj aktivt fartyg per loggbok från listan.",
+      "loading": "Laddar fartygsflotta…",
+      "add_vessel": "Lägg till fartyg",
+      "edit_vessel": "Redigera fartyg",
+      "no_vessels": "Inga fartyg i poolen ännu.",
+      "delete_confirm": "Ta bort detta fartyg från flottan?",
+      "max_vessels": "Högst 20 fartyg i poolen."
+    },
+    "logbook_vessel": {
+      "title": "Fartyg för denna loggbok",
+      "subtitle": "Välj fartyg för denna loggbok. Resdagar använder segel- och tankdata från valt fartyg.",
+      "active_vessel": "Fartyg för denna loggbok",
+      "no_vessels_in_pool": "Inget fartyg i flottan – lägg till i användarprofilen först.",
+      "no_vessel": "Inget fartyg valt",
+      "unnamed": "Namnlös",
+      "save": "Spara fartyg",
+      "saved": "Loggbok-fartyg sparat.",
+      "selection_only_hint": "Du ser fartyget ägaren valt (delad loggbok).",
+      "manage_in_profile": "Hantera fartyg i användarprofilen"
     },
     "person_pool": {
       "title": "Stamm-Crew och skeppare",
@@ -883,7 +913,7 @@
         },
         "welcome_public": {
           "title": "Välkommen ombord!",
-          "body": "Utforska vår demologgbok med tre dagars resor i Kielfjorden - utan konto. Den här korta rundturen visar dig fartygsdata, crew och loggboksanteckningar."
+          "body": "Utforska vår demologgbok med tre dagars resor i Kielfjorden – utan konto. Rundturen visar loggboksanteckningar samt val av fartyg och besättning för denna loggbok. Flotta och stamm-besättning hanterar du senare i användarprofilen."
         },
         "nav_logs": {
           "title": "Loggboksanteckningar",
@@ -902,8 +932,12 @@
           "body": "Ladda upp GPX-filer eller visa redan sparade rutter på kartan - inklusive avstånd och hastighet."
         },
         "nav_vessel": {
-          "title": "Fartygsdata",
-          "body": "Ange namn, dimensioner och tekniska data för din yacht - fyll i en gång, tillgänglig för alla resdagar."
+          "title": "Fartyg för loggbok",
+          "body": "Välj fartyg från flottan för denna loggbok. Hantera fartyg i användarprofilen under Flotta och besättning."
+        },
+        "profile_vessel_pool": {
+          "title": "Fartygsflotta",
+          "body": "I användarprofilen lägger du in alla fartyg – charter, egen båt m.m. Välj sedan rätt fartyg per loggbok."
         },
         "profile_crew_pool": {
           "title": "Stamm-Crew och skeppare",

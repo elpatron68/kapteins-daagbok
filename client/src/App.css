@@ -1270,6 +1270,70 @@ html.scheme-dark .themed-select-option.is-selected {
   flex-shrink: 0;
 }
 
+.profile-accordion {
+  margin-bottom: 12px;
+  border: 1px solid var(--app-border-muted);
+  border-radius: var(--app-radius-card);
+  background: var(--app-surface);
+  overflow: hidden;
+}
+
+.profile-accordion__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--app-text-heading);
+}
+
+.profile-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.profile-accordion__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-accordion__chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+
+.profile-accordion[open] .profile-accordion__chevron {
+  transform: rotate(180deg);
+}
+
+.profile-accordion__body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--app-border-muted);
+}
+
+.profile-accordion-inner-card {
+  margin-top: 12px;
+}
+
+.profile-accordion-inner-card.form-card,
+.profile-accordion-inner-card.member-editor-card {
+  margin-bottom: 0;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--app-accent, #f59e0b);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
 .profile-section-header {
   display: flex;
   align-items: center;

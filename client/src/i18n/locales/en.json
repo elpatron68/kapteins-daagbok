@@ -606,7 +606,37 @@
       "push_unsupported": "Push notifications are not supported in this browser.",
       "push_denied_hint": "Notifications are blocked. Allow them in your browser or device settings.",
       "push_ios_install_hint": "On iPhone/iPad: add the app to your Home Screen (iOS 16.4+) to use push notifications.",
-      "push_error": "Could not enable push notifications."
+      "push_error": "Could not enable push notifications.",
+      "sections": {
+        "account": "Account & settings",
+        "fleet": "Fleet & crew",
+        "security": "Security & device",
+        "stats": "Statistics",
+        "danger": "Danger zone"
+      }
+    },
+    "vessel_pool": {
+      "title": "Vessel fleet",
+      "section_title": "Your vessels",
+      "subtitle": "Maintain all vessels for your logbooks here. Select the active vessel per logbook from this list.",
+      "loading": "Loading vessel fleet…",
+      "add_vessel": "Add vessel",
+      "edit_vessel": "Edit vessel",
+      "no_vessels": "No vessels in the pool yet.",
+      "delete_confirm": "Remove this vessel from the fleet?",
+      "max_vessels": "Maximum of 20 vessels in the pool reached."
+    },
+    "logbook_vessel": {
+      "title": "Vessel for this logbook",
+      "subtitle": "Choose the vessel for this logbook. Travel days use sails and tank data from the selected vessel.",
+      "active_vessel": "Vessel for this logbook",
+      "no_vessels_in_pool": "No vessel in the fleet — add one in your user profile first.",
+      "no_vessel": "No vessel selected",
+      "unnamed": "Unnamed",
+      "save": "Save vessel",
+      "saved": "Logbook vessel saved.",
+      "selection_only_hint": "You see the vessel chosen by the owner (shared logbook).",
+      "manage_in_profile": "Manage vessels in user profile"
     },
     "person_pool": {
       "title": "Core Crew & skippers",
@@ -883,7 +913,7 @@
         },
         "welcome_public": {
           "title": "Welcome aboard!",
-          "body": "Explore our demo logbook with three travel days in Kiel Bay — no account required. This short tour shows vessel data, crew, and log entries."
+          "body": "Explore our demo logbook with three travel days in Kiel Bay — no account required. The tour covers log entries and vessel and crew selection for this logbook. Manage your fleet and core crew later in your user profile."
         },
         "nav_logs": {
           "title": "Log entries",
@@ -902,8 +932,12 @@
           "body": "Upload GPX files or view saved routes on the map – including distance and speed stats."
         },
         "nav_vessel": {
-          "title": "Vessel data",
-          "body": "Enter your yacht's name, dimensions, and technical details – fill once, use on every travel day."
+          "title": "Vessel for logbook",
+          "body": "Choose a vessel from your fleet for this logbook. Manage vessels in your user profile under Fleet & crew."
+        },
+        "profile_vessel_pool": {
+          "title": "Vessel fleet",
+          "body": "In your user profile you add all your vessels — charter yachts, your own boat, etc. Then pick the right vessel per logbook."
         },
         "profile_crew_pool": {
           "title": "Core Crew & skippers",

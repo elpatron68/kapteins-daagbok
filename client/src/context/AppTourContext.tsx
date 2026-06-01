@@ -26,6 +26,7 @@ export type TourStepId =
   | 'entry_open'
   | 'entry_track'
   | 'nav_vessel'
+  | 'profile_vessel_pool'
   | 'profile_crew_pool'
   | 'nav_logbook_crew'
   | 'nav_stats'
@@ -72,6 +73,7 @@ export const FULL_STEP_ORDER: TourStepId[] = [
   'entry_open',
   'entry_track',
   'nav_vessel',
+  'profile_vessel_pool',
   'profile_crew_pool',
   'nav_logbook_crew',
   'nav_stats',
@@ -115,6 +117,7 @@ const TARGET_BY_STEP: Partial<Record<TourStepId, string>> = {
   entry_open: '[data-tour="entry-first"]',
   entry_track: '[data-tour="entry-track"]',
   nav_vessel: '[data-tour="nav-vessel"]',
+  profile_vessel_pool: '[data-tour="profile-vessel-pool"]',
   profile_crew_pool: '[data-tour="profile-crew-pool"]',
   nav_logbook_crew: '[data-tour="nav-logbook-crew"]',
   nav_stats: '[data-tour="stats-dashboard"]',
@@ -131,7 +134,12 @@ export function tourStepOpensEntry(stepId: TourStepId): boolean {
 export function getTourTargetDelay(stepId: TourStepId): number {
   if (stepId === 'entry_track') return 400
   if (stepId === 'nav_feedback') return 180
-  if (stepId === 'nav_profile' || stepId === 'profile_preferences' || stepId === 'profile_crew_pool') {
+  if (
+    stepId === 'nav_profile' ||
+    stepId === 'profile_preferences' ||
+    stepId === 'profile_vessel_pool' ||
+    stepId === 'profile_crew_pool'
+  ) {
     return 250
   }
   return 0
@@ -189,7 +197,7 @@ export function AppTourProvider({ children }: { children: ReactNode }) {
       nav.setSelectedEntryId(null)
       nav.setActiveTab('vessel')
     }
-    if (stepId === 'profile_crew_pool') {
+    if (stepId === 'profile_vessel_pool' || stepId === 'profile_crew_pool') {
       nav.setSelectedEntryId(null)
       nav.setLogbookActive(false)
       nav.setProfileOpen(true)

@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage, getNextLanguage, isGermanLocale } from '../utils/i18nLanguages.js'
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
-import VesselForm from './VesselForm.tsx'
+import LogbookVesselPicker from './LogbookVesselPicker.tsx'
 import LogbookCrewPicker from './LogbookCrewPicker.tsx'
+import type { LogbookVesselSelectionData } from '../types/vessel.js'
+import { emptyLogbookVesselSelection } from '../types/vessel.js'
 import type { LogbookCrewSelectionData } from '../types/person.js'
 import { emptyLogbookCrewSelection } from '../types/person.js'
 import { legacyCrewRecordsToLogbookSelection } from '../utils/personSnapshots.js'
@@ -37,6 +39,9 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
   const [yacht, setYacht] = useState<any>(null)
   const [logbookCrewSelection, setLogbookCrewSelection] = useState<LogbookCrewSelectionData>(
     emptyLogbookCrewSelection()
+  )
+  const [logbookVesselSelection, setLogbookVesselSelection] = useState<LogbookVesselSelectionData>(
+    emptyLogbookVesselSelection()
   )
   const [legacyCrews, setLegacyCrews] = useState<any[]>([])
   const [entries, setEntries] = useState<any[]>([])
@@ -95,6 +100,31 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
                 : {}
           })
         }
+      }
+
+      if (data.logbookVesselSelection) {
+        const decVessel = await decryptJson(
+          data.logbookVesselSelection.encryptedData,
+          data.logbookVesselSelection.iv,
+          data.logbookVesselSelection.tag,
+          keyBuffer
+        )
+        if (decVessel) {
+          setLogbookVesselSelection({
+            activeVesselId: decVessel.activeVesselId ?? null,
+            vesselSnapshot: decVessel.vesselSnapshot ?? null
+          })
+        }
+      } else if (decYacht) {
+        const legacy = decYacht as Record<string, unknown>
+        setLogbookVesselSelection({
+          activeVesselId: 'legacy-yacht',
+          vesselSnapshot: {
+            id: 'legacy-yacht',
+            name: typeof legacy.name === 'string' ? legacy.name : '',
+            ...legacy
+          } as import('../types/vessel.js').VesselSnapshot
+        })
       }
 
       const decCrews: Array<{ payloadId: string; data: PersonData }> = []
@@ -257,10 +287,11 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
           )}
 
           {activeTab === 'vessel' && (
-            <VesselForm
+            <LogbookVesselPicker
               logbookId="shared"
               readOnly={true}
-              preloadedData={yacht}
+              selectionOnly={true}
+              preloadedSelection={logbookVesselSelection}
             />
           )}
 

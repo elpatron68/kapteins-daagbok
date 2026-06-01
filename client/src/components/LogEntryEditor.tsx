@@ -649,33 +649,25 @@ export default function LogEntryEditor({
     }
   }, [fuelEveningMax, fuelEvening])
 
-  // Load yacht sails and tank capacities
+  // Load vessel sails and tank capacities
   useEffect(() => {
     async function loadYachtMeta() {
-      if (readOnly && preloadedYacht) {
-        if (preloadedYacht.sails) setYachtSails(preloadedYacht.sails)
-        setTankCapacities(extractTankCapacitiesFromYacht(preloadedYacht))
-        return
-      }
       try {
-        const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-        if (!masterKey) return
-
-        const yacht = await db.yachts.get(logbookId)
-        if (yacht) {
-          const decrypted = await decryptJson(yacht.encryptedData, yacht.iv, yacht.tag, masterKey)
-          if (decrypted) {
-            if (decrypted.sails && Array.isArray(decrypted.sails)) {
-              setYachtSails(decrypted.sails)
-            }
-            setTankCapacities(extractTankCapacitiesFromYacht(decrypted))
-          }
+        const { resolveVesselForLogbook } = await import('../services/resolveVessel.js')
+        const vessel =
+          readOnly && preloadedYacht
+            ? (preloadedYacht as Record<string, unknown>)
+            : await resolveVesselForLogbook(logbookId, { preloadedYacht: preloadedYacht ?? undefined })
+        if (!vessel) return
+        if (vessel.sails && Array.isArray(vessel.sails)) {
+          setYachtSails(vessel.sails)
         }
+        setTankCapacities(extractTankCapacitiesFromYacht(vessel))
       } catch (err) {
-        console.error('Failed to load yacht meta in editor:', err)
+        console.error('Failed to load vessel meta in editor:', err)
       }
     }
-    loadYachtMeta()
+    void loadYachtMeta()
   }, [logbookId, preloadedYacht, readOnly])
 
   // Load entry details

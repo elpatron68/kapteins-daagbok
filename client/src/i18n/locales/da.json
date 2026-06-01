@@ -606,7 +606,37 @@
       "push_unsupported": "Push-meddelelser understøttes ikke i denne browser.",
       "push_denied_hint": "Notifikationer er blokeret. Tillad dem i browserens eller enhedens indstillinger.",
       "push_ios_install_hint": "På iPhone/iPad: Føj app til startskærmen (iOS 16.4+) for at bruge push.",
-      "push_error": "Push-meddelelser kunne ikke aktiveres."
+      "push_error": "Push-meddelelser kunne ikke aktiveres.",
+      "sections": {
+        "account": "Konto og indstillinger",
+        "fleet": "Flåde og besætning",
+        "security": "Sikkerhed og enhed",
+        "stats": "Statistik",
+        "danger": "Farezone"
+      }
+    },
+    "vessel_pool": {
+      "title": "Skibsflåde",
+      "section_title": "Dine skibe",
+      "subtitle": "Hold alle skibe til dine logbøger her. Vælg aktivt skib per logbog fra listen.",
+      "loading": "Indlæser skibsflåde…",
+      "add_vessel": "Tilføj skib",
+      "edit_vessel": "Rediger skib",
+      "no_vessels": "Ingen skibe i puljen endnu.",
+      "delete_confirm": "Fjerne dette skib fra flåden?",
+      "max_vessels": "Højst 20 skibe i puljen."
+    },
+    "logbook_vessel": {
+      "title": "Skib for denne logbog",
+      "subtitle": "Vælg skib for denne logbog. Rejsedage bruger sejl- og tankdata fra valgt skib.",
+      "active_vessel": "Skib for denne logbog",
+      "no_vessels_in_pool": "Intet skib i flåden – tilføj i brugerprofilen først.",
+      "no_vessel": "Intet skib valgt",
+      "unnamed": "Uden navn",
+      "save": "Gem skib",
+      "saved": "Logbog-skib gemt.",
+      "selection_only_hint": "Du ser skibet ejeren har valgt (delt logbog).",
+      "manage_in_profile": "Administrer skibe i brugerprofilen"
     },
     "person_pool": {
       "title": "Stamm-Crew og skippere",
@@ -883,7 +913,7 @@
         },
         "welcome_public": {
           "title": "Velkommen om bord!",
-          "body": "Udforsk vores demo-logbog med tre dages rejse i Kielerfjorden - uden en konto. Denne korte tur viser dig skibsdata, crew og logbogsposter."
+          "body": "Udforsk vores demo-logbog med tre dages rejse i Kielerfjorden – uden konto. Turen viser logbogsposter samt valg af skib og besætning for denne logbog. Flåde og stamm-besætning vedligeholder du senere i brugerprofilen."
         },
         "nav_logs": {
           "title": "Indlæg i logbogen",
@@ -902,8 +932,12 @@
           "body": "Upload GPX-filer, eller se allerede gemte ruter på kortet - inklusive afstand og hastighed."
         },
         "nav_vessel": {
-          "title": "Skibsdata",
-          "body": "Indtast navn, dimensioner og tekniske data for din yacht - udfyld én gang, tilgængelig for alle rejsedage."
+          "title": "Skib for logbog",
+          "body": "Vælg skib fra flåden for denne logbog. Administrer skibe i brugerprofilen under Flåde og besætning."
+        },
+        "profile_vessel_pool": {
+          "title": "Skibsflåde",
+          "body": "I brugerprofilen opretter du alle dine skibe – charter, eget skib osv. Vælg derefter det rigtige skib per logbog."
         },
         "profile_crew_pool": {
           "title": "Stamm-Crew og skippere",

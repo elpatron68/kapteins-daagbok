@@ -80,6 +80,13 @@ router.get('/share-pull', async (req: any, res) => {
     const logbookCrewSelection = await prisma.logbookCrewSelectionPayload.findUnique({
       where: { logbookId }
     })
+    let logbookVesselSelection = null
+    const { hasVesselPoolPrismaModels } = await import('../utils/crewPoolSchema.js')
+    if (hasVesselPoolPrismaModels()) {
+      logbookVesselSelection = await prisma.logbookVesselSelectionPayload.findUnique({
+        where: { logbookId }
+      })
+    }
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
@@ -90,6 +97,7 @@ router.get('/share-pull', async (req: any, res) => {
       deviation,
       crews,
       logbookCrewSelection,
+      logbookVesselSelection,
       entries,
       photos,
       gpsTracks

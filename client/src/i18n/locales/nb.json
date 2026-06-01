@@ -606,7 +606,37 @@
       "push_unsupported": "Push-varsler støttes ikke i denne nettleseren.",
       "push_denied_hint": "Varsler er blokkert. Tillat dem i innstillingene i nettleseren eller på enheten.",
       "push_ios_install_hint": "På iPhone/iPad: Legg til app på startskjermen (iOS 16.4+) for å bruke push.",
-      "push_error": "Push-varsler kunne ikke aktiveres."
+      "push_error": "Push-varsler kunne ikke aktiveres.",
+      "sections": {
+        "account": "Konto og innstillinger",
+        "fleet": "Flåte og crew",
+        "security": "Sikkerhet og enhet",
+        "stats": "Statistikk",
+        "danger": "Faresone"
+      }
+    },
+    "vessel_pool": {
+      "title": "Skipsflåte",
+      "section_title": "Dine skip",
+      "subtitle": "Hold alle skip for loggbøkene dine her. Velg aktivt skip per loggbok fra listen.",
+      "loading": "Laster skipsflåte…",
+      "add_vessel": "Legg til skip",
+      "edit_vessel": "Rediger skip",
+      "no_vessels": "Ingen skip i poolen ennå.",
+      "delete_confirm": "Fjerne dette skipet fra flåten?",
+      "max_vessels": "Maksimalt 20 skip i poolen."
+    },
+    "logbook_vessel": {
+      "title": "Skip for denne loggboken",
+      "subtitle": "Velg skip for denne loggboken. Reisedager bruker seil- og tankdata fra valgt skip.",
+      "active_vessel": "Skip for denne loggboken",
+      "no_vessels_in_pool": "Ingen skip i flåten – legg til i brukerprofilen først.",
+      "no_vessel": "Ingen skip valgt",
+      "unnamed": "Uten navn",
+      "save": "Lagre skip",
+      "saved": "Loggbok-skip lagret.",
+      "selection_only_hint": "Du ser skipet eieren har valgt (delt loggbok).",
+      "manage_in_profile": "Administrer skip i brukerprofilen"
     },
     "person_pool": {
       "title": "Stamm-Crew og skippere",
@@ -883,7 +913,7 @@
         },
         "welcome_public": {
           "title": "Velkommen om bord!",
-          "body": "Utforsk vår demologgbok med tre dagers reise i Kielfjorden - uten konto. Denne korte omvisningen viser deg skipsdata, crew og loggbokoppføringer."
+          "body": "Utforsk vår demologgbok med tre dagers reise i Kielfjorden – uten konto. Omvisningen viser loggbokoppføringer og valg av skip og crew for denne loggboken. Flåte og stamm-crew legger du inn senere i brukerprofilen."
         },
         "nav_logs": {
           "title": "Loggbokoppføringer",
@@ -902,8 +932,12 @@
           "body": "Last opp GPX-filer eller se allerede lagrede ruter på kartet - inkludert avstand og hastighet."
         },
         "nav_vessel": {
-          "title": "Skipsdata",
-          "body": "Skriv inn navn, dimensjoner og tekniske data for båten din - fyll inn én gang, tilgjengelig for alle reisedager."
+          "title": "Skip for loggbok",
+          "body": "Velg skip fra flåten for denne loggboken. Administrer skip i brukerprofilen under Flåte og crew."
+        },
+        "profile_vessel_pool": {
+          "title": "Skipsflåte",
+          "body": "I brukerprofilen legger du inn alle skip – charter, eget båt osv. Velg deretter riktig skip per loggbok."
         },
         "profile_crew_pool": {
           "title": "Stamm-Crew og skippere",

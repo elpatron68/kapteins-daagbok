@@ -37,22 +37,17 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
       throw new Error('Encryption key not found. User must log in.')
     }
 
-    // 1. Fetch Yacht details
-    const yachtRecord = await db.yachts.get(logbookId);
-    if (yachtRecord) {
-      try {
-        const yacht = await decryptJson(yachtRecord.encryptedData, yachtRecord.iv, yachtRecord.tag, masterKey);
-        yachtName = yacht.name || '';
-        homePort = yacht.port || '';
-        owner = yacht.owner || '';
-        charter = yacht.charter || '';
-        registration = yacht.registration || '';
-        callsign = yacht.callsign || '';
-        atis = yacht.atis || '';
-        mmsi = yacht.mmsi || '';
-      } catch (e) {
-        console.error('Failed to decrypt yacht details for CSV:', e);
-      }
+    const { resolveVesselForLogbook } = await import('./resolveVessel.js')
+    const yacht = await resolveVesselForLogbook(logbookId)
+    if (yacht) {
+      yachtName = yacht.name || ''
+      homePort = yacht.homePort || ''
+      owner = yacht.owner || ''
+      charter = yacht.charterCompany || ''
+      registration = yacht.registrationNumber || ''
+      callsign = yacht.callSign || ''
+      atis = yacht.atis || ''
+      mmsi = yacht.mmsi || ''
     }
 
     // 2. Fetch logbook entries

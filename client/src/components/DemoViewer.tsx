@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
-import VesselForm from './VesselForm.tsx'
+import LogbookVesselPicker from './LogbookVesselPicker.tsx'
 import LogbookCrewPicker from './LogbookCrewPicker.tsx'
 import type { LogbookCrewSelectionData } from '../types/person.js'
 import { personToSnapshot } from '../utils/personSnapshots.js'
 import LogEntriesList from './LogEntriesList.tsx'
 import { Ship, Users, FileText, Lock, Globe, ChevronLeft, UserPlus } from 'lucide-react'
 import { buildPublicDemoFixture, type PublicDemoFixture } from '../services/demoLogbookData.js'
+import type { VesselData } from '../types/vessel.js'
+import type { LogbookVesselSelectionData } from '../types/vessel.js'
 import { useAppTour, type AppTab } from '../context/AppTourContext.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
@@ -54,8 +56,18 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
     cycleAppLanguage(i18n)
   }
 
-  const { title, yacht, personPool, logbookCrewSelection, entries, gpsTracks, photos, firstEntryId } =
-    fixture
+  const {
+    title,
+    yacht,
+    vesselPool,
+    logbookVesselSelection,
+    personPool,
+    logbookCrewSelection,
+    entries,
+    gpsTracks,
+    photos,
+    firstEntryId
+  } = fixture
 
   const demoSelection: LogbookCrewSelectionData = {
     activeSkipperId: logbookCrewSelection.activeSkipperId,
@@ -152,7 +164,15 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
           )}
 
           {activeTab === 'vessel' && (
-            <VesselForm logbookId="demo" readOnly={true} preloadedData={yacht} />
+            <LogbookVesselPicker
+              logbookId="demo"
+              readOnly={true}
+              preloadedPool={vesselPool.map((v) => ({
+                payloadId: v.payloadId,
+                data: v.data as VesselData
+              }))}
+              preloadedSelection={logbookVesselSelection as LogbookVesselSelectionData}
+            />
           )}
 
           {activeTab === 'crew' && (

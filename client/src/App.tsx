@@ -3,9 +3,11 @@ import { DialogProvider } from './components/ModalDialog.tsx'
 import AuthOnboarding from './components/AuthOnboarding.tsx'
 import UserProfilePage from './components/UserProfilePage.tsx'
 import LogbookDashboard from './components/LogbookDashboard.tsx'
-import VesselForm from './components/VesselForm.tsx'
+import LogbookVesselPicker from './components/LogbookVesselPicker.tsx'
 import LogbookCrewPicker from './components/LogbookCrewPicker.tsx'
 import { migrateLegacyCrewToPoolIfNeeded } from './services/crewMigration.js'
+import { migrateLegacyYachtsToPoolIfNeeded } from './services/vesselMigration.js'
+import { syncVesselPool } from './services/vesselPoolSync.js'
 import { syncPersonPool } from './services/personPoolSync.js'
 // Compass Deviation Table — für Freizeit-Skipper vorerst deaktiviert (Komponente bleibt erhalten)
 // import DeviationForm from './components/DeviationForm.tsx'
@@ -164,6 +166,7 @@ function App() {
     if (!userId) return
     void syncAppearancePrefs(userId)
     void migrateLegacyCrewToPoolIfNeeded().then(() => syncPersonPool())
+    void migrateLegacyYachtsToPoolIfNeeded().then(() => syncVesselPool())
   }, [isAuthenticated])
 
   useEffect(() => {
@@ -751,7 +754,12 @@ function App() {
           )}
 
           {activeTab === 'vessel' && (
-            <VesselForm logbookId={activeLogbookId} readOnly={logbookReadOnly || !isLogbookOwner} />
+            <LogbookVesselPicker
+              logbookId={activeLogbookId}
+              readOnly={logbookReadOnly || !isLogbookOwner}
+              selectionOnly={!isLogbookOwner && activeLogbookRecord?.isShared === 1}
+              onOpenProfile={isLogbookOwner ? () => setShowUserProfile(true) : undefined}
+            />
           )}
 
           {activeTab === 'crew' && (

@@ -15,6 +15,7 @@ import {
   Anchor,
   Gauge,
   Sailboat,
+  Ship,
   Timer,
   Share2,
   Calendar,
@@ -31,6 +32,9 @@ import {
 import AccountDangerZone from './AccountDangerZone.tsx'
 import UserProfilePreferences from './UserProfilePreferences.tsx'
 import PersonPoolForm from './PersonPoolForm.tsx'
+import VesselPoolForm from './VesselPoolForm.tsx'
+import ProfileAccordionSection from './ProfileAccordionSection.tsx'
+import { useAppTour } from '../context/AppTourContext.tsx'
 import BetaBadge from './BetaBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import {
@@ -136,6 +140,11 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
     showPendingWarning,
     connStatusClassName
   } = useSyncIndicator()
+
+  const { isActive: tourActive, currentStepId: tourStepId } = useAppTour()
+  const fleetSectionTourOpen =
+    tourActive &&
+    (tourStepId === 'profile_vessel_pool' || tourStepId === 'profile_crew_pool')
 
   const sharedLogbookCount = useLiveQuery(
     () => db.logbooks.filter((lb) => lb.isShared === 1).count(),
@@ -444,8 +453,14 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
           </section>
         ) : profile ? (
           <>
+            <ProfileAccordionSection
+              id="account"
+              title={t('profile.sections.account')}
+              icon={<User size={20} aria-hidden="true" />}
+              defaultOpen
+            >
             <div data-tour="profile-preferences">
-            <section className="form-card">
+            <section className="form-card profile-accordion-inner-card">
               <div className="form-header">
                 <User size={24} className="form-icon" />
                 <h2>{t('profile.identity_title')}</h2>
@@ -487,10 +502,25 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
 
             <UserProfilePreferences userId={profile.userId} />
             </div>
+            </ProfileAccordionSection>
 
+            <ProfileAccordionSection
+              id="fleet"
+              title={t('profile.sections.fleet')}
+              icon={<Ship size={20} aria-hidden="true" />}
+              defaultOpen
+              forceOpen={fleetSectionTourOpen ? true : undefined}
+            >
+            <VesselPoolForm />
             <PersonPoolForm />
+            </ProfileAccordionSection>
 
-            <section className="member-editor-card glass">
+            <ProfileAccordionSection
+              id="security"
+              title={t('profile.sections.security')}
+              icon={<Shield size={20} aria-hidden="true" />}
+            >
+            <section className="member-editor-card glass profile-accordion-inner-card">
               <div className="profile-section-header">
                 <Shield size={20} />
                 <h3>{t('profile.security_title')}</h3>
@@ -729,7 +759,14 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
               </div>
             </section>
 
-            <section className="form-card profile-stats-section">
+            </ProfileAccordionSection>
+
+            <ProfileAccordionSection
+              id="stats"
+              title={t('profile.sections.stats')}
+              icon={<BarChart2 size={20} aria-hidden="true" />}
+            >
+            <section className="form-card profile-stats-section profile-accordion-inner-card">
               <div className="form-header">
                 <BarChart2 size={24} className="form-icon" />
                 <div>
@@ -791,8 +828,14 @@ export default function UserProfilePage({ onBack, onLogout }: UserProfilePagePro
                 </div>
               )}
             </section>
+            </ProfileAccordionSection>
 
-            <AccountDangerZone className="mt-6" />
+            <ProfileAccordionSection
+              id="danger"
+              title={t('profile.sections.danger')}
+            >
+            <AccountDangerZone className="profile-accordion-inner-card" />
+            </ProfileAccordionSection>
           </>
         ) : null}
       </main>

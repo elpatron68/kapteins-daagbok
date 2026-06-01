@@ -606,7 +606,37 @@
       "push_unsupported": "Push-Benachrichtigungen werden in diesem Browser nicht unterstützt.",
       "push_denied_hint": "Benachrichtigungen sind blockiert. Erlaube sie in den Browser- oder Geräteeinstellungen.",
       "push_ios_install_hint": "Auf dem iPhone/iPad: App zum Home-Bildschirm hinzufügen (iOS 16.4+), um Push zu nutzen.",
-      "push_error": "Push-Benachrichtigungen konnten nicht aktiviert werden."
+      "push_error": "Push-Benachrichtigungen konnten nicht aktiviert werden.",
+      "sections": {
+        "account": "Konto & Einstellungen",
+        "fleet": "Flotte & Crew",
+        "security": "Sicherheit & Gerät",
+        "stats": "Statistik",
+        "danger": "Gefahrenzone"
+      }
+    },
+    "vessel_pool": {
+      "title": "Schiffsflotte",
+      "section_title": "Deine Schiffe",
+      "subtitle": "Pflege hier alle Schiffe für deine Logbücher. Pro Logbuch wählst du das aktive Schiff aus dieser Liste.",
+      "loading": "Schiffsflotte wird geladen…",
+      "add_vessel": "Schiff hinzufügen",
+      "edit_vessel": "Schiff bearbeiten",
+      "no_vessels": "Noch keine Schiffe im Pool.",
+      "delete_confirm": "Dieses Schiff wirklich aus der Flotte entfernen?",
+      "max_vessels": "Maximale Anzahl von 20 Schiffen im Pool erreicht."
+    },
+    "logbook_vessel": {
+      "title": "Schiff für dieses Logbuch",
+      "subtitle": "Wähle das Schiff für dieses Logbuch. Reisetage nutzen Segel- und Tankdaten des gewählten Schiffs.",
+      "active_vessel": "Schiff für dieses Logbuch",
+      "no_vessels_in_pool": "Kein Schiff in der Flotte – zuerst im Benutzerprofil anlegen.",
+      "no_vessel": "Kein Schiff gewählt",
+      "unnamed": "Unbenannt",
+      "save": "Schiff speichern",
+      "saved": "Schiff für das Logbuch gespeichert.",
+      "selection_only_hint": "Du siehst das vom Eigner gewählte Schiff (geteiltes Logbuch).",
+      "manage_in_profile": "Schiffe im Benutzerprofil verwalten"
     },
     "person_pool": {
       "title": "Stammcrew & Skipper",
@@ -883,7 +913,7 @@
         },
         "welcome_public": {
           "title": "Willkommen an Bord!",
-          "body": "Erkunde unser Demo-Logbuch mit drei Reisetagen in der Kieler Förde – ganz ohne Account. Diese Tour zeigt dir Schiffsdaten, Crew-Auswahl und Logbucheinträge. Die Stammcrew pflegst du später im Benutzerprofil."
+          "body": "Erkunde unser Demo-Logbuch mit drei Reisetagen in der Kieler Förde – ganz ohne Account. Die Tour zeigt dir Logbucheinträge, die Schiff- und Crew-Auswahl für dieses Logbuch. Flotte und Stammcrew pflegst du später im Benutzerprofil."
         },
         "nav_logs": {
           "title": "Logbucheinträge",
@@ -902,8 +932,12 @@
           "body": "Lade GPX-Dateien hoch oder sieh bereits gespeicherte Routen auf der Karte – inklusive Distanz und Geschwindigkeit."
         },
         "nav_vessel": {
-          "title": "Schiffsdaten",
-          "body": "Hinterlege Name, Maße und technische Daten deiner Yacht – einmal ausfüllen, für alle Reisetage verfügbar."
+          "title": "Schiff fürs Logbuch",
+          "body": "Wähle aus deiner Schiffsflotte das Schiff für dieses Logbuch. Schiffe pflegst du im Benutzerprofil unter Flotte & Crew."
+        },
+        "profile_vessel_pool": {
+          "title": "Schiffsflotte",
+          "body": "Im Benutzerprofil legst du alle deine Schiffe an – Charteryachten, eigenes Boot usw. Pro Logbuch wählst du dann das passende Schiff."
         },
         "profile_crew_pool": {
           "title": "Stammcrew & Skipper",
