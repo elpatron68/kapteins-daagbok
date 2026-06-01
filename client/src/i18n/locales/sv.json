@@ -13,6 +13,17 @@
       "sv": "Svenska",
       "nb": "Norsk"
     },
+    "dialog": {
+      "ok": "OK",
+      "yes": "Ja",
+      "no": "Nej"
+    },
+    "errors": {
+      "load_failed": "Data kunde inte laddas.",
+      "save_failed": "Ändringar kunde inte sparas.",
+      "delete_failed": "Radering misslyckades.",
+      "export_failed": "Export misslyckades."
+    },
     "common": {
       "unsaved_changes_title": "Osparade ändringar",
       "unsaved_changes_message": "Du har ändringar som inte sparats. Vill du verkligen lämna sidan? Dina ändringar kommer att gå förlorade.",
@@ -92,13 +103,18 @@
       "update_title": "Uppdatering tillgänglig",
       "update_desc": "En ny version av Kapteins Daagbok är klar. Uppdatera för att få de senaste ändringarna.",
       "update_now": "Uppdatering nu",
-      "update_reloading": "Laddar..."
+      "update_reloading": "Laddar...",
+      "storage_persist_hint": "Webbläsaren kan radera offlinedata. Tillåt permanent lagring så att din loggbok förblir skyddad."
     },
     "sync": {
       "status_synced": "Synkroniserad",
       "status_syncing": "Synkronisera...",
       "status_offline": "Offline-cache",
-      "status_unsynced": "Osynkroniserade förändringar"
+      "status_unsynced": "Osynkroniserade förändringar",
+      "conflict_title": "Synkroniseringskonflikt",
+      "conflict_message": "{{count}} ändring(ar) kunde inte synkas (post {{id}}…). Välj vilken version som ska gälla.",
+      "conflict_use_server": "Använd serverversion",
+      "conflict_keep_local": "Behåll min version"
     },
     "vessel": {
       "title": "Masterdata för fartyg",

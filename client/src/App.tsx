@@ -53,6 +53,8 @@ import {
 } from './services/demoLogbook.js'
 import { fetchLogbooks, parseCollaborationRole } from './services/logbook.js'
 import { ensurePushSubscriptionIfEnabled } from './services/pushNotifications.js'
+import SyncConflictBanner from './components/SyncConflictBanner.tsx'
+import { requestPersistentStorage } from './utils/storagePersist.js'
 
 const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 
@@ -71,6 +73,7 @@ function App() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
   const [showUserProfile, setShowUserProfile] = useState(false)
+  const [storagePersistHint, setStoragePersistHint] = useState(false)
   const tourLogbookRef = useRef<{ id: string; title: string } | null>(null)
   const activeLogbookRef = useRef<{ id: string | null; title: string | null }>({
     id: activeLogbookId,
@@ -428,10 +431,19 @@ function App() {
     return () => navigator.serviceWorker.removeEventListener('message', onSwMessage)
   }, [isAuthenticated, openLogbookById])
 
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (sessionStorage.getItem('storage_persist_hint_dismissed')) return
+    void requestPersistentStorage().then(({ persisted, supported }) => {
+      if (supported && !persisted) setStoragePersistHint(true)
+    })
+  }, [isAuthenticated])
+
   const handleAuthenticated = async () => {
     setIsAuthenticated(true)
     trackPlausibleEvent(PlausibleEvents.LOGGED_IN)
     void ensurePushSubscriptionIfEnabled()
+    void requestPersistentStorage()
 
     try {
       const demo = await seedDemoLogbookIfNeeded()
@@ -606,7 +618,7 @@ function App() {
               <p className="app-subtitle">
                 {activeAccessRole && activeAccessRole !== 'OWNER'
                   ? t('dashboard.section_shared_hint')
-                  : `${t('app.name')} / ${activeLogbookId?.substring(0, 8)}...`}
+                  : t('app.tagline')}
               </p>
             </div>
           </div>
@@ -646,10 +658,28 @@ function App() {
           </div>
         </header>
 
+        <SyncConflictBanner logbookId={activeLogbookId} />
+
+        {storagePersistHint && (
+          <div className="storage-persist-hint glass" role="status">
+            <p>{t('pwa.storage_persist_hint')}</p>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => {
+                sessionStorage.setItem('storage_persist_hint_dismissed', '1')
+                setStoragePersistHint(false)
+              }}
+            >
+              {t('pwa.later')}
+            </button>
+          </div>
+        )}
+
       {/* Active Workspace */}
       <div className="app-body">
         {/* Navigation Sidebar */}
-        <aside className="app-sidebar">
+        <aside className="app-sidebar" aria-label={t('nav.dashboard')}>
           <button
             className={`sidebar-btn ${activeTab === 'logs' ? 'active' : ''}`}
             onClick={() => void handleTabChange('logs')}
@@ -746,6 +776,53 @@ function App() {
             />
           )}
         </main>
+
+        <nav className="app-bottom-nav" aria-label={t('nav.dashboard')}>
+          <button
+            type="button"
+            className={`bottom-nav-btn ${activeTab === 'logs' ? 'active' : ''}`}
+            onClick={() => void handleTabChange('logs')}
+            data-tour="nav-logs"
+          >
+            <FileText size={20} />
+            <span>{t('nav.logs')}</span>
+          </button>
+          <button
+            type="button"
+            className={`bottom-nav-btn ${activeTab === 'vessel' ? 'active' : ''}`}
+            onClick={() => void handleTabChange('vessel')}
+            data-tour="nav-vessel"
+          >
+            <Ship size={20} />
+            <span>{t('nav.vessel')}</span>
+          </button>
+          <button
+            type="button"
+            className={`bottom-nav-btn ${activeTab === 'crew' ? 'active' : ''}`}
+            onClick={() => void handleTabChange('crew')}
+            data-tour="nav-crew"
+          >
+            <Users size={20} />
+            <span>{t('nav.crew')}</span>
+          </button>
+          <button
+            type="button"
+            className={`bottom-nav-btn ${activeTab === 'stats' ? 'active' : ''}`}
+            onClick={() => void handleTabChange('stats')}
+            data-tour="nav-stats"
+          >
+            <BarChart2 size={20} />
+            <span>{t('nav.stats')}</span>
+          </button>
+          <button
+            type="button"
+            className={`bottom-nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => void handleTabChange('settings')}
+          >
+            <Settings size={20} />
+            <span>{t('nav.settings')}</span>
+          </button>
+        </nav>
       </div>
     </div>
   </div>

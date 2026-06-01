@@ -90,6 +90,15 @@ export interface SyncQueueItem {
   updatedAt: string
 }
 
+export interface EntryDraftRecord {
+  logbookId: string
+  entryId: string
+  encryptedData: string
+  iv: string
+  tag: string
+  updatedAt: string
+}
+
 class DaagboxDatabase extends Dexie {
   logbooks!: Table<LocalLogbook>
   yachts!: Table<LocalYacht>
@@ -101,6 +110,7 @@ class DaagboxDatabase extends Dexie {
   nmeaArchives!: Table<LocalNmeaArchive>
   logbookKeys!: Table<LocalLogbookKey>
   syncQueue!: Table<SyncQueueItem>
+  entryDrafts!: Table<EntryDraftRecord, [string, string]>
 
   constructor() {
     super('DaagboxDatabase')
@@ -166,6 +176,19 @@ class DaagboxDatabase extends Dexie {
       gpsTracks: 'entryId, logbookId, updatedAt',
       nmeaArchives: 'entryId, logbookId, updatedAt',
       logbookKeys: 'logbookId'
+    })
+    this.version(7).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced, isShared, isDemo',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt',
+      nmeaArchives: 'entryId, logbookId, updatedAt',
+      logbookKeys: 'logbookId',
+      entryDrafts: '[logbookId+entryId], updatedAt'
     })
   }
 }

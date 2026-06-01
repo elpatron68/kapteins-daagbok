@@ -8,6 +8,7 @@ import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { getErrorMessage } from '../utils/errors.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
@@ -142,7 +143,7 @@ export default function LogEntriesList({
       setEntries(list)
     } catch (err: any) {
       console.error('Failed to load log entries:', err)
-      setError(err.message || 'Decryption failed. Could not load journal list.')
+      setError(getErrorMessage(err, t('errors.load_failed')))
     } finally {
       setLoading(false)
     }
@@ -176,7 +177,7 @@ export default function LogEntriesList({
       trackPlausibleEvent(PlausibleEvents.CSV_EXPORTED)
     } catch (err: any) {
       console.error('Failed to download CSV:', err)
-      setError(err.message || 'Failed to generate CSV export.')
+      setError(getErrorMessage(err, t('errors.export_failed')))
     } finally {
       setExporting(false)
     }
@@ -204,7 +205,7 @@ export default function LogEntriesList({
         setError(t('logs.share_unsupported'))
       } else {
         console.error('Failed to share CSV:', err)
-        setError(err.message || 'Failed to share CSV export.')
+        setError(getErrorMessage(err, t('errors.export_failed')))
       }
     } finally {
       setExporting(false)
@@ -225,7 +226,7 @@ export default function LogEntriesList({
       trackPlausibleEvent(PlausibleEvents.PDF_EXPORTED, { scope: 'entry' })
     } catch (err: any) {
       console.error('Failed to download PDF:', err)
-      setError(err.message || 'Failed to generate PDF export.')
+      setError(getErrorMessage(err, t('errors.export_failed')))
     } finally {
       setExporting(false)
     }
@@ -317,7 +318,7 @@ export default function LogEntriesList({
       syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
     } catch (err: any) {
       console.error('Failed to create entry:', err)
-      setError(err.message || 'Failed to create new log entry.')
+      setError(getErrorMessage(err, t('errors.save_failed')))
     } finally {
       setLoading(false)
     }
@@ -347,7 +348,7 @@ export default function LogEntriesList({
         syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
       } catch (err: any) {
         console.error('Failed to delete log entry:', err)
-        setError(err.message || 'Failed to delete log entry.')
+        setError(getErrorMessage(err, t('errors.delete_failed')))
       }
     }
   }
@@ -460,8 +461,12 @@ export default function LogEntriesList({
               key={item.id}
               className="logbook-card glass"
               data-tour={tourFirstEntryId === item.id ? 'entry-first' : undefined}
-              onClick={() => setSelectedEntryId(item.id)}
             >
+              <button
+                type="button"
+                className="logbook-card-select"
+                onClick={() => setSelectedEntryId(item.id)}
+              >
               <div className="card-icon">
                 <FileText size={24} />
               </div>
@@ -483,6 +488,9 @@ export default function LogEntriesList({
                 </div>
               </div>
 
+              <ChevronRight size={18} style={{ color: '#475569', marginLeft: 'auto' }} aria-hidden />
+              </button>
+
               <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
                 <Download size={18} />
               </button>
@@ -492,8 +500,6 @@ export default function LogEntriesList({
                   <Trash2 size={18} />
                 </button>
               )}
-              
-              <ChevronRight size={18} style={{ color: '#475569', marginLeft: 'auto' }} />
             </div>
           ))}
         </div>

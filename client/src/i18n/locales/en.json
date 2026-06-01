@@ -13,6 +13,17 @@
       "sv": "Svenska",
       "nb": "Norsk"
     },
+    "dialog": {
+      "ok": "OK",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "errors": {
+      "load_failed": "Could not load data.",
+      "save_failed": "Could not save changes.",
+      "delete_failed": "Could not delete.",
+      "export_failed": "Export failed."
+    },
     "common": {
       "unsaved_changes_title": "Unsaved changes",
       "unsaved_changes_message": "You have unsaved changes. Leave this page anyway? Your changes will be lost.",
@@ -92,13 +103,18 @@
       "update_title": "Update available",
       "update_desc": "A new version of Kapteins Daagbok is ready. Reload to get the latest changes.",
       "update_now": "Reload now",
-      "update_reloading": "Reloading…"
+      "update_reloading": "Reloading…",
+      "storage_persist_hint": "Your browser may delete offline data. Allow persistent storage to keep your logbook safe (browser settings or when prompted)."
     },
     "sync": {
       "status_synced": "Synced",
       "status_syncing": "Syncing…",
       "status_offline": "Offline Cache",
-      "status_unsynced": "Unsynced changes"
+      "status_unsynced": "Unsynced changes",
+      "conflict_title": "Sync conflict",
+      "conflict_message": "{{count}} change(s) could not be synced (entry {{id}}…). Choose which version to keep.",
+      "conflict_use_server": "Use server version",
+      "conflict_keep_local": "Keep my version"
     },
     "vessel": {
       "title": "Vessel Master Data",

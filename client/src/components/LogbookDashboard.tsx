@@ -6,6 +6,7 @@ import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type D
 import LogbookRoleBadge from './LogbookRoleBadge.tsx'
 import BetaBadge from './BetaBadge.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { getErrorMessage } from '../utils/errors.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
 import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
@@ -102,8 +103,8 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
     try {
       const data = await fetchLogbooks()
       setLogbooks(data)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load logbooks')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('errors.load_failed')))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -121,8 +122,8 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
       setLogbooks((prev) => [created, ...prev])
       setNewTitle('')
       trackPlausibleEvent(PlausibleEvents.LOGBOOK_CREATED)
-    } catch (err: any) {
-      setError(err.message || 'Failed to create logbook')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('errors.save_failed')))
     } finally {
       setLoading(false)
     }
@@ -138,7 +139,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
         await deleteLogbook(id)
         setLogbooks((prev) => prev.filter((lb) => lb.id !== id))
       } catch (err: any) {
-        setError(err.message || 'Failed to delete logbook')
+        setError(getErrorMessage(err, t('errors.delete_failed')))
       } finally {
         setLoading(false)
       }
@@ -182,7 +183,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
         )
       )
     } catch (err: any) {
-      setError(err.message || 'Failed to update logbook title')
+      setError(getErrorMessage(err, t('errors.save_failed')))
     } finally {
       setLoading(false)
     }
@@ -226,8 +227,12 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
     <div
       key={lb.id}
       className={`logbook-card glass${lb.isShared ? ' logbook-card--shared' : ''}`}
-      onClick={() => onSelectLogbook(lb.id, lb.title)}
     >
+      <button
+        type="button"
+        className="logbook-card-select"
+        onClick={() => onSelectLogbook(lb.id, lb.title)}
+      >
       <div className="card-icon">
         <BookOpen size={24} />
       </div>
@@ -282,6 +287,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           </span>
         </div>
       </div>
+      </button>
 
       {!lb.isShared && (
         <div className="logbook-card-actions">

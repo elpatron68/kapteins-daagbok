@@ -2,6 +2,11 @@ import { db, type SyncQueueItem } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { apiFetch } from './api.js'
 import { getLogbookAccess } from './logbookAccess.js'
+import {
+  clearSyncConflict,
+  reportSyncConflict,
+  type SyncConflict
+} from './syncConflicts.js'
 
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
@@ -177,10 +182,19 @@ async function pushChanges(logbookId: string): Promise<boolean> {
       const queueItem = pending[i]
       if (!queueItem) continue
 
-      if (res.status === 'success' || res.status === 'conflict') {
+      if (res.status === 'success') {
         if (queueItem.id !== undefined) {
           await db.syncQueue.delete(queueItem.id)
         }
+        clearSyncConflict(logbookId, res.payloadId ?? queueItem.payloadId, queueItem.type)
+      } else if (res.status === 'conflict') {
+        reportSyncConflict({
+          logbookId,
+          payloadId: res.payloadId ?? queueItem.payloadId,
+          type: queueItem.type,
+          reason: typeof res.reason === 'string' ? res.reason : 'Server version is newer',
+          queueItemId: queueItem.id
+        })
       } else {
         console.error(`Sync failed for item ${res.payloadId}:`, res.error)
       }
@@ -524,4 +538,44 @@ export function stopBackgroundSync() {
     clearInterval(syncIntervalId)
     syncIntervalId = null
   }
+}
+
+/** Accept server version: pull latest and drop the conflicting queue item. */
+export async function resolveSyncConflictUseServer(conflict: SyncConflict): Promise<void> {
+  if (conflict.queueItemId !== undefined) {
+    await db.syncQueue.delete(conflict.queueItemId)
+  } else {
+    const pending = await db.syncQueue
+      .where({ logbookId: conflict.logbookId })
+      .filter(
+        (item) => item.payloadId === conflict.payloadId && item.type === conflict.type
+      )
+      .toArray()
+    const ids = pending.map((p) => p.id).filter((id): id is number => id !== undefined)
+    if (ids.length > 0) await db.syncQueue.bulkDelete(ids)
+  }
+  clearSyncConflict(conflict.logbookId, conflict.payloadId, conflict.type)
+  await pullChanges(conflict.logbookId)
+}
+
+/** Keep local version: bump queue timestamp and retry push. */
+export async function resolveSyncConflictKeepLocal(conflict: SyncConflict): Promise<void> {
+  const bump = new Date(Date.now() + 1000).toISOString()
+  if (conflict.queueItemId !== undefined) {
+    await db.syncQueue.update(conflict.queueItemId, { updatedAt: bump })
+  } else {
+    const pending = await db.syncQueue
+      .where({ logbookId: conflict.logbookId })
+      .filter(
+        (item) => item.payloadId === conflict.payloadId && item.type === conflict.type
+      )
+      .toArray()
+    for (const item of pending) {
+      if (item.id !== undefined) {
+        await db.syncQueue.update(item.id, { updatedAt: bump })
+      }
+    }
+  }
+  clearSyncConflict(conflict.logbookId, conflict.payloadId, conflict.type)
+  await flushPushQueue(conflict.logbookId)
 }

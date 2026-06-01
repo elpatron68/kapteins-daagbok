@@ -13,6 +13,17 @@
       "sv": "Svenska",
       "nb": "Norsk"
     },
+    "dialog": {
+      "ok": "OK",
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "errors": {
+      "load_failed": "Daten konnten nicht geladen werden.",
+      "save_failed": "Änderungen konnten nicht gespeichert werden.",
+      "delete_failed": "Löschen fehlgeschlagen.",
+      "export_failed": "Export fehlgeschlagen."
+    },
     "common": {
       "unsaved_changes_title": "Ungespeicherte Änderungen",
       "unsaved_changes_message": "Du hast ungespeicherte Änderungen. Möchtest du die Seite wirklich verlassen? Deine Änderungen gehen verloren.",
@@ -92,13 +103,18 @@
       "update_title": "Update verfügbar",
       "update_desc": "Eine neue Version von Kapteins Daagbok ist bereit. Bitte aktualisieren, um die neuesten Änderungen zu erhalten.",
       "update_now": "Jetzt aktualisieren",
-      "update_reloading": "Wird geladen…"
+      "update_reloading": "Wird geladen…",
+      "storage_persist_hint": "Der Browser kann Offline-Daten löschen. Erlaube dauerhafte Speicherung, damit dein Logbuch geschützt bleibt (in den Browser-Einstellungen oder beim nächsten Hinweis)."
     },
     "sync": {
       "status_synced": "Synchronisiert",
       "status_syncing": "Synchronisiere…",
       "status_offline": "Offline-Cache",
-      "status_unsynced": "Unsynchronisierte Änderungen"
+      "status_unsynced": "Unsynchronisierte Änderungen",
+      "conflict_title": "Synchronisationskonflikt",
+      "conflict_message": "{{count}} Änderung(en) konnten nicht synchronisiert werden (Eintrag {{id}}…). Bitte wähle, welche Version gelten soll.",
+      "conflict_use_server": "Server-Version übernehmen",
+      "conflict_keep_local": "Meine Version behalten"
     },
     "vessel": {
       "title": "Schiffs-Stammdaten",

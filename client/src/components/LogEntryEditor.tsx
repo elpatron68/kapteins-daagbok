@@ -5,6 +5,8 @@ import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
+import { saveEntryDraft, clearEntryDraft } from '../services/entryDraft.js'
+import { getErrorMessage } from '../utils/errors.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
@@ -287,6 +289,14 @@ export default function LogEntryEditor({
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
     events
   ])
+
+  useEffect(() => {
+    if (readOnly || loading || !date) return
+    const timer = window.setTimeout(() => {
+      void saveEntryDraft(logbookId, entryId, buildPayloadForSigning())
+    }, 4000)
+    return () => window.clearTimeout(timer)
+  }, [readOnly, loading, logbookId, entryId, buildPayloadForSigning, date])
 
   const fuelPerMotorHour = useMemo(
     () => computeFuelPerMotorHour(parseFloat(fuelConsumption) || 0, parseFloat(motorHours) || 0),
@@ -1208,15 +1218,17 @@ export default function LogEntryEditor({
         ...signaturesForSave
       })
 
+      await clearEntryDraft(logbookId, entryId)
+
       setSuccess(true)
       trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
       setTimeout(() => {
         setSuccess(false)
         onBack()
       }, 1500)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save entry details:', err)
-      setError(err.message || 'Failed to save entry details.')
+      setError(getErrorMessage(err, t('errors.save_failed')))
     } finally {
       setSaving(false)
     }

@@ -13,6 +13,17 @@
       "sv": "Svenska",
       "nb": "Norsk"
     },
+    "dialog": {
+      "ok": "OK",
+      "yes": "Ja",
+      "no": "Nej"
+    },
+    "errors": {
+      "load_failed": "Data kunne ikke indlæses.",
+      "save_failed": "Ændringer kunne ikke gemmes.",
+      "delete_failed": "Sletning mislykkedes.",
+      "export_failed": "Eksport mislykkedes."
+    },
     "common": {
       "unsaved_changes_title": "Ikke gemte ændringer",
       "unsaved_changes_message": "Du har ændringer, der ikke er gemt. Vil du virkelig forlade siden? Dine ændringer vil gå tabt.",
@@ -92,13 +103,18 @@
       "update_title": "Opdatering tilgængelig",
       "update_desc": "En ny version af Kapteins Daagbok er klar. Opdater venligst for at få de seneste ændringer.",
       "update_now": "Opdater nu",
-      "update_reloading": "Indlæser..."
+      "update_reloading": "Indlæser...",
+      "storage_persist_hint": "Browseren kan slette offline-data. Tillad permanent lagring, så din logbog forbliver beskyttet."
     },
     "sync": {
       "status_synced": "Synkroniseret",
       "status_syncing": "Synkroniser...",
       "status_offline": "Offline-cache",
-      "status_unsynced": "Usynkroniserede ændringer"
+      "status_unsynced": "Usynkroniserede ændringer",
+      "conflict_title": "Synkroniseringskonflikt",
+      "conflict_message": "{{count}} ændring(er) kunne ikke synkroniseres (post {{id}}…). Vælg hvilken version der skal gælde.",
+      "conflict_use_server": "Brug serverversion",
+      "conflict_keep_local": "Behold min version"
     },
     "vessel": {
       "title": "Skibets stamdata",

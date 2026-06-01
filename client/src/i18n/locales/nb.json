@@ -13,6 +13,17 @@
       "sv": "Svenska",
       "nb": "Norsk"
     },
+    "dialog": {
+      "ok": "OK",
+      "yes": "Ja",
+      "no": "Nei"
+    },
+    "errors": {
+      "load_failed": "Data kunne ikke lastes.",
+      "save_failed": "Endringer kunne ikke lagres.",
+      "delete_failed": "Sletting mislyktes.",
+      "export_failed": "Eksport mislyktes."
+    },
     "common": {
       "unsaved_changes_title": "Ikke-lagrede endringer",
       "unsaved_changes_message": "Du har endringer som ikke er lagret. Vil du virkelig forlate siden? Endringene dine vil gå tapt.",
@@ -92,13 +103,18 @@
       "update_title": "Oppdatering tilgjengelig",
       "update_desc": "En ny versjon av Kapteins Daagbok er klar. Oppdater for å få med de siste endringene.",
       "update_now": "Oppdater nå",
-      "update_reloading": "Laster..."
+      "update_reloading": "Laster...",
+      "storage_persist_hint": "Nettleseren kan slette offlinedata. Tillat permanent lagring slik at loggboken din forblir beskyttet."
     },
     "sync": {
       "status_synced": "Synkronisert",
       "status_syncing": "Synkroniser...",
       "status_offline": "Frakoblet hurtigbuffer",
-      "status_unsynced": "Usynkroniserte endringer"
+      "status_unsynced": "Usynkroniserte endringer",
+      "conflict_title": "Synkroniseringskonflikt",
+      "conflict_message": "{{count}} endring(er) kunne ikke synkroniseres (post {{id}}…). Velg hvilken versjon som skal gjelde.",
+      "conflict_use_server": "Bruk serverversjon",
+      "conflict_keep_local": "Behold min versjon"
     },
     "vessel": {
       "title": "Stamdata for skip",
