@@ -28,19 +28,19 @@ export default function RegistrationDisclaimer({
       className={`auth-card glass registration-disclaimer${variant === 'view' ? ' registration-disclaimer--modal' : ''}`}
       role="document"
     >
+      {variant === 'view' && (
+        <button
+          type="button"
+          className="registration-disclaimer__close"
+          onClick={onDismiss}
+          aria-label={t('disclaimer.close')}
+        >
+          <X size={18} />
+        </button>
+      )}
       <div className="auth-header">
         <ScrollText className="auth-icon accent" size={48} />
         <h2>{t('disclaimer.title')}</h2>
-        {variant === 'view' && (
-          <button
-            type="button"
-            className="registration-disclaimer__close"
-            onClick={onDismiss}
-            aria-label={t('disclaimer.close')}
-          >
-            <X size={18} />
-          </button>
-        )}
       </div>
 
       <p className="registration-disclaimer__intro">{t('disclaimer.intro')}</p>
