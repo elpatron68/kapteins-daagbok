@@ -3,15 +3,12 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
 
-# Copy package configurations
+# Copy package configurations and Prisma schema (postinstall runs prisma generate)
 COPY package*.json ./
+COPY prisma ./prisma
 
 # Install all dependencies (including devDependencies for tsc)
 RUN npm ci
-
-# Copy Prisma schema and generate Client code
-COPY prisma ./prisma
-RUN npx prisma generate
 
 # Copy source and compile TypeScript
 COPY src ./src
@@ -26,8 +23,8 @@ RUN apk add --no-cache openssl libc6-compat
 # Copy package configurations
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --omit=dev
+# Install only production dependencies (Prisma client copied from builder; skip postinstall)
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy generated Prisma Client from builder stage
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
