@@ -39,8 +39,13 @@ export const PlausibleEvents = {
   NMEA_IMPORTED: 'NMEA Imported',
   NMEA_UPLOADED: 'NMEA Uploaded',
   LIVE_LOG_OPENED: 'Live Log Opened',
-  LIVE_LOG_EVENT_LOGGED: 'Live Log Event Logged'
+  LIVE_LOG_EVENT_LOGGED: 'Live Log Event Logged',
+  LIVE_LOG_PHOTO_UPLOADED: 'Live Log Photo Uploaded',
+  OWM_WEATHER_FETCHED: 'OWM Weather Fetched'
 } as const
+
+/** Where a successful OpenWeatherMap API call originated (no coordinates or place names). */
+export type OwmAnalyticsSource = 'live_log' | 'entry_editor' | 'entry_editor_gps_lookup'
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
 

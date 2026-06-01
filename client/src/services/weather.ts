@@ -1,5 +1,10 @@
 import { apiFetch } from './api.js'
 import { getOwmApiKeyForActiveUser } from './userPreferences.js'
+import {
+  type OwmAnalyticsSource,
+  PlausibleEvents,
+  trackPlausibleEvent
+} from './analytics.js'
 
 export class WeatherApiError extends Error {
   code: 'NO_KEY' | 'REQUEST_FAILED'
@@ -13,11 +18,14 @@ export class WeatherApiError extends Error {
 
 const OWM_FETCH_TIMEOUT_MS = 20_000
 
-export async function fetchOpenWeatherCurrent(params: {
-  lat?: string
-  lon?: string
-  q?: string
-}): Promise<Record<string, unknown>> {
+export async function fetchOpenWeatherCurrent(
+  params: {
+    lat?: string
+    lon?: string
+    q?: string
+  },
+  options?: { analyticsSource: OwmAnalyticsSource }
+): Promise<Record<string, unknown>> {
   const searchParams = new URLSearchParams()
 
   if (params.lat && params.lon) {
@@ -57,6 +65,12 @@ export async function fetchOpenWeatherCurrent(params: {
   const data = await res.json()
   if (!res.ok) {
     throw new WeatherApiError('Weather API rejected the request')
+  }
+
+  if (options?.analyticsSource) {
+    trackPlausibleEvent(PlausibleEvents.OWM_WEATHER_FETCHED, {
+      source: options.analyticsSource
+    })
   }
 
   return data

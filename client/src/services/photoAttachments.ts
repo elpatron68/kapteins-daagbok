@@ -55,6 +55,9 @@ export async function saveEntryPhoto(options: {
   })
 
   trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: analyticsContext })
+  if (analyticsContext === 'live_log') {
+    trackPlausibleEvent(PlausibleEvents.LIVE_LOG_PHOTO_UPLOADED)
+  }
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
   return photoId
 }

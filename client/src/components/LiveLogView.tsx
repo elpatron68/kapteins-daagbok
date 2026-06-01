@@ -474,7 +474,10 @@ export default function LiveLogView({
       try {
         let data: Record<string, unknown>
         try {
-          data = await fetchOpenWeatherCurrent({ lat, lon: lng })
+          data = await fetchOpenWeatherCurrent(
+            { lat, lon: lng },
+            { analyticsSource: 'live_log' }
+          )
         } catch (err) {
           if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
             void showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
@@ -515,7 +518,6 @@ export default function LiveLogView({
         await appendQuickEvents(logbookId, id, partials)
         await refreshEntry(id)
         showUndo()
-        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'weather_owm' })
       } catch (err: unknown) {
         console.error('Live log OWM weather save failed:', err)
         setError(err instanceof Error ? err.message : t('logs.live_action_error'))
@@ -575,7 +577,6 @@ export default function LiveLogView({
         setModal('none')
         setPhotoCaption('')
         showUndo('photo')
-        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'photo' })
       } catch (err: unknown) {
         console.error('Live log photo save failed:', err)
         void showAlert(

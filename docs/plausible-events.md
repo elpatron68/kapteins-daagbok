@@ -36,7 +36,9 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | PDF Exported | PDF-Export eines Reisetags (`LogEntryEditor.tsx`, `LogEntriesList.tsx`) | `scope`: `entry` |
 | CSV Exported | CSV-Download aus der Eintragsliste (`LogEntriesList.tsx`) | — |
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
-| Photo Uploaded | Foto hochgeladen (`PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
+| Photo Uploaded | Foto hochgeladen (`photoAttachments.ts`, `PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `live_log` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
+| Live Log Photo Uploaded | Foto im Live-Journal per Kamera gespeichert (`photoAttachments.ts`, `analyticsContext`: `live_log`) | — |
+| OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
 | Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`) | `entries`, `photos` (Anzahlen, keine Inhalte) |
 | Backup Restored | Backup wiederhergestellt (`LogbookBackupPanel.tsx`) | `entries`, `photos`, `mode`: `same_id` \| `overwrite` \| `new_id` |
 | Push Enabled | Crew-Änderungs-Push aktiviert (`PushNotificationSettings.tsx`) | — |
@@ -80,6 +82,18 @@ Property `action` bei **Live Log Event Logged** — stabile englische Schlüssel
 | `comment` | Kommentar |
 | `undo` | Letztes Ereignis rückgängig |
 
+### OWM-Quellen
+
+Property `source` bei **OWM Weather Fetched** — ein Event pro erfolgreichem API-Call (keine Koordinaten, kein Ortsname):
+
+| `source` | Auslöser |
+|----------|----------|
+| `live_log` | OpenWeatherMap-Wetter im Live-Journal (`LiveLogView.tsx`) |
+| `entry_editor` | Wetter-Button im Reisetag-Editor (`LogEntryEditor.tsx`, `handleFetchWeather`) |
+| `entry_editor_gps_lookup` | GPS-Fallback per Ortsname im Reisetag-Editor (`LogEntryEditor.tsx`, `handleGetGps`) |
+
+Fehlgeschlagene Abrufe (kein API-Key, Timeout, leere Antwort) lösen **kein** Event aus.
+
 ## Bewusst nicht getrackt
 
 - **Demo-Logbuch:** Beim automatischen Seed (`demoLogbook.ts`) werden keine Events ausgelöst — nur echte Nutzeraktionen zählen.
@@ -106,7 +120,8 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
 9. **NMEA-Import:** NMEA Uploaded → NMEA Imported (Modus, `events`, optional Track; Upload-Funnel vs. Abbruch)
-10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`)
+10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`) → Live Log Photo Uploaded
+11. **OpenWeatherMap:** OWM Weather Fetched (Verteilung `source`; Live-Journal vs. Reisetag-Editor)
 
 ## Entwicklung
 
@@ -117,6 +132,8 @@ trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
 trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'skipper' })
 trackPlausibleEvent(PlausibleEvents.LANGUAGE_CHANGED, { from: 'de', to: 'da' })
 trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'course' })
+trackPlausibleEvent(PlausibleEvents.LIVE_LOG_PHOTO_UPLOADED)
+trackPlausibleEvent(PlausibleEvents.OWM_WEATHER_FETCHED, { source: 'live_log' })
 trackPlausibleEvent(PlausibleEvents.NMEA_UPLOADED, { lines: 1200, candidates: 8, duplicate: false, has_position: true })
 trackPlausibleEvent(PlausibleEvents.NMEA_IMPORTED, { mode: 'both', events: 6, track: true })
 ```

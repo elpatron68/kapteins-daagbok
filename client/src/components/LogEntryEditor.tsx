@@ -900,7 +900,10 @@ export default function LogEntryEditor({
       }
 
       try {
-        const data = await fetchOpenWeatherCurrent({ q: locationQuery })
+        const data = await fetchOpenWeatherCurrent(
+          { q: locationQuery },
+          { analyticsSource: 'entry_editor_gps_lookup' }
+        )
         const coord = data.coord as { lat?: number; lon?: number } | undefined
         if (coord?.lat !== undefined && coord?.lon !== undefined) {
           setEvGpsLat(Number(coord.lat).toFixed(6))
@@ -955,7 +958,8 @@ export default function LogEntryEditor({
       const data = await fetchOpenWeatherCurrent(
         hasGps
           ? { lat: evGpsLat, lon: evGpsLng }
-          : { q: fallbackLocation }
+          : { q: fallbackLocation },
+        { analyticsSource: 'entry_editor' }
       )
 
       const coord = data.coord as { lat?: number; lon?: number } | undefined
