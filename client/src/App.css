@@ -3420,6 +3420,12 @@ html.theme-cupertino .events-scroll-container {
   cursor: pointer;
 }
 
+.live-log-subaction-btn-owm {
+  border-color: rgba(59, 130, 246, 0.35);
+  color: var(--app-text);
+  font-weight: 500;
+}
+
 .live-log-subaction-btn:hover:not(:disabled) {
   color: var(--app-text);
   border-color: rgba(59, 130, 246, 0.3);
@@ -3427,10 +3433,17 @@ html.theme-cupertino .events-scroll-container {
 
 .live-log-undo-bar {
   position: fixed;
-  left: 50%;
+  inset-inline: 0;
   bottom: 24px;
-  transform: translateX(-50%);
   z-index: 10060;
+  display: flex;
+  justify-content: center;
+  padding-inline: 16px;
+  pointer-events: none;
+}
+
+.live-log-undo-bar-inner {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -3440,6 +3453,61 @@ html.theme-cupertino .events-scroll-container {
   border: 1px solid var(--app-border-muted);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   font-size: 14px;
+  max-width: min(100%, 420px);
+}
+
+.live-log-fix-coords {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.live-log-fix-label {
+  display: block;
+  margin: 0 0 10px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
+.live-log-fix-coords-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+
+.live-log-fix-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.live-log-fix-field-label {
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+.live-log-fix-field .input-text {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.live-log-fix-gps-row {
+  margin-top: 10px;
+}
+
+.live-log-fix-gps-btn {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
 }
 
 .stats-event-series-block + .stats-event-series-block {

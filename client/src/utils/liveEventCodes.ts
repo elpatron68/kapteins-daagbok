@@ -120,3 +120,56 @@ export function getLastAutoPositionMs(
   }
   return null
 }
+
+/** Max age of a logged GPS fix for OpenWeatherMap lookups in live log. */
+export const LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS = 6 * 60 * 60 * 1000
+
+export type LiveLogPositionSource = 'fix' | 'auto_position'
+
+export interface LiveLogPositionFix {
+  lat: string
+  lng: string
+  loggedAtMs: number
+  source: LiveLogPositionSource
+}
+
+function isPositionEventCode(code: string): boolean {
+  return code === LIVE_EVENT_CODES.FIX || code === LIVE_EVENT_CODES.AUTO_POSITION
+}
+
+/** Latest FIX or auto-position event with GPS coordinates (any age). */
+export function getLatestPositionFix(
+  events: Array<{ remarks: string; time: string; gpsLat?: string; gpsLng?: string }>,
+  entryDate: string
+): LiveLogPositionFix | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i]
+    const code = event.remarks.trim()
+    if (!isPositionEventCode(code)) continue
+    const lat = event.gpsLat?.trim()
+    const lng = event.gpsLng?.trim()
+    if (!lat || !lng) continue
+    const loggedAtMs = eventTimestampMs(entryDate, event.time)
+    if (loggedAtMs == null) continue
+    return {
+      lat,
+      lng,
+      loggedAtMs,
+      source: code === LIVE_EVENT_CODES.FIX ? 'fix' : 'auto_position'
+    }
+  }
+  return null
+}
+
+/** GPS fix for weather if logged within `maxAgeMs` (default 6 h). */
+export function getLastPositionFixWithin(
+  events: Array<{ remarks: string; time: string; gpsLat?: string; gpsLng?: string }>,
+  entryDate: string,
+  maxAgeMs: number = LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS,
+  nowMs: number = Date.now()
+): LiveLogPositionFix | null {
+  const latest = getLatestPositionFix(events, entryDate)
+  if (!latest) return null
+  if (nowMs - latest.loggedAtMs > maxAgeMs) return null
+  return latest
+}

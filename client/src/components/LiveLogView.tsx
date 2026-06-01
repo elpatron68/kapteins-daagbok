@@ -34,8 +34,11 @@ import {
 import { formatEventSummary } from '../utils/formatEventSummary.js'
 import {
   getLastAutoPositionMs,
+  getLastPositionFixWithin,
+  getLatestPositionFix,
   isMotorRunningFromEvents,
   LIVE_EVENT_CODES,
+  LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS,
   liveCommentRemark,
   liveFuelRemark,
   livePrecipRemark,
@@ -45,7 +48,9 @@ import {
   liveTempRemark,
   liveWaterRemark
 } from '../utils/liveEventCodes.js'
-import { getCurrentPosition } from '../utils/geolocation.js'
+import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
+import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
+import { getCurrentPosition, normalizeGpsCoordinates } from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
 import {
   dedupeSailNames,
@@ -77,6 +82,7 @@ type LiveModal =
   | 'water'
   | 'sog'
   | 'stw'
+  | 'fix'
 
 const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
 const AUTO_POSITION_CHECK_MS = 60_000
@@ -120,11 +126,16 @@ export default function LiveLogView({
   const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<LiveModal>('none')
   const [weatherExpanded, setWeatherExpanded] = useState(false)
+  const [weatherOwmLoading, setWeatherOwmLoading] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [valueInput, setValueInput] = useState('')
   const [valueInputSecondary, setValueInputSecondary] = useState('')
   const [selectedSails, setSelectedSails] = useState<string[]>([])
   const [undoVisible, setUndoVisible] = useState(false)
+  const [fixLat, setFixLat] = useState('')
+  const [fixLng, setFixLng] = useState('')
+  const [fixGpsLoading, setFixGpsLoading] = useState(false)
+  const [fixGpsUnavailable, setFixGpsUnavailable] = useState(false)
 
   const streamEndRef = useRef<HTMLDivElement | null>(null)
   const undoTimerRef = useRef<number | null>(null)
@@ -270,7 +281,7 @@ export default function LiveLogView({
   }, [entryId, loading, logbookId, refreshEntry, busy])
 
   const runQuickAction = async (
-    action: () => Promise<void>,
+    action: () => Promise<boolean | void>,
     trackAction?: string,
     withUndo = true
   ) => {
@@ -278,7 +289,8 @@ export default function LiveLogView({
     setBusy(true)
     setError(null)
     try {
-      await action()
+      const saved = await action()
+      if (saved === false) return
       await refreshEntry(entryId)
       if (withUndo) showUndo()
       if (trackAction) {
@@ -335,20 +347,120 @@ export default function LiveLogView({
     }, 'moor')
   }
 
-  const handleFix = () => {
+  const openFixModal = async () => {
+    setFixLat('')
+    setFixLng('')
+    setFixGpsUnavailable(false)
+    setFixGpsLoading(true)
+    setModal('fix')
+    try {
+      const coords = await getCurrentPosition()
+      setFixLat(coords.lat)
+      setFixLng(coords.lng)
+    } catch {
+      setFixGpsUnavailable(true)
+    } finally {
+      setFixGpsLoading(false)
+    }
+  }
+
+  const retryFixGps = async () => {
+    setFixGpsLoading(true)
+    setFixGpsUnavailable(false)
+    try {
+      const coords = await getCurrentPosition()
+      setFixLat(coords.lat)
+      setFixLng(coords.lng)
+    } catch {
+      setFixGpsUnavailable(true)
+      await showAlert(t('logs.live_gps_error'), t('logs.live_fix'))
+    } finally {
+      setFixGpsLoading(false)
+    }
+  }
+
+  const confirmFix = () => {
+    const coords = normalizeGpsCoordinates(fixLat, fixLng)
+    if (!coords) {
+      void showAlert(t('logs.live_fix_invalid'), t('logs.live_fix'))
+      return
+    }
+    setModal('none')
     void runQuickAction(async () => {
-      if (!entryId) return
-      try {
-        const coords = await getCurrentPosition()
-        await appendQuickEvent(logbookId, entryId, {
-          gpsLat: coords.lat,
-          gpsLng: coords.lng,
-          remarks: LIVE_EVENT_CODES.FIX
-        })
-      } catch {
-        await showAlert(t('logs.live_gps_error'), t('logs.live_fix'))
-      }
+      if (!entryId) return false
+      await appendQuickEvent(logbookId, entryId, {
+        gpsLat: coords.lat,
+        gpsLng: coords.lng,
+        remarks: LIVE_EVENT_CODES.FIX
+      })
     }, 'fix')
+  }
+
+  const handleFetchOwmWeather = () => {
+    if (!entryId || busy || weatherOwmLoading) return
+
+    const position = getLastPositionFixWithin(
+      events,
+      date,
+      LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS
+    )
+    if (!position) {
+      const latest = getLatestPositionFix(events, date)
+      void showAlert(
+        latest
+          ? t('logs.live_weather_fix_stale')
+          : t('logs.live_weather_fix_required'),
+        t('logs.live_weather_owm_btn')
+      )
+      return
+    }
+
+    const { lat, lng } = position
+    setWeatherOwmLoading(true)
+    void runQuickAction(async () => {
+      let data: Record<string, unknown>
+      try {
+        data = await fetchOpenWeatherCurrent({ lat, lon: lng })
+      } catch (err) {
+        if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
+          await showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
+          return false
+        }
+        console.error('Live log OWM weather failed:', err)
+        await showAlert(t('settings.weather_error'), t('logs.live_weather_owm_btn'))
+        return false
+      }
+
+      const parsed = parseOwmCurrentWeather(data)
+      if (parsed.windDirection || parsed.windStrength) {
+        await appendQuickEvent(logbookId, entryId, {
+          windDirection: parsed.windDirection,
+          windStrength: parsed.windStrength,
+          weatherIcon: parsed.weatherIcon || undefined,
+          remarks: LIVE_EVENT_CODES.WIND
+        })
+      }
+      if (parsed.windPressure) {
+        await appendQuickEvent(logbookId, entryId, {
+          windPressure: parsed.windPressure,
+          remarks: LIVE_EVENT_CODES.PRESSURE
+        })
+      }
+      if (parsed.tempC) {
+        await appendQuickEvent(logbookId, entryId, {
+          remarks: liveTempRemark(parsed.tempC)
+        })
+      }
+      if (parsed.precipText) {
+        await appendQuickEvent(logbookId, entryId, {
+          remarks: livePrecipRemark(parsed.precipText)
+        })
+      }
+
+      await showAlert(t('settings.weather_success'), t('logs.live_weather_owm_btn'))
+    }, 'weather_owm').finally(() => {
+      setWeatherOwmLoading(false)
+    })
   }
 
   const handleUndo = () => {
@@ -613,6 +725,14 @@ export default function LiveLogView({
             </button>
             {weatherExpanded && (
               <div className="live-log-weather-submenu">
+                <button
+                  type="button"
+                  className="live-log-subaction-btn live-log-subaction-btn-owm"
+                  onClick={handleFetchOwmWeather}
+                  disabled={busy || weatherOwmLoading}
+                >
+                  {weatherOwmLoading ? t('logs.live_weather_owm_loading') : t('logs.live_weather_owm_btn')}
+                </button>
                 <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('wind', lastWindDirectionFromEvents(events))} disabled={busy}>
                   {t('logs.live_wind_btn')}
                 </button>
@@ -632,7 +752,7 @@ export default function LiveLogView({
             )}
           </div>
 
-          <button type="button" className="live-log-action-btn" onClick={handleFix} disabled={busy}>
+          <button type="button" className="live-log-action-btn" onClick={() => void openFixModal()} disabled={busy}>
             <MapPin size={18} />
             {t('logs.live_fix')}
           </button>
@@ -665,11 +785,13 @@ export default function LiveLogView({
       <>
       {undoVisible && events.length > 0 && (
         <div className="live-log-undo-bar" role="status">
-          <span>{t('logs.live_undo_hint')}</span>
-          <button type="button" className="btn secondary" onClick={handleUndo} disabled={busy}>
-            <Undo2 size={16} />
-            {t('logs.live_undo_btn')}
-          </button>
+          <div className="live-log-undo-bar-inner">
+            <span>{t('logs.live_undo_hint')}</span>
+            <button type="button" className="btn secondary" onClick={handleUndo} disabled={busy}>
+              <Undo2 size={16} />
+              {t('logs.live_undo_btn')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -717,6 +839,73 @@ export default function LiveLogView({
                 {selectedSails.length > 0
                   ? t('logs.live_sails_confirm_count', { count: selectedSails.length })
                   : t('logs.live_sails_confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'fix' && (
+        <div
+          className="live-log-modal-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
+        >
+          <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{t('logs.live_fix')}</h3>
+            {fixGpsUnavailable && (
+              <p className="live-log-modal-hint">{t('logs.live_fix_manual_hint')}</p>
+            )}
+            <fieldset className="live-log-fix-coords" disabled={busy}>
+              <legend className="live-log-fix-label">{t('logs.event_gps')}</legend>
+              <div className="live-log-fix-coords-row">
+                <label className="live-log-fix-field">
+                  <span className="live-log-fix-field-label">{t('logs.live_fix_lat_placeholder')}</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="input-text"
+                    placeholder="54.123456"
+                    value={fixLat}
+                    onChange={(e) => setFixLat(e.target.value)}
+                    autoFocus
+                  />
+                </label>
+                <label className="live-log-fix-field">
+                  <span className="live-log-fix-field-label">{t('logs.live_fix_lng_placeholder')}</span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="input-text"
+                    placeholder="10.654321"
+                    value={fixLng}
+                    onChange={(e) => setFixLng(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') confirmFix() }}
+                  />
+                </label>
+              </div>
+              <div className="live-log-fix-gps-row">
+                <button
+                  type="button"
+                  className="btn secondary live-log-fix-gps-btn"
+                  onClick={() => void retryFixGps()}
+                  title={t('logs.gps_btn')}
+                  disabled={fixGpsLoading}
+                  aria-label={t('logs.gps_btn')}
+                >
+                  <MapPin size={16} />
+                  <span>{fixGpsLoading ? t('logs.live_fix_gps_loading') : t('logs.gps_btn')}</span>
+                </button>
+              </div>
+            </fieldset>
+            <div className="live-log-modal-actions">
+              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.confirm_no')}</button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={confirmFix}
+                disabled={busy || !normalizeGpsCoordinates(fixLat, fixLng)}
+              >
+                {t('logs.live_sails_confirm')}
               </button>
             </div>
           </div>

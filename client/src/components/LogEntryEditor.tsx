@@ -25,7 +25,7 @@ import type { SignatureValue } from '../types/signatures.js'
 import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
 import EventTimeInput24h from './EventTimeInput24h.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
-import { degreesToCardinal } from '../utils/courseAngle.js'
+import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
@@ -965,38 +965,11 @@ export default function LogEntryEditor({
         setEvGpsLng(Number(coord.lon).toFixed(6))
       }
 
-      const wind = data.wind as { speed?: number; deg?: number } | undefined
-      const main = data.main as { pressure?: number } | undefined
-
-      // Convert wind speed m/s to Beaufort scale
-      const mps = wind?.speed || 0
-      let bft = 0
-      if (mps < 0.3) bft = 0
-      else if (mps < 1.6) bft = 1
-      else if (mps < 3.4) bft = 2
-      else if (mps < 5.5) bft = 3
-      else if (mps < 8.0) bft = 4
-      else if (mps < 10.8) bft = 5
-      else if (mps < 13.9) bft = 6
-      else if (mps < 17.2) bft = 7
-      else if (mps < 20.8) bft = 8
-      else if (mps < 24.5) bft = 9
-      else if (mps < 28.5) bft = 10
-      else if (mps < 32.7) bft = 11
-      else bft = 12
-
-      setEvWindStrength(`${bft} Bft (${mps.toFixed(1)} m/s)`)
-      setEvWindPressure(String(main?.pressure || ''))
-      
-      // Calculate wind compass direction sector
-      if (wind?.deg !== undefined) {
-        setEvWindDirection(degreesToCardinal(wind.deg))
-      }
-
-      if (data.weather && Array.isArray(data.weather) && data.weather[0]) {
-        const first = data.weather[0] as { icon?: string }
-        if (first.icon) setEvWeatherIcon(first.icon)
-      }
+      const parsed = parseOwmCurrentWeather(data)
+      setEvWindStrength(parsed.windStrength)
+      setEvWindPressure(parsed.windPressure)
+      if (parsed.windDirection) setEvWindDirection(parsed.windDirection)
+      if (parsed.weatherIcon) setEvWeatherIcon(parsed.weatherIcon)
 
       showAlert(t('settings.weather_success'))
     } catch (err) {
