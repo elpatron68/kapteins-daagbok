@@ -650,7 +650,7 @@
       "add_crew": "Add Crew Member",
       "edit_crew": "Edit Crew Member",
       "no_crew": "No crew members added yet.",
-      "max_crew": "Maximum of 5 crew members reached.",
+      "max_crew": "Maximum of 12 crew members in the pool reached.",
       "name": "Full Name",
       "address": "Address",
       "birthdate": "Date of Birth",

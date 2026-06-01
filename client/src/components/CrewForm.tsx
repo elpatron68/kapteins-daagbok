@@ -6,6 +6,7 @@ import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { MAX_POOL_CREW_MEMBERS } from '../types/person.js'
 import { useDialog } from './ModalDialog.tsx'
 import { Users, User, Plus, Trash2, Edit2, Save, X, Check, Camera } from 'lucide-react'
 
@@ -603,7 +604,7 @@ export default function CrewForm({
             <Users size={24} className="form-icon" />
             <h2>{t('crew.crew_section')}</h2>
           </div>
-          {!readOnly && crewList.length < 5 && !showMemberForm && (
+          {!readOnly && crewList.length < MAX_POOL_CREW_MEMBERS && !showMemberForm && (
             <button className="btn primary" onClick={openAddMember} style={{ width: 'auto', padding: '8px 16px' }}>
               <Plus size={16} />
               {t('crew.add_crew')}

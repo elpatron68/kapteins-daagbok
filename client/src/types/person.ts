@@ -42,7 +42,7 @@ export interface EntryCrewFields {
   crewSnapshotsById: Record<string, PersonSnapshot>
 }
 
-export const MAX_POOL_CREW_MEMBERS = 5
+export const MAX_POOL_CREW_MEMBERS = 12
 
 export function emptyLogbookCrewSelection(): LogbookCrewSelectionData {
   return {
