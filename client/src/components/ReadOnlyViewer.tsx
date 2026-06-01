@@ -7,7 +7,7 @@ import VesselForm from './VesselForm.tsx'
 import LogbookCrewPicker from './LogbookCrewPicker.tsx'
 import type { LogbookCrewSelectionData } from '../types/person.js'
 import { emptyLogbookCrewSelection } from '../types/person.js'
-import { personToSnapshot } from '../utils/personSnapshots.js'
+import { legacyCrewRecordsToLogbookSelection } from '../utils/personSnapshots.js'
 import type { PersonData } from '../types/person.js'
 import LogEntriesList from './LogEntriesList.tsx'
 import { Ship, Users, FileText, Lock, AlertCircle, Globe } from 'lucide-react'
@@ -112,18 +112,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
       setLegacyCrews(decCrews)
 
       if (!data.logbookCrewSelection && decCrews.length > 0) {
-        const snapshotsById: LogbookCrewSelectionData['snapshotsById'] = {}
-        let activeSkipperId: string | null = null
-        const activeCrewIds: string[] = []
-        for (const c of decCrews) {
-          snapshotsById[c.payloadId] = personToSnapshot(c.payloadId, c.data)
-          if (c.payloadId === 'skipper' || c.data.role === 'skipper') {
-            activeSkipperId = c.payloadId
-          } else {
-            activeCrewIds.push(c.payloadId)
-          }
-        }
-        setLogbookCrewSelection({ activeSkipperId, activeCrewIds, snapshotsById })
+        setLogbookCrewSelection(legacyCrewRecordsToLogbookSelection(decCrews))
       }
 
       // Decrypt Entries

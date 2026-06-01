@@ -3,7 +3,7 @@ import { getActiveMasterKey } from './auth.js'
 import { decryptJson, encryptJson } from './crypto.js'
 import { getLogbookKey } from './logbookKeys.js'
 import type { PersonData } from '../types/person.js'
-import { buildLogbookCrewSelection } from '../utils/personSnapshots.js'
+import { buildLogbookCrewSelection, pickActiveSkipperId } from '../utils/personSnapshots.js'
 import { entryCrewFromLogbookSelection } from '../utils/personSnapshots.js'
 import { saveLogbookCrewSelection } from './logbookCrewSelection.js'
 const MIGRATION_FLAG = 'crew_pool_migration_v1_done'
@@ -24,8 +24,8 @@ export async function migrateLegacyCrewToPoolIfNeeded(): Promise<void> {
       const logbookKey = (await getLogbookKey(logbook.id)) || masterKey
       const legacyCrews = await db.crews.where({ logbookId: logbook.id }).toArray()
 
-      const legacyIds: { skipperId: string | null; crewIds: string[] } = {
-        skipperId: null,
+      const legacyIds: { skipperIds: string[]; crewIds: string[] } = {
+        skipperIds: [],
         crewIds: []
       }
 
@@ -65,14 +65,18 @@ export async function migrateLegacyCrewToPoolIfNeeded(): Promise<void> {
           poolData.set(poolId, personData)
         }
 
-        if (role === 'skipper') legacyIds.skipperId = poolId
-        else legacyIds.crewIds.push(poolId)
+        if (role === 'skipper') {
+          if (!legacyIds.skipperIds.includes(poolId)) legacyIds.skipperIds.push(poolId)
+        } else {
+          legacyIds.crewIds.push(poolId)
+        }
       }
 
+      const activeSkipperId = pickActiveSkipperId(legacyIds.skipperIds)
       const existingSelection = await db.logbookCrewSelections.get(logbook.id)
-      if (!existingSelection && (legacyIds.skipperId || legacyIds.crewIds.length > 0)) {
+      if (!existingSelection && (activeSkipperId || legacyIds.crewIds.length > 0)) {
         const selection = buildLogbookCrewSelection(
-          legacyIds.skipperId,
+          activeSkipperId,
           legacyIds.crewIds,
           poolData
         )

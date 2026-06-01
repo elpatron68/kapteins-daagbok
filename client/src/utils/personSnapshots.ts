@@ -1,5 +1,39 @@
 import type { LogbookCrewSelectionData, PersonData, PersonSnapshot } from '../types/person.js'
 
+/** Prefer canonical legacy id `skipper`, otherwise keep the first skipper encountered. */
+export function pickActiveSkipperId(skipperIds: readonly string[]): string | null {
+  if (skipperIds.length === 0) return null
+  return skipperIds.find((id) => id === 'skipper') ?? skipperIds[0]
+}
+
+export function isSkipperRecord(payloadId: string, data: PersonData): boolean {
+  return payloadId === 'skipper' || data.role === 'skipper'
+}
+
+/** Build logbook crew selection from legacy per-logbook crew records (read-only share / migration). */
+export function legacyCrewRecordsToLogbookSelection(
+  crews: Array<{ payloadId: string; data: PersonData }>
+): LogbookCrewSelectionData {
+  const snapshotsById: Record<string, PersonSnapshot> = {}
+  const skipperIds: string[] = []
+  const activeCrewIds: string[] = []
+
+  for (const c of crews) {
+    snapshotsById[c.payloadId] = personToSnapshot(c.payloadId, c.data)
+    if (isSkipperRecord(c.payloadId, c.data)) {
+      if (!skipperIds.includes(c.payloadId)) skipperIds.push(c.payloadId)
+    } else {
+      activeCrewIds.push(c.payloadId)
+    }
+  }
+
+  return {
+    activeSkipperId: pickActiveSkipperId(skipperIds),
+    activeCrewIds,
+    snapshotsById
+  }
+}
+
 export function personToSnapshot(id: string, data: PersonData): PersonSnapshot {
   return {
     id,
