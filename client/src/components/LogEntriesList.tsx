@@ -9,6 +9,7 @@ import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
+import { findTodayEntryId } from '../services/quickEventLog.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
@@ -239,6 +240,12 @@ export default function LogEntriesList({
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
+      const existingTodayId = await findTodayEntryId(logbookId)
+      if (existingTodayId) {
+        setSelectedEntryId(existingTodayId)
+        return
+      }
+
       const localEntries = await db.entries.where({ logbookId }).toArray()
       const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
 
@@ -390,7 +397,10 @@ export default function LogEntriesList({
           setReturnToLiveAfterEditor(true)
           setSelectedEntryId(entryId)
         }}
-        onSwitchToList={() => setViewMode('list')}
+        onSwitchToList={() => {
+          setViewMode('list')
+          void loadEntries()
+        }}
       />
     )
   }
@@ -410,7 +420,7 @@ export default function LogEntriesList({
       : entries[0]?.id ?? null
 
   return (
-    <div className="form-card">
+    <div className="logs-journal">
       <div className="section-title-bar mb-6">
         <div className="form-header" style={{ margin: 0 }}>
           <Calendar size={24} className="form-icon" />
@@ -475,8 +485,14 @@ export default function LogEntriesList({
                 type="button"
                 className="logbook-card-select"
                 onClick={() => setSelectedEntryId(item.id)}
-              >
-              <div className="card-icon">
+                aria-label={
+                  item.departure && item.destination
+                    ? `${item.departure} → ${item.destination}, ${t('logs.travel_day_number', { number: item.dayOfTravel })}`
+                    : `${t('logs.new_entry')}, ${t('logs.travel_day_number', { number: item.dayOfTravel })}`
+                }
+              />
+
+              <div className="card-icon" aria-hidden>
                 <FileText size={24} />
               </div>
 
@@ -497,8 +513,7 @@ export default function LogEntriesList({
                 </div>
               </div>
 
-              <ChevronRight size={18} style={{ color: '#475569', marginLeft: 'auto' }} aria-hidden />
-              </button>
+              <ChevronRight size={18} className="logbook-card-chevron" aria-hidden />
 
               <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
                 <Download size={18} />

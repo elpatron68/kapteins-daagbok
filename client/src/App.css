@@ -1825,6 +1825,16 @@ html.scheme-dark .themed-select-option.is-selected {
   min-width: 0;
 }
 
+.logbook-card-chevron {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
+  color: #475569;
+  pointer-events: none;
+}
+
 .logbook-card .logbook-title-editable,
 .logbook-card .logbook-title-inline-edit,
 .logbook-card .card-title-row {
@@ -3349,7 +3359,14 @@ html.theme-cupertino .events-scroll-container {
   color: var(--app-accent-light, #93c5fd);
 }
 
+.logs-journal {
+  width: 100%;
+  min-width: 0;
+}
+
 .live-log-card {
+  width: 100%;
+  min-width: 0;
   min-height: 420px;
 }
 

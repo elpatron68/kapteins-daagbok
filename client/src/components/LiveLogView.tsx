@@ -823,7 +823,7 @@ export default function LiveLogView({
 
   return (
     <>
-    <div className="form-card live-log-card">
+    <div className="live-log-card">
       <div className="section-title-bar mb-4">
         <div className="form-header" style={{ margin: 0 }}>
           <Radio size={24} className="form-icon" />
