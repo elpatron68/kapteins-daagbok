@@ -56,6 +56,10 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Language Changed | Sprache über UI-Wechsler gewählt (`i18nLanguages.ts` via Sprach-Button in App, Dashboard, Auth, Demo, Einladung, Share-Viewer) | `from`, `to`: ISO 639-1 (`de`, `en`, `da`, `sv`, `nb`) |
 | Live Log Opened | Live-Journal-Ansicht geladen (`LiveLogView.tsx`, einmal pro Mount nach erfolgreichem Init) | — |
 | Live Log Event Logged | Quick-Action erfolgreich ins heutige Journal geschrieben (`LiveLogView.tsx`) | `action`: siehe [Live-Log-Aktionen](#live-log-aktionen) |
+| PWA Boot Watchdog Soft | Watchdog erkennt Start-Haenger und versucht sanfte Selbstheilung (`bootstrap-watchdog.js`) | `attempt` (Anzahl Wiederherstellungsversuche), `online` (`true`\|`false`), `reason`: `soft-reload` \| `offline-retry` |
+| PWA Boot Watchdog Hard | Watchdog startet harte PWA-Reparatur (SW/Cache) nach erneutem Start-Haenger (`bootstrap-watchdog.js`) | `attempt`, `online`, `reason`: `hard-recovery` |
+| PWA Boot Watchdog Fallback | Watchdog zeigt Recovery-UI nach ausgeschoepften Auto-Recovery-Versuchen (`bootstrap-watchdog.js`) | `attempt`, `online`, `reason`: `retries-exhausted` \| `offline-retries-exhausted` |
+| PWA Boot Watchdog Manual Repair | Nutzer startet manuelle App-Reparatur im Fallback-Dialog (`bootstrap-watchdog.js`) | `attempt`, `online` |
 
 ### Live-Log-Aktionen
 
@@ -94,6 +98,16 @@ Property `source` bei **OWM Weather Fetched** — ein Event pro erfolgreichem AP
 
 Fehlgeschlagene Abrufe (kein API-Key, Timeout, leere Antwort) lösen **kein** Event aus.
 
+### PWA-Boot-Watchdog-Properties
+
+Properties bei **PWA Boot Watchdog Soft / Hard / Fallback / Manual Repair**:
+
+| Property | Typ | Bedeutung | Erlaubte Werte |
+|----------|-----|-----------|----------------|
+| `attempt` | number | Laufende Nummer des Recovery-Versuchs im aktuellen Startfenster | `1`, `2`, `3`, ... |
+| `online` | boolean | Netzwerkstatus beim Trigger | `true` \| `false` |
+| `reason` | string | Grund/Recovery-Pfad (nur bei Soft/Hard/Fallback) | `soft-reload`, `offline-retry`, `hard-recovery`, `retries-exhausted`, `offline-retries-exhausted` |
+
 ## Bewusst nicht getrackt
 
 - **Demo-Logbuch:** Beim automatischen Seed (`demoLogbook.ts`) werden keine Events ausgelöst — nur echte Nutzeraktionen zählen.
@@ -122,6 +136,7 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 9. **NMEA-Import:** NMEA Uploaded → NMEA Imported (Modus, `events`, optional Track; Upload-Funnel vs. Abbruch)
 10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`) → Live Log Photo Uploaded
 11. **OpenWeatherMap:** OWM Weather Fetched (Verteilung `source`; Live-Journal vs. Reisetag-Editor)
+12. **PWA-Stabilitaet:** PWA Boot Watchdog Soft → PWA Boot Watchdog Hard → PWA Boot Watchdog Fallback → PWA Boot Watchdog Manual Repair
 
 ## Entwicklung
 

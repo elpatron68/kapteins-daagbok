@@ -41,7 +41,11 @@ export const PlausibleEvents = {
   LIVE_LOG_OPENED: 'Live Log Opened',
   LIVE_LOG_EVENT_LOGGED: 'Live Log Event Logged',
   LIVE_LOG_PHOTO_UPLOADED: 'Live Log Photo Uploaded',
-  OWM_WEATHER_FETCHED: 'OWM Weather Fetched'
+  OWM_WEATHER_FETCHED: 'OWM Weather Fetched',
+  PWA_BOOT_WATCHDOG_SOFT: 'PWA Boot Watchdog Soft',
+  PWA_BOOT_WATCHDOG_HARD: 'PWA Boot Watchdog Hard',
+  PWA_BOOT_WATCHDOG_FALLBACK: 'PWA Boot Watchdog Fallback',
+  PWA_BOOT_WATCHDOG_MANUAL_REPAIR: 'PWA Boot Watchdog Manual Repair'
 } as const
 
 /** Where a successful OpenWeatherMap API call originated (no coordinates or place names). */
@@ -50,6 +54,13 @@ export type OwmAnalyticsSource = 'live_log' | 'entry_editor' | 'entry_editor_gps
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
 
 export type PlausibleEventProps = Record<string, string | number | boolean>
+type PendingPwaBootEvent = {
+  name: PlausibleEventName
+  props?: PlausibleEventProps
+  ts?: number
+}
+
+const PWA_BOOT_PENDING_EVENTS_KEY = 'pwa_boot_pending_events'
 
 export function trackPlausibleEvent(name: PlausibleEventName, props?: PlausibleEventProps): void {
   if (typeof window.plausible !== 'function') return
@@ -58,4 +69,53 @@ export function trackPlausibleEvent(name: PlausibleEventName, props?: PlausibleE
     return
   }
   window.plausible(name)
+}
+
+export function flushPendingPwaBootEvents(): number {
+  if (typeof window.plausible !== 'function') return 0
+
+  let raw: string | null = null
+  try {
+    raw = sessionStorage.getItem(PWA_BOOT_PENDING_EVENTS_KEY)
+  } catch {
+    return 0
+  }
+  if (!raw) return 0
+
+  let pending: PendingPwaBootEvent[]
+  try {
+    pending = JSON.parse(raw) as PendingPwaBootEvent[]
+  } catch {
+    try {
+      sessionStorage.removeItem(PWA_BOOT_PENDING_EVENTS_KEY)
+    } catch {
+      /* ignore storage errors */
+    }
+    return 0
+  }
+
+  if (!Array.isArray(pending) || pending.length === 0) {
+    try {
+      sessionStorage.removeItem(PWA_BOOT_PENDING_EVENTS_KEY)
+    } catch {
+      /* ignore storage errors */
+    }
+    return 0
+  }
+
+  for (const event of pending) {
+    if (!event || typeof event.name !== 'string') continue
+    if (event.props && Object.keys(event.props).length > 0) {
+      window.plausible(event.name, { props: event.props })
+    } else {
+      window.plausible(event.name)
+    }
+  }
+
+  try {
+    sessionStorage.removeItem(PWA_BOOT_PENDING_EVENTS_KEY)
+  } catch {
+    /* ignore storage errors */
+  }
+  return pending.length
 }

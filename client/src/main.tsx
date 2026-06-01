@@ -7,12 +7,22 @@ import './App.css'
 import './i18n'
 import App from './App.tsx'
 import { applyAppearanceToDocument } from './services/appearance.ts'
+import { flushPendingPwaBootEvents } from './services/analytics.ts'
 import {
   installStaleAssetRecovery,
   markReloadAttempt,
   reconcileVersionOnStartup
 } from './services/pwaStartup.ts'
 import { redirectToPasskeyCompatibleHostIfNeeded } from './utils/passkeyHost.ts'
+
+declare global {
+  interface Window {
+    __KDB_MAIN_MODULE_LOADED?: boolean
+    __KDB_APP_BOOTSTRAPPED?: boolean
+  }
+}
+
+window.__KDB_MAIN_MODULE_LOADED = true
 
 /** Stale PWA precache on localhost can shadow Vite dev modules. */
 async function clearDevServiceWorkerCaches(): Promise<void> {
@@ -47,6 +57,10 @@ async function bootstrap(): Promise<void> {
 
   applyAppearanceToDocument()
   installStaleAssetRecovery()
+  flushPendingPwaBootEvents()
+  window.addEventListener('load', () => {
+    flushPendingPwaBootEvents()
+  }, { once: true })
   await clearDevServiceWorkerCaches()
 
   const startupResult = await reconcileVersionOnStartup()
@@ -69,6 +83,7 @@ async function bootstrap(): Promise<void> {
       <App />
     </StrictMode>,
   )
+  window.__KDB_APP_BOOTSTRAPPED = true
 }
 
 void bootstrap().catch((err) => {
@@ -76,4 +91,5 @@ void bootstrap().catch((err) => {
   renderBootstrapError(
     'Die App konnte nicht gestartet werden. Bitte neu laden oder die App vollständig beenden und erneut öffnen.',
   )
+  window.__KDB_APP_BOOTSTRAPPED = true
 })
