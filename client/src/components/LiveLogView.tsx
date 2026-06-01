@@ -65,6 +65,7 @@ import CourseDialInput from './CourseDialInput.tsx'
 import LiveCameraCapture from './LiveCameraCapture.tsx'
 import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
 import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
+
 interface LiveLogViewProps {
   logbookId: string
   onOpenEditor: (entryId: string) => void
