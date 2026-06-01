@@ -87,7 +87,25 @@ type LiveModal =
 
 const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
 const AUTO_POSITION_CHECK_MS = 60_000
+const AUTO_POSITION_START_DELAY_MS = 3000
+const LIVE_LOG_INIT_TIMEOUT_MS = 25_000
 const UNDO_TIMEOUT_MS = 5000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        window.clearTimeout(timer)
+        reject(err)
+      }
+    )
+  })
+}
 
 function hapticPulse() {
   navigator.vibrate?.(40)
@@ -186,13 +204,27 @@ export default function LiveLogView({
     const seq = ++initSeqRef.current
     setLoading(true)
     setError(null)
+    setEntryId(null)
+    setEvents([])
+    setYachtSails([])
+
+    if (!logbookId.trim()) {
+      setError(t('logs.live_load_error'))
+      setLoading(false)
+      return
+    }
+
     try {
-      const id = await findOrCreateTodayEntry(logbookId)
+      const id = await withTimeout(
+        findOrCreateTodayEntry(logbookId),
+        LIVE_LOG_INIT_TIMEOUT_MS,
+        t('logs.live_load_error')
+      )
       if (seq !== initSeqRef.current) return
       setEntryId(id)
 
-      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-      if (masterKey) {
+      const logbookKey = await getLogbookKey(logbookId)
+      if (logbookKey) {
         const yacht = await db.yachts.get(logbookId)
         if (yacht) {
           try {
@@ -200,7 +232,7 @@ export default function LiveLogView({
               yacht.encryptedData,
               yacht.iv,
               yacht.tag,
-              masterKey
+              logbookKey
             )
             if (decrypted?.sails && Array.isArray(decrypted.sails)) {
               setYachtSails(decrypted.sails as string[])
@@ -216,18 +248,18 @@ export default function LiveLogView({
       if (loaded) {
         applyLoadedEntry(loaded)
       } else {
-        throw new Error(i18n.t('logs.live_load_error'))
+        throw new Error(t('logs.live_load_error'))
       }
     } catch (err: unknown) {
       if (seq !== initSeqRef.current) return
       console.error('Failed to init live log:', err)
-      setError(err instanceof Error ? err.message : i18n.t('logs.live_load_error'))
+      setError(err instanceof Error ? err.message : t('logs.live_load_error'))
     } finally {
       if (seq === initSeqRef.current) {
         setLoading(false)
       }
     }
-  }, [logbookId, applyLoadedEntry])
+  }, [logbookId, applyLoadedEntry, t])
 
   useEffect(() => {
     void runInit()
@@ -263,7 +295,7 @@ export default function LiveLogView({
 
       autoPositionBusyRef.current = true
       try {
-        const coords = await getCurrentPosition()
+        const coords = await getCurrentPosition(8000)
         await appendQuickEvent(logbookId, entryId, {
           gpsLat: coords.lat,
           gpsLng: coords.lng,
@@ -277,8 +309,16 @@ export default function LiveLogView({
       }
     }
 
-    const interval = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
-    return () => window.clearInterval(interval)
+    let intervalRef: number | undefined
+    const startTimer = window.setTimeout(() => {
+      void maybeAutoPosition()
+      intervalRef = window.setInterval(() => void maybeAutoPosition(), AUTO_POSITION_CHECK_MS)
+    }, AUTO_POSITION_START_DELAY_MS)
+
+    return () => {
+      window.clearTimeout(startTimer)
+      if (intervalRef !== undefined) window.clearInterval(intervalRef)
+    }
   }, [entryId, loading, logbookId, refreshEntry, busy])
 
   const runQuickAction = async (

@@ -158,10 +158,12 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
   const localEntries = await db.entries.where({ logbookId }).toArray()
   const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
 
-  for (const entry of localEntries) {
-    const decrypted = await tryDecryptEntryPayload(entry, masterKey)
-    if (decrypted) {
-      decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+  if (localEntries.length > 0) {
+    for (const entry of localEntries) {
+      const decrypted = await tryDecryptEntryPayload(entry, masterKey)
+      if (decrypted) {
+        decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
+      }
     }
   }
 
@@ -211,10 +213,19 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
 }
 
 export async function findOrCreateTodayEntry(logbookId: string): Promise<string> {
-  await ensureLogbookKey(logbookId)
-  const existing = await findTodayEntryId(logbookId)
+  const id = logbookId.trim()
+  if (!id) throw new Error('Logbook id required')
+
+  await ensureLogbookKey(id)
+
+  const entryCount = await db.entries.where({ logbookId: id }).count()
+  if (entryCount === 0) {
+    return createTodayEntry(id)
+  }
+
+  const existing = await findTodayEntryId(id)
   if (existing) return existing
-  return createTodayEntry(logbookId)
+  return createTodayEntry(id)
 }
 
 export interface AppendQuickEventResult {

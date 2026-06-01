@@ -214,6 +214,10 @@ export async function createLogbook(title: string): Promise<DecryptedLogbook> {
 
       if (response.ok) {
         const serverLb = await response.json()
+        if (serverLb.id !== localId) {
+          await saveLogbookKey(serverLb.id, logbookKey)
+          await db.logbookKeys.delete(localId)
+        }
         await db.logbooks.put({
           id: serverLb.id,
           encryptedTitle: serverLb.encryptedTitle,
