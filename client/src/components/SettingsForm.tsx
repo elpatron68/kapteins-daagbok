@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Settings as SettingsIcon, Check, Users, Trash2, Copy, Link as LinkIcon } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import LogbookBackupPanel from './LogbookBackupPanel.tsx'
+import LinkQrCode from './LinkQrCode.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { apiFetch } from '../services/api.js'
@@ -314,23 +315,27 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           </div>
 
           {shareEnabled && shareLink && (
-            <div className="input-group mb-4 copy-link-row">
-              <input
-                type="text"
-                readOnly
-                value={shareLink}
-                className="input-text font-mono text-xs"
-                style={{ flex: 1, padding: '10px' }}
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={handleCopyShareLink}
-                style={{ width: 'auto', padding: '10px' }}
-              >
-                {shareCopied ? <Check size={16} /> : <Copy size={16} />}
-              </button>
+            <div className="link-with-qr mb-4">
+              <div className="input-group copy-link-row">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareLink}
+                  className="input-text font-mono text-xs"
+                  style={{ flex: 1, padding: '10px' }}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={handleCopyShareLink}
+                  style={{ width: 'auto', padding: '10px' }}
+                  title={t('settings.share_copy_btn')}
+                >
+                  {shareCopied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
+              <LinkQrCode value={shareLink} />
             </div>
           )}
         </div>
@@ -367,23 +372,27 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
           </div>
 
           {inviteLink && (
-            <div className="input-group mb-6 copy-link-row">
-              <input
-                type="text"
-                readOnly
-                value={inviteLink}
-                className="input-text font-mono text-xs"
-                style={{ flex: 1, padding: '10px' }}
-                onClick={(e) => (e.target as HTMLInputElement).select()}
-              />
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={handleCopyInvite}
-                style={{ width: 'auto', padding: '10px' }}
-              >
-                {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
-              </button>
+            <div className="link-with-qr mb-6">
+              <div className="input-group copy-link-row">
+                <input
+                  type="text"
+                  readOnly
+                  value={inviteLink}
+                  className="input-text font-mono text-xs"
+                  style={{ flex: 1, padding: '10px' }}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={handleCopyInvite}
+                  style={{ width: 'auto', padding: '10px' }}
+                  title={t('settings.share_copy_btn')}
+                >
+                  {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
+                </button>
+              </div>
+              <LinkQrCode value={inviteLink} />
             </div>
           )}
 

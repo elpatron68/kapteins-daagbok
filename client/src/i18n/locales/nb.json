@@ -633,6 +633,8 @@
       "share_enable": "Aktiver offentlig lenke",
       "share_copied": "Linken er kopiert!",
       "share_copy_btn": "Kopier lenke",
+      "link_qr_hint": "Skann QR-koden med telefonen",
+      "link_qr_alt": "QR-kode for lenken",
       "danger_zone_title": "Faresone",
       "danger_zone_desc": "Hvis du sletter kontoen din, slettes alle dine Passkeys, loggbøker, skipsdata, mannskapsprofiler, reiseoppføringer og E2E-nøkler ugjenkallelig. Denne handlingen kan ikke angres.",
       "delete_account_btn": "Slett konto ugjenkallelig",

@@ -633,6 +633,8 @@
       "share_enable": "Aktivera offentlig länk",
       "share_copied": "Länk kopierad!",
       "share_copy_btn": "Kopiera länk",
+      "link_qr_hint": "Skanna QR-koden med mobilen",
+      "link_qr_alt": "QR-kod för länken",
       "danger_zone_title": "Farlig zon",
       "danger_zone_desc": "Om du raderar ditt konto raderas oåterkalleligen alla dina Passkey, loggböcker, fartygsdata, besättningsprofiler, reseanteckningar och E2E-nycklar. Denna åtgärd kan inte ångras.",
       "delete_account_btn": "Ta bort konto oåterkalleligt",

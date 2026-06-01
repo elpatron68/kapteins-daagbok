@@ -21,7 +21,6 @@ import {
   Zap
 } from 'lucide-react'
 import { db } from '../services/db.js'
-import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -66,8 +65,6 @@ import CourseDialInput from './CourseDialInput.tsx'
 import LiveCameraCapture from './LiveCameraCapture.tsx'
 import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
 import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
-import i18n from '../i18n/index.js'
-
 interface LiveLogViewProps {
   logbookId: string
   onOpenEditor: (entryId: string) => void

@@ -1716,6 +1716,38 @@ html.scheme-dark .themed-select-option.is-selected {
   min-width: 0;
 }
 
+.link-with-qr {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.link-qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--app-radius-card, 12px);
+  background: var(--app-surface-inset, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--app-border-subtle);
+}
+
+.link-qr-label {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  text-align: center;
+}
+
+.link-qr-image {
+  display: block;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+  box-sizing: content-box;
+}
+
 .form-actions--start {
   justify-content: flex-start;
 }

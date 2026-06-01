@@ -633,6 +633,8 @@
       "share_enable": "Öffentlichen Link aktivieren",
       "share_copied": "Link kopiert!",
       "share_copy_btn": "Link kopieren",
+      "link_qr_hint": "QR-Code zum Scannen mit dem Smartphone",
+      "link_qr_alt": "QR-Code für den Link",
       "danger_zone_title": "Gefahrenzone",
       "danger_zone_desc": "Durch das Löschen deines Kontos werden alle deine Passkeys, Logbücher, Schiffsdaten, Crew-Profile, Reiseeinträge und E2E-Schlüssel unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
       "delete_account_btn": "Konto unwiderruflich löschen",
