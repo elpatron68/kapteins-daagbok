@@ -73,6 +73,17 @@ async function bootstrap(): Promise<void> {
     return
   }
 
+  if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((reg) => {
+        console.log('Service Worker registered successfully with scope:', reg.scope)
+      })
+      .catch((err) => {
+        console.error('Service Worker registration failed:', err)
+      })
+  }
+
   const rootEl = document.getElementById('root')
   if (!rootEl) {
     throw new Error('Missing #root element')
