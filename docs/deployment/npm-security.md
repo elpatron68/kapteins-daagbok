@@ -30,8 +30,9 @@ proxy_set_header X-Real-IP $remote_addr;
 ORIGIN=https://kapteins-daagbok.eu
 RP_ID=kapteins-daagbok.eu
 SESSION_SECRET=<min. 32 Zeichen, openssl rand -base64 48>
-TRUST_PROXY=172.16.10.10
-# oder TRUST_PROXY=1 für genau einen Proxy-Hop
+# Docker Compose: Frontend-Nginx ist der direkte Proxy zum Backend → 1 Hop
+TRUST_PROXY=1
+# Nur bei direktem Backend-Zugriff ohne Frontend-Nginx: NPM-IP, z. B. TRUST_PROXY=172.16.10.10
 ```
 
 `ORIGIN` muss **exakt** der Browser-URL entsprechen (ohne trailing slash).

@@ -45,6 +45,18 @@ export function createApp(): express.Express {
   app.use(cookieParser())
   app.use(express.json({ limit: '50mb' }))
 
+  /** Passkey login/register only — not person-pool, profile, etc. */
+  const authFlowPaths = new Set([
+    '/register-options',
+    '/register-verify',
+    '/login-options',
+    '/login-verify',
+    '/reauth-options',
+    '/reauth-verify',
+    '/logout',
+    '/session'
+  ])
+
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 60,
@@ -66,7 +78,12 @@ export function createApp(): express.Express {
     legacyHeaders: false
   })
 
-  app.use('/api/auth', authLimiter)
+  app.use('/api/auth', (req, res, next) => {
+    if (authFlowPaths.has(req.path)) {
+      return authLimiter(req, res, next)
+    }
+    return next()
+  })
   app.use('/api/collaboration/invite-details', publicCollaborationLimiter)
   app.use('/api/collaboration/share-pull', publicCollaborationLimiter)
   app.use('/api', apiLimiter)

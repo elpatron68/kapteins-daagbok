@@ -34,7 +34,7 @@ if ! grep -q "^POSTGRES_PASSWORD=" "$ENV_FILE" || grep -q "^POSTGRES_PASSWORD=$"
 else
   echo "  keep  POSTGRES_PASSWORD (already set)"
 fi
-# NPM on 172.16.10.10 → app on this host
-ensure_var TRUST_PROXY "172.16.10.10"
+# Frontend-Nginx → Backend (one hop); NPM is in front of Nginx, not Backend directly
+ensure_var TRUST_PROXY "1"
 
 echo "Done. Verify with: docker exec daagbox-prod-db psql -U postgres -d daagbox -c 'SELECT 1'"
