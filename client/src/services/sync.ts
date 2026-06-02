@@ -131,12 +131,7 @@ async function coalesceSyncQueue(logbookId: string): Promise<SyncQueueItem[]> {
 }
 
 function scheduleResync(logbookId: string) {
-  if (pendingResync.has(logbookId)) return
   pendingResync.add(logbookId)
-  queueMicrotask(() => {
-    pendingResync.delete(logbookId)
-    syncLogbook(logbookId).catch((err) => console.warn('Deferred sync failed:', err))
-  })
 }
 
 type LogbookPushAccess = 'OWNER' | 'WRITE' | 'READ' | 'UNKNOWN'
@@ -540,6 +535,12 @@ export async function syncLogbook(logbookId: string): Promise<boolean> {
   } finally {
     syncingLogbooks.delete(logbookId)
     recomputeSyncingState()
+    if (pendingResync.has(logbookId)) {
+      pendingResync.delete(logbookId)
+      setTimeout(() => {
+        syncLogbook(logbookId).catch((err) => console.warn('Deferred sync failed:', err))
+      }, 1000)
+    }
   }
 }
 
