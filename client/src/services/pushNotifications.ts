@@ -30,6 +30,27 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
 let cachedVapidKey: string | null = null
 let cachedRegistration: ServiceWorkerRegistration | null = null
 
+async function getRegistrationCompat(timeoutMs = 8000): Promise<ServiceWorkerRegistration> {
+  if (!('serviceWorker' in navigator)) {
+    throw new Error('Service Worker is not supported by your browser')
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.getRegistration()
+    if (reg) return reg
+  } catch (e) {
+    console.warn('Failed to get service worker registration directly:', e)
+  }
+
+  // Fallback to waiting for ready state with a timeout
+  const readyPromise = navigator.serviceWorker.ready
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout waiting for Service Worker ready state')), timeoutMs)
+  )
+
+  return Promise.race([readyPromise, timeoutPromise])
+}
+
 export async function preloadPushService(): Promise<void> {
   if (!isPushSupported()) return
   try {
@@ -37,7 +58,7 @@ export async function preloadPushService(): Promise<void> {
       await fetchVapidPublicKey()
     }
     if (!cachedRegistration) {
-      cachedRegistration = await navigator.serviceWorker.ready
+      cachedRegistration = await getRegistrationCompat()
     }
   } catch (err) {
     console.warn('Failed to preload push service:', err)
@@ -172,14 +193,10 @@ export async function subscribeToPush(): Promise<void> {
     throw new Error('Push notifications are not supported on this device')
   }
 
-  // Pre-resolve registration with timeout to prevent silent hangs
+  // Pre-resolve registration using getRegistrationCompat to prevent ready state hangs
   let registration = cachedRegistration
   if (!registration) {
-    const readyPromise = navigator.serviceWorker.ready
-    const readyTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout waiting for Service Worker ready state')), 8000)
-    )
-    registration = await Promise.race([readyPromise, readyTimeout])
+    registration = await getRegistrationCompat()
     cachedRegistration = registration
   }
 
@@ -214,11 +231,7 @@ export async function unsubscribeFromPush(): Promise<void> {
 
   let registration = cachedRegistration
   if (!registration) {
-    const readyPromise = navigator.serviceWorker.ready
-    const readyTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout waiting for Service Worker ready state')), 8000)
-    )
-    registration = await Promise.race([readyPromise, readyTimeout])
+    registration = await getRegistrationCompat()
     cachedRegistration = registration
   }
 
