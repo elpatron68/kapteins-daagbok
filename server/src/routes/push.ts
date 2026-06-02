@@ -22,11 +22,6 @@ router.get('/vapid-public-key', (_req, res) => {
   return res.json({ publicKey })
 })
 
-router.post('/debug-log', (req, res) => {
-  console.log('[CLIENT_DEBUG]', req.body)
-  return res.json({ success: true })
-})
-
 router.use(requireUser)
 
 router.get('/prefs', async (req: any, res) => {
