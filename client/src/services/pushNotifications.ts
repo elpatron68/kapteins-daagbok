@@ -96,11 +96,61 @@ export async function savePushPrefs(collaboratorChangesEnabled: boolean): Promis
   })
 }
 
+async function requestNotificationPermission(): Promise<NotificationPermission> {
+  if (typeof Notification === 'undefined') return 'denied'
+  
+  // Try promise-based signature first
+  try {
+    const result = Notification.requestPermission()
+    if (result !== undefined) {
+      return await result
+    }
+  } catch {
+    // Ignore and fall back to callback
+  }
+
+  // Callback-based fallback
+  return new Promise<NotificationPermission>((resolve) => {
+    Notification.requestPermission((permission) => {
+      resolve(permission)
+    })
+  })
+}
+
 async function saveSubscriptionToServer(subscription: PushSubscription): Promise<void> {
   if (!localStorage.getItem('active_userid')) throw new Error('Not authenticated')
 
+  const endpoint = subscription.endpoint
   const json = subscription.toJSON()
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+  let p256dh = json.keys?.p256dh
+  let auth = json.keys?.auth
+
+  // Fallback for browsers (like Safari) that might not serialize keys in toJSON()
+  if (!p256dh && typeof subscription.getKey === 'function') {
+    try {
+      const rawKey = subscription.getKey('p256dh')
+      if (rawKey) {
+        p256dh = btoa(String.fromCharCode(...new Uint8Array(rawKey)))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      }
+    } catch (e) {
+      console.warn('Failed to extract p256dh key manually:', e)
+    }
+  }
+
+  if (!auth && typeof subscription.getKey === 'function') {
+    try {
+      const rawAuth = subscription.getKey('auth')
+      if (rawAuth) {
+        auth = btoa(String.fromCharCode(...new Uint8Array(rawAuth)))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+      }
+    } catch (e) {
+      console.warn('Failed to extract auth key manually:', e)
+    }
+  }
+
+  if (!endpoint || !p256dh || !auth) {
     throw new Error('Invalid push subscription')
   }
 
@@ -109,8 +159,8 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
   await apiJson(`${API_BASE}/subscription`, {
     method: 'PUT',
     body: JSON.stringify({
-      endpoint: json.endpoint,
-      keys: json.keys,
+      endpoint,
+      keys: { p256dh, auth },
       locale,
       userAgent: navigator.userAgent
     })
@@ -131,7 +181,7 @@ export async function subscribeToPush(): Promise<void> {
     throw new Error('Push notifications are not configured on this server')
   }
 
-  const permission = await Notification.requestPermission()
+  const permission = await requestNotificationPermission()
   if (permission !== 'granted') {
     throw new Error('Notification permission denied')
   }

@@ -58,7 +58,8 @@ export default function PushNotificationSettings() {
         trackPlausibleEvent(PlausibleEvents.PUSH_DISABLED)
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : t('profile.push_error')
+      console.error('Failed to toggle push notifications:', err)
+      const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       showAlert(message)
       void loadPrefs()
     } finally {
