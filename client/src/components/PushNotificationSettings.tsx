@@ -6,7 +6,8 @@ import {
   enableCollaboratorChangePush,
   fetchPushPrefs,
   getNotificationPermission,
-  isPushSupported
+  isPushSupported,
+  preloadPushService
 } from '../services/pushNotifications.js'
 import { isIosDevice, isRunningStandalone } from '../hooks/usePwaInstall.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -28,6 +29,7 @@ export default function PushNotificationSettings() {
       setLoading(false)
       return
     }
+    void preloadPushService()
     try {
       const prefs = await fetchPushPrefs()
       setEnabled(prefs.collaboratorChangesEnabled)

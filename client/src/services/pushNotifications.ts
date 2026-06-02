@@ -27,17 +27,41 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
   return Notification.permission
 }
 
+let cachedVapidKey: string | null = null
+let cachedRegistration: ServiceWorkerRegistration | null = null
+
+export async function preloadPushService(): Promise<void> {
+  if (!isPushSupported()) return
+  try {
+    if (!cachedVapidKey) {
+      await fetchVapidPublicKey()
+    }
+    if (!cachedRegistration) {
+      cachedRegistration = await navigator.serviceWorker.ready
+    }
+  } catch (err) {
+    console.warn('Failed to preload push service:', err)
+  }
+}
+
 async function fetchVapidPublicKey(): Promise<string | null> {
+  if (cachedVapidKey) return cachedVapidKey
+
   const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
   if (typeof envKey === 'string' && envKey.trim()) {
-    return envKey.trim()
+    cachedVapidKey = envKey.trim()
+    return cachedVapidKey
   }
 
   try {
     const res = await fetch(`${API_BASE}/vapid-public-key`)
     if (!res.ok) return null
     const data = await res.json()
-    return typeof data.publicKey === 'string' ? data.publicKey : null
+    if (typeof data.publicKey === 'string') {
+      cachedVapidKey = data.publicKey.trim()
+      return cachedVapidKey
+    }
+    return null
   } catch {
     return null
   }
@@ -98,27 +122,28 @@ export async function subscribeToPush(): Promise<void> {
     throw new Error('Push notifications are not supported on this device')
   }
 
+  // Pre-resolve registration and VAPID key synchronously if preloaded.
+  // This keeps the user gesture active for iOS Safari.
+  const registration = cachedRegistration || await navigator.serviceWorker.ready
+  const publicKey = cachedVapidKey || await fetchVapidPublicKey()
+
+  if (!publicKey) {
+    throw new Error('Push notifications are not configured on this server')
+  }
+
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') {
     throw new Error('Notification permission denied')
   }
 
-  const publicKey = await fetchVapidPublicKey()
-  if (!publicKey) {
-    throw new Error('Push notifications are not configured on this server')
-  }
-
-  const registration = await navigator.serviceWorker.ready
-  let subscription = await registration.pushManager.getSubscription()
-
-  if (!subscription) {
-    const keyBytes = urlBase64ToUint8Array(publicKey)
-    const applicationServerKey = new Uint8Array(keyBytes)
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey
-    })
-  }
+  const keyBytes = urlBase64ToUint8Array(publicKey)
+  const applicationServerKey = new Uint8Array(keyBytes)
+  
+  // Always call subscribe to renew/ensure subscription without reusing stale state
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey
+  })
 
   await saveSubscriptionToServer(subscription)
 }
@@ -126,7 +151,7 @@ export async function subscribeToPush(): Promise<void> {
 export async function unsubscribeFromPush(): Promise<void> {
   if (!isPushSupported()) return
 
-  const registration = await navigator.serviceWorker.ready
+  const registration = cachedRegistration || await navigator.serviceWorker.ready
   const subscription = await registration.pushManager.getSubscription()
   if (!subscription) return
 
@@ -163,4 +188,8 @@ export async function enableCollaboratorChangePush(): Promise<void> {
 export async function disableCollaboratorChangePush(): Promise<void> {
   await savePushPrefs(false)
   await unsubscribeFromPush()
+}
+
+if (isPushSupported()) {
+  void preloadPushService()
 }

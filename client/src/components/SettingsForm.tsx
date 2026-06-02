@@ -10,7 +10,8 @@ import { apiFetch } from '../services/api.js'
 import {
   enableCollaboratorChangePush,
   isCollaboratorPushActive,
-  isPushSupported
+  isPushSupported,
+  preloadPushService
 } from '../services/pushNotifications.js'
 import { isIosDevice, isRunningStandalone } from '../hooks/usePwaInstall.js'
 
@@ -55,6 +56,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       loadCollaborators()
       loadShareLink()
     }
+    void preloadPushService()
   }, [logbookId])
 
   const loadShareLink = async () => {
