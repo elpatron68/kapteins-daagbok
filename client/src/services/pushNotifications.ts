@@ -2,6 +2,29 @@ import { apiFetch, apiJson } from './api.js'
 
 const API_BASE = '/api/push'
 
+export async function logToBackend(message: string, error?: any): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/debug-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        error: error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          ...error
+        } : undefined,
+        userAgent: navigator.userAgent,
+        href: window.location.href,
+        timestamp: new Date().toISOString()
+      })
+    })
+  } catch (err) {
+    console.warn('Failed to send debug log:', err)
+  }
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -189,23 +212,35 @@ async function saveSubscriptionToServer(subscription: PushSubscription): Promise
 }
 
 export async function subscribeToPush(): Promise<void> {
+  logToBackend('subscribeToPush called')
   if (!isPushSupported()) {
+    logToBackend('subscribeToPush: push not supported')
     throw new Error('Push notifications are not supported on this device')
   }
 
   // Pre-resolve registration using getRegistrationCompat to prevent ready state hangs
   let registration = cachedRegistration
   if (!registration) {
-    registration = await getRegistrationCompat()
-    cachedRegistration = registration
+    try {
+      logToBackend('subscribeToPush: getting registration...')
+      registration = await getRegistrationCompat()
+      cachedRegistration = registration
+      logToBackend('subscribeToPush: got registration successfully')
+    } catch (err) {
+      logToBackend('subscribeToPush: failed to get registration', err)
+      throw err
+    }
   }
 
   const publicKey = cachedVapidKey || await fetchVapidPublicKey()
   if (!publicKey) {
+    logToBackend('subscribeToPush: no public key available')
     throw new Error('Push notifications are not configured on this server')
   }
 
+  logToBackend('subscribeToPush: requesting permission...')
   const permission = await requestNotificationPermission()
+  logToBackend(`subscribeToPush: permission result: ${permission}`)
   if (permission !== 'granted') {
     throw new Error('Notification permission denied')
   }
@@ -214,6 +249,7 @@ export async function subscribeToPush(): Promise<void> {
   const applicationServerKey = new Uint8Array(keyBytes)
   
   // Always call subscribe with timeout to prevent silent hangs on push network errors
+  logToBackend('subscribeToPush: subscribing via pushManager...')
   const subscribePromise = registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey
@@ -221,9 +257,15 @@ export async function subscribeToPush(): Promise<void> {
   const subscribeTimeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Timeout establishing subscription with push service (FCM/APNs)')), 12000)
   )
-  const subscription = await Promise.race([subscribePromise, subscribeTimeout])
-
-  await saveSubscriptionToServer(subscription)
+  try {
+    const subscription = await Promise.race([subscribePromise, subscribeTimeout])
+    logToBackend('subscribeToPush: subscribed successfully, saving to server...')
+    await saveSubscriptionToServer(subscription)
+    logToBackend('subscribeToPush: saved to server successfully')
+  } catch (err) {
+    logToBackend('subscribeToPush: subscription or save failed', err)
+    throw err
+  }
 }
 
 export async function unsubscribeFromPush(): Promise<void> {

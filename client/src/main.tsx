@@ -14,6 +14,7 @@ import {
   reconcileVersionOnStartup
 } from './services/pwaStartup.ts'
 import { redirectToPasskeyCompatibleHostIfNeeded } from './utils/passkeyHost.ts'
+import { logToBackend } from './services/pushNotifications.ts'
 
 declare global {
   interface Window {
@@ -74,13 +75,16 @@ async function bootstrap(): Promise<void> {
   }
 
   if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+    logToBackend('Attempting manual Service Worker registration...')
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((reg) => {
         console.log('Service Worker registered successfully with scope:', reg.scope)
+        logToBackend('Service Worker registered successfully with scope: ' + reg.scope)
       })
       .catch((err) => {
         console.error('Service Worker registration failed:', err)
+        logToBackend('Service Worker registration failed', err)
       })
   }
 
