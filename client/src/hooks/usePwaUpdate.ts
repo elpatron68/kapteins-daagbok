@@ -42,12 +42,14 @@ function scheduleUpdateChecks(
 
   const onVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
-      checkForUpdate()
+      // Delay check on wake-up to allow the mobile network stack to stabilize
+      setTimeout(checkForUpdate, 2000)
     }
   }
 
   const onOnline = () => {
-    checkForUpdate()
+    // Small delay to ensure connection is fully established
+    setTimeout(checkForUpdate, 500)
   }
 
   document.addEventListener('visibilitychange', onVisibilityChange)
