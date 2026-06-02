@@ -172,11 +172,18 @@ export async function subscribeToPush(): Promise<void> {
     throw new Error('Push notifications are not supported on this device')
   }
 
-  // Pre-resolve registration and VAPID key synchronously if preloaded.
-  // This keeps the user gesture active for iOS Safari.
-  const registration = cachedRegistration || await navigator.serviceWorker.ready
-  const publicKey = cachedVapidKey || await fetchVapidPublicKey()
+  // Pre-resolve registration with timeout to prevent silent hangs
+  let registration = cachedRegistration
+  if (!registration) {
+    const readyPromise = navigator.serviceWorker.ready
+    const readyTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout waiting for Service Worker ready state')), 8000)
+    )
+    registration = await Promise.race([readyPromise, readyTimeout])
+    cachedRegistration = registration
+  }
 
+  const publicKey = cachedVapidKey || await fetchVapidPublicKey()
   if (!publicKey) {
     throw new Error('Push notifications are not configured on this server')
   }
@@ -189,11 +196,15 @@ export async function subscribeToPush(): Promise<void> {
   const keyBytes = urlBase64ToUint8Array(publicKey)
   const applicationServerKey = new Uint8Array(keyBytes)
   
-  // Always call subscribe to renew/ensure subscription without reusing stale state
-  const subscription = await registration.pushManager.subscribe({
+  // Always call subscribe with timeout to prevent silent hangs on push network errors
+  const subscribePromise = registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey
   })
+  const subscribeTimeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout establishing subscription with push service (FCM/APNs)')), 12000)
+  )
+  const subscription = await Promise.race([subscribePromise, subscribeTimeout])
 
   await saveSubscriptionToServer(subscription)
 }
@@ -201,7 +212,16 @@ export async function subscribeToPush(): Promise<void> {
 export async function unsubscribeFromPush(): Promise<void> {
   if (!isPushSupported()) return
 
-  const registration = cachedRegistration || await navigator.serviceWorker.ready
+  let registration = cachedRegistration
+  if (!registration) {
+    const readyPromise = navigator.serviceWorker.ready
+    const readyTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout waiting for Service Worker ready state')), 8000)
+    )
+    registration = await Promise.race([readyPromise, readyTimeout])
+    cachedRegistration = registration
+  }
+
   const subscription = await registration.pushManager.getSubscription()
   if (!subscription) return
 
