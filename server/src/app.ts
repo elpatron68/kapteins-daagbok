@@ -45,7 +45,7 @@ export function createApp(): express.Express {
   app.use(cookieParser())
   app.use(express.json({ limit: '50mb' }))
 
-  /** Passkey login/register only — not person-pool, profile, etc. */
+  /** WebAuthn login/register/session — strict per IP; excludes high-volume sync routes. */
   const authFlowPaths = new Set([
     '/register-options',
     '/register-verify',
@@ -57,9 +57,29 @@ export function createApp(): express.Express {
     '/session'
   ])
 
-  const authLimiter = rateLimit({
+  /** Account/key/credential mutations — also strict; separate bucket from login flow. */
+  const sensitiveAuthExactPaths = new Set([
+    '/delete-account',
+    '/enroll-prf',
+    '/rotate-recovery',
+    '/add-credential-options',
+    '/add-credential-verify'
+  ])
+
+  function isSensitiveAuthPath(path: string): boolean {
+    return sensitiveAuthExactPaths.has(path) || path.startsWith('/credentials/')
+  }
+
+  const authFlowLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 60,
+    standardHeaders: true,
+    legacyHeaders: false
+  })
+
+  const sensitiveAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
     standardHeaders: true,
     legacyHeaders: false
   })
@@ -80,7 +100,10 @@ export function createApp(): express.Express {
 
   app.use('/api/auth', (req, res, next) => {
     if (authFlowPaths.has(req.path)) {
-      return authLimiter(req, res, next)
+      return authFlowLimiter(req, res, next)
+    }
+    if (isSensitiveAuthPath(req.path)) {
+      return sensitiveAuthLimiter(req, res, next)
     }
     return next()
   })
