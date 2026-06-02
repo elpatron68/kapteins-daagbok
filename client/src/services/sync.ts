@@ -8,6 +8,7 @@ import {
   type SyncConflict
 } from './syncConflicts.js'
 import { syncPersonPool } from './personPoolSync.js'
+import { forEachInBatches, yieldToMain } from '../utils/yieldToMain.js'
 
 const API_BASE = '/api/sync'
 const syncingLogbooks = new Set<string>()
@@ -305,6 +306,10 @@ async function pullChanges(logbookId: string): Promise<boolean> {
 
     const { yacht, deviation, crews, logbookCrewSelection, logbookVesselSelection, entries, photos, gpsTracks } =
       await response.json()
+
+    // Large pull payloads block on JSON.parse — yield before applying to IndexedDB.
+    await yieldToMain()
+
     const serverSnapshot: PulledServerPayload = {
       yacht,
       deviation,
@@ -375,7 +380,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
     // 3. Sync Crew List Payloads (legacy)
     const serverCrewMap = new Map<string, any>()
     if (crews && Array.isArray(crews)) {
-      for (const c of crews) {
+      await forEachInBatches(crews, 20, async (c) => {
         serverCrewMap.set(c.payloadId, c)
         const local = await db.crews.get(c.payloadId)
         if (!local || isNewer(c.updatedAt, local.updatedAt)) {
@@ -388,7 +393,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
             updatedAt: c.updatedAt
           })
         }
-      }
+      })
     }
 
     // Deletions for Crew: If present locally but not on server, and not pending creation locally
@@ -408,7 +413,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
     // 4. Sync Journal Entry Payloads
     const serverEntryMap = new Map<string, any>()
     if (entries && Array.isArray(entries)) {
-      for (const e of entries) {
+      await forEachInBatches(entries, 15, async (e) => {
         serverEntryMap.set(e.payloadId, e)
         const local = await db.entries.get(e.payloadId)
         if (!local || isNewer(e.updatedAt, local.updatedAt)) {
@@ -421,7 +426,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
             updatedAt: e.updatedAt
           })
         }
-      }
+      })
     }
 
     // Deletions for Entries
@@ -440,7 +445,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
     // 5. Sync Photos
     const serverPhotoMap = new Map<string, any>()
     if (photos && Array.isArray(photos)) {
-      for (const p of photos) {
+      await forEachInBatches(photos, 20, async (p) => {
         serverPhotoMap.set(p.payloadId, p)
         const local = await db.photos.get(p.payloadId)
         if (!local || isNewer(p.updatedAt, local.updatedAt)) {
@@ -455,7 +460,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
             updatedAt: p.updatedAt
           })
         }
-      }
+      })
     }
 
     // Deletions for Photos
@@ -474,7 +479,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
     // 6. Sync GPS Tracks
     const serverGpsTrackMap = new Map<string, any>()
     if (gpsTracks && Array.isArray(gpsTracks)) {
-      for (const gt of gpsTracks) {
+      await forEachInBatches(gpsTracks, 10, async (gt) => {
         serverGpsTrackMap.set(gt.entryId, gt)
         const local = await db.gpsTracks.get(gt.entryId)
         if (!local || isNewer(gt.updatedAt, local.updatedAt)) {
@@ -487,7 +492,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
             updatedAt: gt.updatedAt
           })
         }
-      }
+      })
     }
 
     // Deletions for GPS Tracks

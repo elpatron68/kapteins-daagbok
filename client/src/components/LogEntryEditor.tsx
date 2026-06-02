@@ -33,6 +33,7 @@ import CourseDialInput from './CourseDialInput.tsx'
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { hashEntryForSigning } from '../utils/entryCanonicalHash.js'
 import { signLogEntry } from '../services/entrySigning.js'
+import { putEntryRecord } from '../utils/entryListCache.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
@@ -454,14 +455,17 @@ export default function LogEntryEditor({
     const encrypted = await encryptJson(entryData, masterKey)
     const now = new Date().toISOString()
 
-    await db.entries.put({
-      payloadId: entryId,
-      logbookId,
-      encryptedData: encrypted.ciphertext,
-      iv: encrypted.iv,
-      tag: encrypted.tag,
-      updatedAt: now
-    })
+    await putEntryRecord(
+      {
+        payloadId: entryId,
+        logbookId,
+        encryptedData: encrypted.ciphertext,
+        iv: encrypted.iv,
+        tag: encrypted.tag,
+        updatedAt: now
+      },
+      entryData
+    )
 
     await db.syncQueue.put({
       action: 'update',

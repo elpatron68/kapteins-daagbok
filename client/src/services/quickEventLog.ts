@@ -3,6 +3,7 @@ import { getActiveMasterKey } from './auth.js'
 import { ensureLogbookKey, getLogbookKey } from './logbookKeys.js'
 import { decryptJson, encryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
+import { putEntryRecord } from '../utils/entryListCache.js'
 import {
   buildLogEntryPayload,
   normalizeLogEvent,
@@ -190,14 +191,17 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
 
   const encrypted = await encryptJson(initialPayload, masterKey)
 
-  await db.entries.put({
-    payloadId: localId,
-    logbookId,
-    encryptedData: encrypted.ciphertext,
-    iv: encrypted.iv,
-    tag: encrypted.tag,
-    updatedAt: nowStr
-  })
+  await putEntryRecord(
+    {
+      payloadId: localId,
+      logbookId,
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      updatedAt: nowStr
+    },
+    initialPayload
+  )
 
   await db.syncQueue.put({
     action: 'create',
@@ -305,14 +309,17 @@ async function persistEntry(
   const encrypted = await encryptJson(entryData, masterKey)
   const now = new Date().toISOString()
 
-  await db.entries.put({
-    payloadId: entryId,
-    logbookId,
-    encryptedData: encrypted.ciphertext,
-    iv: encrypted.iv,
-    tag: encrypted.tag,
-    updatedAt: now
-  })
+  await putEntryRecord(
+    {
+      payloadId: entryId,
+      logbookId,
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      updatedAt: now
+    },
+    entryData
+  )
 
   await db.syncQueue.put({
     action: 'update',

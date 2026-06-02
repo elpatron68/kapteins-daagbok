@@ -35,6 +35,14 @@ export interface LocalDeviation {
   updatedAt: string
 }
 
+export interface EntryListCache {
+  date: string
+  dayOfTravel: string
+  departure: string
+  destination: string
+  skipperSignStatus: 'none' | 'valid' | 'invalid'
+}
+
 export interface LocalEntry {
   payloadId: string
   logbookId: string
@@ -42,6 +50,8 @@ export interface LocalEntry {
   iv: string
   tag: string
   updatedAt: string
+  /** Plaintext list fields — avoids full decrypt when opening the journal list. */
+  listCache?: EntryListCache
 }
 
 export interface LocalPhoto {

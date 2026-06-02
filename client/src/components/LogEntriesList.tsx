@@ -15,6 +15,12 @@ import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { getSkipperSignStatus, type SkipperSignStatus } from '../utils/signatures.js'
+import {
+  buildEntryListCache,
+  entryListItemFromLocal,
+  putEntryRecord
+} from '../utils/entryListCache.js'
+import { forEachInBatches } from '../utils/yieldToMain.js'
 import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2, Radio, List } from 'lucide-react'
 import {
   carryOverFromPreviousDay,
@@ -116,23 +122,33 @@ export default function LogEntriesList({
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
       const local = await db.entries.where({ logbookId }).toArray()
-      
+
       const list: DecryptedEntryItem[] = []
-      
+      const needsDecrypt: typeof local = []
+
       for (const entry of local) {
-        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
-        if (decrypted) {
-          list.push({
-            id: entry.payloadId,
-            date: decrypted.date || '',
-            dayOfTravel: decrypted.dayOfTravel || '',
-            departure: decrypted.departure || '',
-            destination: decrypted.destination || '',
-            updatedAt: entry.updatedAt,
-            skipperSignStatus: await getSkipperSignStatus(decrypted as Record<string, unknown>)
-          })
+        const cached = entryListItemFromLocal(entry)
+        if (cached) {
+          list.push(cached)
+        } else {
+          needsDecrypt.push(entry)
         }
       }
+
+      await forEachInBatches(needsDecrypt, 8, async (entry) => {
+        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+        if (!decrypted) return
+
+        const listCache = await buildEntryListCache(decrypted as Record<string, unknown>)
+        list.push({
+          id: entry.payloadId,
+          ...listCache,
+          updatedAt: entry.updatedAt
+        })
+        void db.entries.update(entry.payloadId, { listCache }).catch((err) => {
+          console.warn('Failed to persist entry list cache:', err)
+        })
+      })
 
       // Sort chronological descending (by date, or dayOfTravel numerical)
       list.sort((a, b) => {
@@ -309,14 +325,17 @@ export default function LogEntriesList({
       const encrypted = await encryptJson(initialPayload, masterKey)
 
       // Save locally
-      await db.entries.put({
-        payloadId: localId,
-        logbookId,
-        encryptedData: encrypted.ciphertext,
-        iv: encrypted.iv,
-        tag: encrypted.tag,
-        updatedAt: nowStr
-      })
+      await putEntryRecord(
+        {
+          payloadId: localId,
+          logbookId,
+          encryptedData: encrypted.ciphertext,
+          iv: encrypted.iv,
+          tag: encrypted.tag,
+          updatedAt: nowStr
+        },
+        initialPayload
+      )
 
       // Queue for background sync
       await db.syncQueue.put({

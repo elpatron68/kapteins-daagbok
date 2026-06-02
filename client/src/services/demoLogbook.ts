@@ -4,6 +4,7 @@ import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
 import { encryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
+import { putEntryRecord } from '../utils/entryListCache.js'
 import { syncPersonPool } from './personPoolSync.js'
 import i18n from '../i18n/index.js'
 import type { PersonData } from '../types/person.js'
@@ -35,14 +36,17 @@ async function putEncryptedRecord(
   const encrypted = await encryptJson(data, key)
 
   if (type === 'entry') {
-    await db.entries.put({
-      payloadId,
-      logbookId,
-      encryptedData: encrypted.ciphertext,
-      iv: encrypted.iv,
-      tag: encrypted.tag,
-      updatedAt: now
-    })
+    await putEntryRecord(
+      {
+        payloadId,
+        logbookId,
+        encryptedData: encrypted.ciphertext,
+        iv: encrypted.iv,
+        tag: encrypted.tag,
+        updatedAt: now
+      },
+      data as Record<string, unknown>
+    )
   } else if (type === 'yacht') {
     await db.yachts.put({
       logbookId,
