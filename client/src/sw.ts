@@ -6,6 +6,10 @@ import { NetworkFirst, NetworkOnly } from 'workbox-strategies'
 
 declare let self: ServiceWorkerGlobalScope
 
+precacheAndRoute(self.__WB_MANIFEST)
+cleanupOutdatedCaches()
+clientsClaim()
+
 const appShellFallback = createHandlerBoundToURL('/index.html')
 const navigationStrategy = new NetworkFirst({
   cacheName: 'app-shell',
@@ -19,10 +23,6 @@ registerRoute(({ request }) => request.mode === 'navigate', async (context) => {
     return appShellFallback(context)
   }
 })
-
-precacheAndRoute(self.__WB_MANIFEST)
-cleanupOutdatedCaches()
-clientsClaim()
 
 // Always fetch the live deploy version, even under an older precache.
 registerRoute(({ url }) => url.pathname === '/version.json', new NetworkOnly())
