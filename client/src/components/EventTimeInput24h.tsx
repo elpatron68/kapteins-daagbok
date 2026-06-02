@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react'
 import { joinTimeHHMM, splitTimeHHMM } from '../utils/logEntryPayload.js'
+import { preferNativeCameraPicker } from '../utils/captureVideoFrame.js'
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
@@ -18,7 +19,29 @@ export default function EventTimeInput24h({
   'aria-label': ariaLabel
 }: EventTimeInput24hProps) {
   const baseId = useId()
+  const useNativePicker = preferNativeCameraPicker()
   const { hours, minutes } = useMemo(() => splitTimeHHMM(value), [value])
+  const timeValue = useMemo(() => joinTimeHHMM(hours, minutes), [hours, minutes])
+
+  if (useNativePicker) {
+    return (
+      <div className="time-input-24h">
+        <input
+          id={baseId}
+          type="time"
+          step={60}
+          className="input-text time-input-24h__native"
+          value={timeValue}
+          onChange={(e) => {
+            const next = e.target.value
+            if (next) onChange(next.slice(0, 5))
+          }}
+          disabled={disabled}
+          aria-label={ariaLabel}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="time-input-24h">
