@@ -2647,25 +2647,11 @@ html.scheme-dark .themed-select-option.is-selected {
 .events-scroll-container {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   background: rgba(11, 12, 16, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   box-sizing: border-box;
-}
-
-/* Custom Scrollbar for events container */
-.events-scroll-container::-webkit-scrollbar {
-  height: 6px;
-}
-.events-scroll-container::-webkit-scrollbar-track {
-  background: rgba(11, 12, 16, 0.2);
-}
-.events-scroll-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-.events-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .events-table {
