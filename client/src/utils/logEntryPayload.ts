@@ -24,6 +24,14 @@ export interface LogEventPayload {
   remarks: string
 }
 
+/** Calendar date YYYY-MM-DD in local timezone (matches logbook entry `date` field). */
+export function localDateString(date: Date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 /** Local time as HH:MM (24-hour). */
 export function currentLocalTimeHHMM(date: Date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, '0')

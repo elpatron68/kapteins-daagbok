@@ -9,6 +9,7 @@ import {
   normalizeLogEvent,
   sortLogEventsByTime,
   currentLocalTimeHHMM,
+  localDateString,
   type LogEventPayload
 } from '../utils/logEntryPayload.js'
 import {
@@ -151,18 +152,86 @@ export async function loadEntry(logbookId: string, entryId: string): Promise<Loa
   return { payloadId: record.payloadId, updatedAt: record.updatedAt, data }
 }
 
+function scoreTodayEntry(data: Record<string, unknown>): number {
+  const events = (data.events as unknown[] | undefined)?.length ?? 0
+  const signed = data.signSkipper || data.signCrew ? 1 : 0
+  const destination = String(data.destination || '').trim() ? 1 : 0
+  return events * 10 + signed + destination
+}
+
 export async function findTodayEntryId(logbookId: string): Promise<string | null> {
-  const todayStr = new Date().toISOString().substring(0, 10)
+  const todayStr = localDateString()
   const masterKey = await getMasterKey(logbookId)
   const local = sortEntriesNewestFirst(await db.entries.where({ logbookId }).toArray())
 
+  let bestId: string | null = null
+  let bestScore = -1
+  let bestUpdatedAt = ''
+
   for (const entry of local) {
     const decrypted = await tryDecryptEntryPayload(entry, masterKey)
-    if (decrypted && String(decrypted.date) === todayStr) {
-      return entry.payloadId
+    if (!decrypted || String(decrypted.date) !== todayStr) continue
+
+    const score = scoreTodayEntry(decrypted)
+    if (
+      score > bestScore
+      || (score === bestScore && entry.updatedAt > bestUpdatedAt)
+    ) {
+      bestId = entry.payloadId
+      bestScore = score
+      bestUpdatedAt = entry.updatedAt
     }
   }
-  return null
+
+  return bestId
+}
+
+async function entryHasAttachments(logbookId: string, entryId: string): Promise<boolean> {
+  const [photos, voices, track] = await Promise.all([
+    db.photos.where({ logbookId, entryId }).count(),
+    db.voiceMemos.where({ logbookId, entryId }).count(),
+    db.gpsTracks.get(entryId)
+  ])
+  return photos > 0 || voices > 0 || track != null
+}
+
+async function isEmptyTodayEntry(
+  logbookId: string,
+  entryId: string,
+  data: Record<string, unknown>
+): Promise<boolean> {
+  if (((data.events as unknown[] | undefined)?.length ?? 0) > 0) return false
+  if (data.signSkipper || data.signCrew) return false
+  if (String(data.destination || '').trim()) return false
+  return !(await entryHasAttachments(logbookId, entryId))
+}
+
+/** Remove duplicate empty travel days for today (e.g. after parallel Live-log init). */
+export async function pruneEmptyTodayDuplicates(
+  logbookId: string,
+  keepEntryId: string
+): Promise<void> {
+  const todayStr = localDateString()
+  const masterKey = await getMasterKey(logbookId)
+  const local = await db.entries.where({ logbookId }).toArray()
+  const now = new Date().toISOString()
+
+  for (const entry of local) {
+    if (entry.payloadId === keepEntryId) continue
+    const decrypted = await tryDecryptEntryPayload(entry, masterKey)
+    if (!decrypted || String(decrypted.date) !== todayStr) continue
+    if (!(await isEmptyTodayEntry(logbookId, entry.payloadId, decrypted))) continue
+
+    await db.entries.delete(entry.payloadId)
+    await db.syncQueue.put({
+      action: 'delete',
+      type: 'entry',
+      payloadId: entry.payloadId,
+      logbookId,
+      data: '',
+      updatedAt: now
+    })
+  }
 }
 
 export async function createTodayEntry(logbookId: string): Promise<string> {
@@ -185,7 +254,7 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
 
   const localId = window.crypto.randomUUID()
   const nowStr = new Date().toISOString()
-  const todayStr = nowStr.substring(0, 10)
+  const todayStr = localDateString()
 
   const initialPayload = {
     date: todayStr,
@@ -227,20 +296,36 @@ export async function createTodayEntry(logbookId: string): Promise<string> {
   return localId
 }
 
+const findOrCreateTodayEntryInflight = new Map<string, Promise<string>>()
+
+async function findOrCreateTodayEntryOnce(logbookId: string): Promise<string> {
+  await ensureLogbookKey(logbookId)
+
+  let entryId = await findTodayEntryId(logbookId)
+  if (!entryId) {
+    entryId = await createTodayEntry(logbookId)
+  }
+
+  await pruneEmptyTodayDuplicates(logbookId, entryId)
+  return entryId
+}
+
+/** One travel day per local calendar date; concurrent callers share one in-flight create. */
 export async function findOrCreateTodayEntry(logbookId: string): Promise<string> {
   const id = logbookId.trim()
   if (!id) throw new Error('Logbook id required')
 
-  await ensureLogbookKey(id)
-
-  const entryCount = await db.entries.where({ logbookId: id }).count()
-  if (entryCount === 0) {
-    return createTodayEntry(id)
+  let inflight = findOrCreateTodayEntryInflight.get(id)
+  if (!inflight) {
+    inflight = findOrCreateTodayEntryOnce(id)
+    findOrCreateTodayEntryInflight.set(id, inflight)
+    void inflight.finally(() => {
+      if (findOrCreateTodayEntryInflight.get(id) === inflight) {
+        findOrCreateTodayEntryInflight.delete(id)
+      }
+    })
   }
-
-  const existing = await findTodayEntryId(id)
-  if (existing) return existing
-  return createTodayEntry(id)
+  return inflight
 }
 
 export interface AppendQuickEventResult {

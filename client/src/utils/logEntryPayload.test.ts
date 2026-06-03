@@ -3,6 +3,7 @@ import {
   buildLogEntryPayload,
   hasUnsavedEventDraft,
   isLogEventDraftEmpty,
+  localDateString,
   normalizeLogEvent,
   type LogEventPayload
 } from './logEntryPayload.js'
@@ -12,6 +13,14 @@ const emptyDraft = (): LogEventPayload =>
 
 const filledDraft = (): LogEventPayload =>
   normalizeLogEvent({ time: '12:34', remarks: 'Wind dreht' })
+
+describe('localDateString', () => {
+  it('uses local calendar date, not UTC', () => {
+    const date = new Date(2026, 5, 4, 1, 30, 0)
+    expect(localDateString(date)).toBe('2026-06-04')
+    expect(date.toISOString().substring(0, 10)).toBe('2026-06-03')
+  })
+})
 
 describe('logEntryPayload event drafts', () => {
   it('treats time-only draft as empty', () => {

@@ -9,7 +9,8 @@ import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
-import { findTodayEntryId, tryDecryptEntryPayload } from '../services/quickEventLog.js'
+import { findTodayEntryId, pruneEmptyTodayDuplicates, tryDecryptEntryPayload } from '../services/quickEventLog.js'
+import { localDateString } from '../utils/logEntryPayload.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
@@ -122,6 +123,11 @@ export default function LogEntriesList({
 
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
+
+      const todayEntryId = await findTodayEntryId(logbookId)
+      if (todayEntryId) {
+        await pruneEmptyTodayDuplicates(logbookId, todayEntryId)
+      }
 
       const local = await db.entries.where({ logbookId }).toArray()
 
@@ -300,7 +306,7 @@ export default function LogEntriesList({
 
       const localId = window.crypto.randomUUID()
       const nowStr = new Date().toISOString()
-      const todayStr = nowStr.substring(0, 10)
+      const todayStr = localDateString()
 
       const { loadDefaultEntryCrewForNewDay } = await import('./EntryCrewSection.js')
       const entryCrew = await loadDefaultEntryCrewForNewDay(
