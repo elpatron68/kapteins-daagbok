@@ -83,6 +83,7 @@ router.get('/share-pull', async (req: any, res) => {
     const logbookVesselSelection = await findLogbookVesselSelectionSafe(logbookId)
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
+    const voiceMemos = await prisma.voiceMemoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
 
     return res.json({
@@ -94,6 +95,7 @@ router.get('/share-pull', async (req: any, res) => {
       logbookVesselSelection,
       entries,
       photos,
+      voiceMemos,
       gpsTracks
     })
   } catch (error: unknown) {

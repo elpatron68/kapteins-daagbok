@@ -7,6 +7,8 @@ import {
   liveSogRemark,
   parseLiveCommentRemark,
   livePhotoRemark,
+  liveVoiceRemark,
+  parseLiveVoiceRemark,
   parseLiveSailsRemark
 } from './liveEventCodes.js'
 import { formatEventSummary } from './formatEventSummary.js'
@@ -28,6 +30,7 @@ const t = (key: string, opts?: Record<string, unknown>) => {
     'logs.live_wind_entry': `Wind ${opts?.value}`,
     'logs.live_photo_entry': `Photo: ${opts?.caption}`,
     'logs.live_photo_entry_plain': 'Photo captured',
+    'logs.live_voice_entry_plain': 'Voice memo',
     'logs.live_course_entry': `Course ${opts?.course}`,
     'logs.live_sog_entry': `SOG ${opts?.speed} kn`,
     'logs.live_stw_entry': `STW ${opts?.speed} kn`,
@@ -58,6 +61,12 @@ describe('liveEventCodes', () => {
   it('parses sail and comment remarks', () => {
     expect(parseLiveSailsRemark(liveSailsRemark('Main + Genoa'))).toBe('Main + Genoa')
     expect(parseLiveCommentRemark(liveCommentRemark('Wind dreht'))).toBe('Wind dreht')
+  })
+
+  it('parses voice remark with uuid', () => {
+    const id = 'a1b2c3d4-e5f6-4789-a012-3456789abcde'
+    expect(parseLiveVoiceRemark(liveVoiceRemark(id))).toBe(id)
+    expect(parseLiveVoiceRemark('__live:voice:not-a-uuid')).toBeNull()
   })
 })
 
@@ -129,5 +138,11 @@ describe('formatEventSummary', () => {
       remarks: livePhotoRemark('Mastbruch')
     })
     expect(formatEventSummary(captioned, t)).toBe('Photo: Mastbruch')
+  })
+
+  it('formats voice memo entry', () => {
+    const id = 'a1b2c3d4-e5f6-4789-a012-3456789abcde'
+    const event = normalizeLogEvent({ time: '12:00', remarks: liveVoiceRemark(id) })
+    expect(formatEventSummary(event, t)).toBe('Voice memo')
   })
 })

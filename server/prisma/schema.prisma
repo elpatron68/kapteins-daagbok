@@ -93,6 +93,7 @@ model Logbook {
   deviations     DeviationPayload[]
   entries        EntryPayload[]
   photos         PhotoPayload[]
+  voiceMemos     VoiceMemoPayload[]
   gpsTracks      GpsTrackPayload[]
   collaborators  Collaboration[]
   invitations    Invitation[]
@@ -225,6 +226,22 @@ model EntryPayload {
 }
 
 model PhotoPayload {
+  id            String   @id @default(uuid())
+  logbookId     String
+  payloadId     String
+  entryId       String
+  encryptedData String
+  iv            String
+  tag           String
+  updatedAt     DateTime @updatedAt
+  logbook       Logbook  @relation(fields: [logbookId], references: [id], onDelete: Cascade)
+
+  @@unique([logbookId, payloadId])
+  @@index([logbookId])
+  @@index([entryId])
+}
+
+model VoiceMemoPayload {
   id            String   @id @default(uuid())
   logbookId     String
   payloadId     String

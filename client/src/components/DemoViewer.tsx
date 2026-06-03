@@ -156,6 +156,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
               preloadedYacht={yacht}
               preloadedEntries={entries}
               preloadedPhotos={photos}
+              preloadedVoiceMemos={[]}
               preloadedGpsTracks={gpsTracks}
               controlledSelectedEntryId={tourSelectedEntryId}
               onSelectedEntryIdChange={setTourSelectedEntryId}

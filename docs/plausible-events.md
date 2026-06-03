@@ -38,6 +38,8 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
 | Photo Uploaded | Foto hochgeladen (`photoAttachments.ts`, `PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `live_log` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
 | Live Log Photo Uploaded | Foto im Live-Journal per Kamera gespeichert (`photoAttachments.ts`, `analyticsContext`: `live_log`) | — |
+| Voice Memo Uploaded | Sprachnotiz gespeichert (`voiceAttachments.ts`) | `context`: `logbook` \| `live_log` |
+| Live Log Voice Uploaded | Sprachnotiz im Live-Journal gespeichert (`voiceAttachments.ts`, `analyticsContext`: `live_log`) | — |
 | OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
 | AI Summary Generated | Erfolgreiche KI-Zusammenfassung eines Reisetags (`aiSummary.ts`) | — |
 | Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`) | `entries`, `photos` (Anzahlen, keine Inhalte) |
@@ -85,6 +87,7 @@ Property `action` bei **Live Log Event Logged** — stabile englische Schlüssel
 | `sea_state` | Seegang |
 | `fix` | GPS-Fix (manuell) |
 | `comment` | Kommentar |
+| `voice` | Sprachnotiz (Modal gespeichert) |
 | `undo` | Letztes Ereignis rückgängig |
 
 ### OWM-Quellen

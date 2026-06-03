@@ -50,6 +50,21 @@ export function parseLivePhotoRemark(remarks: string): string | null {
   return remarks.startsWith(prefix) ? remarks.slice(prefix.length) : null
 }
 
+const VOICE_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function liveVoiceRemark(audioId: string): string {
+  return `__live:voice:${audioId}`
+}
+
+export function parseLiveVoiceRemark(remarks: string): string | null {
+  const trimmed = remarks.trim()
+  const prefix = '__live:voice:'
+  if (!trimmed.startsWith(prefix)) return null
+  const id = trimmed.slice(prefix.length)
+  return VOICE_UUID_RE.test(id) ? id : null
+}
+
 export function liveSogRemark(speedKn: string): string {
   return `__live:sog:${speedKn}`
 }

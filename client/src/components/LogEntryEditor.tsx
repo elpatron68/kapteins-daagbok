@@ -10,6 +10,11 @@ import { getErrorMessage } from '../utils/errors.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
+import EventRemarksCell from './EventRemarksCell.tsx'
+import { useEntryVoiceMemos } from '../hooks/useEntryVoiceMemos.js'
+import { parseLiveVoiceRemark } from '../utils/liveEventCodes.js'
+import { deleteEntryVoiceMemo } from '../services/voiceAttachments.js'
+import type { PreloadedVoiceMemo } from './VoiceMemoPlayer.tsx'
 import SignatureSection from './SignatureSection.tsx'
 import EntryCrewSection from './EntryCrewSection.tsx'
 import { emptyEntryCrewFields, type EntryCrewFields } from '../types/person.js'
@@ -156,6 +161,7 @@ interface LogEntryEditorProps {
   readOnly?: boolean
   preloadedEntry?: any
   preloadedPhotos?: any[]
+  preloadedVoiceMemos?: PreloadedVoiceMemo[]
   preloadedTrack?: any
   preloadedYacht?: any
 }
@@ -169,6 +175,7 @@ export default function LogEntryEditor({
   readOnly = false,
   preloadedEntry,
   preloadedPhotos,
+  preloadedVoiceMemos,
   preloadedTrack,
   preloadedYacht
 }: LogEntryEditorProps) {
@@ -226,6 +233,7 @@ export default function LogEntryEditor({
 
   // Events list state
   const [events, setEvents] = useState<LogEvent[]>([])
+  const voiceMemoLookup = useEntryVoiceMemos(logbookId, entryId, preloadedVoiceMemos)
 
   // Add Event Form State
   const [evTime, setEvTime] = useState(() => currentLocalTimeHHMM())
@@ -1344,6 +1352,7 @@ export default function LogEntryEditor({
 
   const handleDeleteEvent = async (index: number) => {
     if (readOnly) return
+    const voiceId = parseLiveVoiceRemark(events[index]?.remarks?.trim() ?? '')
     const hadSkipperSignature = !!signSkipper
     markSkipperSignatureClearedForEventChange()
     const nextEvents = events.filter((_, idx) => idx !== index)
@@ -1361,6 +1370,9 @@ export default function LogEntryEditor({
     }
 
     try {
+      if (voiceId && !readOnly) {
+        await deleteEntryVoiceMemo(logbookId, voiceId)
+      }
       await persistEntryToDb(nextEvents)
     } catch (err: any) {
       console.error('Failed to auto-save after event delete:', err)
@@ -1799,7 +1811,13 @@ export default function LogEntryEditor({
                       <td className="font-mono text-sm">
                         {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
                       </td>
-                      <td className="remarks-td">{ev.remarks}</td>
+                      <td className="remarks-td">
+                        <EventRemarksCell
+                          event={ev}
+                          logbookId={logbookId}
+                          voiceMemoLookup={voiceMemoLookup}
+                        />
+                      </td>
                       {!readOnly && (
                         <td className="events-actions-td">
                           <button

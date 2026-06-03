@@ -283,6 +283,7 @@ export async function deleteLocalLogbookCache(id: string): Promise<void> {
   await db.deviations.where({ logbookId: id }).delete()
   await db.entries.where({ logbookId: id }).delete()
   await db.photos.where({ logbookId: id }).delete()
+  await db.voiceMemos.where({ logbookId: id }).delete()
   await db.gpsTracks.where({ logbookId: id }).delete()
   await db.syncQueue.where({ logbookId: id }).delete()
   await db.logbookKeys.where({ logbookId: id }).delete()

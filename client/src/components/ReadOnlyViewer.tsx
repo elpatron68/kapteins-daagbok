@@ -46,6 +46,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
   const [legacyCrews, setLegacyCrews] = useState<any[]>([])
   const [entries, setEntries] = useState<any[]>([])
   const [photos, setPhotos] = useState<any[]>([])
+  const [voiceMemos, setVoiceMemos] = useState<any[]>([])
   const [gpsTracks, setGpsTracks] = useState<any[]>([])
 
   useEffect(() => {
@@ -174,6 +175,23 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
       }
       setPhotos(decPhotos)
 
+      const decVoiceMemos = []
+      if (data.voiceMemos) {
+        for (const v of data.voiceMemos) {
+          const dec = await decryptJson(v.encryptedData, v.iv, v.tag, keyBuffer)
+          if (dec) {
+            decVoiceMemos.push({
+              payloadId: v.payloadId,
+              audio: dec.audio,
+              mimeType: dec.mimeType,
+              durationSec: dec.durationSec,
+              caption: dec.caption || ''
+            })
+          }
+        }
+      }
+      setVoiceMemos(decVoiceMemos)
+
       // Decrypt GPS Tracks
       const decGpsTracks = []
       if (data.gpsTracks) {
@@ -282,6 +300,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
               preloadedYacht={yacht}
               preloadedEntries={entries}
               preloadedPhotos={photos}
+              preloadedVoiceMemos={voiceMemos}
               preloadedGpsTracks={gpsTracks}
             />
           )}

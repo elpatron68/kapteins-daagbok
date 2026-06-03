@@ -39,6 +39,7 @@ interface LogEntriesListProps {
   preloadedYacht?: any
   preloadedEntries?: any[]
   preloadedPhotos?: any[]
+  preloadedVoiceMemos?: import('./VoiceMemoPlayer.tsx').PreloadedVoiceMemo[]
   preloadedGpsTracks?: any[]
   controlledSelectedEntryId?: string | null
   onSelectedEntryIdChange?: (id: string | null) => void
@@ -63,6 +64,7 @@ export default function LogEntriesList({
   preloadedYacht,
   preloadedEntries,
   preloadedPhotos,
+  preloadedVoiceMemos,
   preloadedGpsTracks,
   controlledSelectedEntryId,
   onSelectedEntryIdChange,
@@ -403,6 +405,7 @@ export default function LogEntriesList({
         readOnly={readOnly}
         preloadedEntry={preloadedEntries?.find(entry => (entry.payloadId || entry.id) === selectedEntryId)}
         preloadedPhotos={preloadedPhotos}
+        preloadedVoiceMemos={preloadedVoiceMemos}
         preloadedTrack={preloadedGpsTracks?.find(track => track.entryId === selectedEntryId)}
       />
     )

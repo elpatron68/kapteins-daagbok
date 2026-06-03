@@ -5,6 +5,7 @@ import {
   parseLiveCommentRemark,
   parseLiveFuelRemark,
   parseLivePhotoRemark,
+  parseLiveVoiceRemark,
   parseLivePrecipRemark,
   parseLiveSailsRemark,
   parseLiveSogRemark,
@@ -32,6 +33,11 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
     return photo
       ? t('logs.live_photo_entry', { caption: photo })
       : t('logs.live_photo_entry_plain')
+  }
+
+  const voiceId = parseLiveVoiceRemark(code)
+  if (voiceId) {
+    return t('logs.live_voice_entry_plain')
   }
 
   const temp = parseLiveTempRemark(code)

@@ -63,6 +63,14 @@ export interface LogbookBackupFile {
       tag: string
       updatedAt: string
     }>
+    voiceMemos: Array<{
+      payloadId: string
+      entryId: string
+      encryptedData: string
+      iv: string
+      tag: string
+      updatedAt: string
+    }>
     gpsTracks: Array<{
       entryId: string
       encryptedData: string
@@ -74,6 +82,7 @@ export interface LogbookBackupFile {
   counts: {
     entries: number
     photos: number
+    voiceMemos: number
     crews: number
     gpsTracks: number
     hasYacht: boolean
@@ -128,6 +137,15 @@ async function unwrapLogbookKey(
   return decryptBuffer(wrapped.ciphertext, wrapped.iv, wrapped.tag, key)
 }
 
+function normalizeBackupPayloads(
+  payloads: LogbookBackupFile['payloads']
+): LogbookBackupFile['payloads'] {
+  return {
+    ...payloads,
+    voiceMemos: payloads.voiceMemos ?? []
+  }
+}
+
 function isBackupFile(value: unknown): value is LogbookBackupFile {
   if (!value || typeof value !== 'object') return false
   const obj = value as Partial<LogbookBackupFile>
@@ -157,12 +175,13 @@ function encryptedPayloadData(
 }
 
 async function collectLogbookPayloads(logbookId: string): Promise<LogbookBackupFile['payloads']> {
-  const [yacht, deviation, crews, entries, photos, gpsTracks] = await Promise.all([
+  const [yacht, deviation, crews, entries, photos, voiceMemos, gpsTracks] = await Promise.all([
     db.yachts.get(logbookId),
     db.deviations.get(logbookId),
     db.crews.where({ logbookId }).toArray(),
     db.entries.where({ logbookId }).toArray(),
     db.photos.where({ logbookId }).toArray(),
+    db.voiceMemos.where({ logbookId }).toArray(),
     db.gpsTracks.where({ logbookId }).toArray()
   ])
 
@@ -205,6 +224,14 @@ async function collectLogbookPayloads(logbookId: string): Promise<LogbookBackupF
       tag: p.tag,
       updatedAt: p.updatedAt
     })),
+    voiceMemos: voiceMemos.map((v) => ({
+      payloadId: v.payloadId,
+      entryId: v.entryId,
+      encryptedData: v.encryptedData,
+      iv: v.iv,
+      tag: v.tag,
+      updatedAt: v.updatedAt
+    })),
     gpsTracks: gpsTracks.map((t) => ({
       entryId: t.entryId,
       encryptedData: t.encryptedData,
@@ -236,6 +263,7 @@ function remapBackup(
       crews: backup.payloads.crews.map((c) => ({ ...c })),
       entries: backup.payloads.entries.map((e) => ({ ...e })),
       photos: backup.payloads.photos.map((p) => ({ ...p })),
+      voiceMemos: (backup.payloads.voiceMemos ?? []).map((v) => ({ ...v })),
       gpsTracks: backup.payloads.gpsTracks.map((t) => ({ ...t }))
     }
   }
@@ -341,6 +369,19 @@ async function queueRestoredLogbookForSync(
     })
   }
 
+  for (const voice of payloads.voiceMemos ?? []) {
+    items.push({
+      action: 'create',
+      type: 'voiceMemo',
+      payloadId: voice.payloadId,
+      logbookId,
+      data: encryptedPayloadData(voice.encryptedData, voice.iv, voice.tag, {
+        entryId: voice.entryId
+      }),
+      updatedAt: voice.updatedAt
+    })
+  }
+
   for (const track of payloads.gpsTracks) {
     items.push({
       action: 'create',
@@ -434,6 +475,21 @@ async function writeBackupToDexie(
     )
   }
 
+  const voiceMemosToRestore = payloads.voiceMemos ?? []
+  if (voiceMemosToRestore.length > 0) {
+    await db.voiceMemos.bulkPut(
+      voiceMemosToRestore.map((v) => ({
+        payloadId: v.payloadId,
+        entryId: v.entryId,
+        logbookId,
+        encryptedData: v.encryptedData,
+        iv: v.iv,
+        tag: v.tag,
+        updatedAt: v.updatedAt
+      }))
+    )
+  }
+
   if (payloads.gpsTracks.length > 0) {
     await db.gpsTracks.bulkPut(
       payloads.gpsTracks.map((t) => ({
@@ -486,6 +542,7 @@ export async function exportLogbookBackup(
     counts: {
       entries: payloads.entries.length,
       photos: payloads.photos.length,
+      voiceMemos: payloads.voiceMemos?.length ?? 0,
       crews: payloads.crews.length,
       gpsTracks: payloads.gpsTracks.length,
       hasYacht: !!payloads.yacht,
@@ -515,7 +572,14 @@ export async function parseLogbookBackupFile(file: File): Promise<LogbookBackupF
     throw new Error('BACKUP_INVALID_FORMAT')
   }
 
-  return parsed
+  return {
+    ...parsed,
+    payloads: normalizeBackupPayloads(parsed.payloads),
+    counts: {
+      ...parsed.counts,
+      voiceMemos: parsed.counts.voiceMemos ?? parsed.payloads.voiceMemos?.length ?? 0
+    }
+  }
 }
 
 export async function previewLogbookBackup(
@@ -572,7 +636,13 @@ export async function restoreLogbookBackup(
     targetId = crypto.randomUUID()
   }
 
-  const prepared = targetId === backup.logbook.id ? backup : remapBackup(backup, targetId)
+  const normalized = {
+    ...backup,
+    payloads: normalizeBackupPayloads(backup.payloads)
+  }
+  const prepared = targetId === normalized.logbook.id
+    ? normalized
+    : remapBackup(normalized, targetId)
 
   await writeBackupToDexie(targetId, prepared, logbookKey)
   await queueRestoredLogbookForSync(

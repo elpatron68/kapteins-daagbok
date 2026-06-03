@@ -15,6 +15,7 @@ import {
   MapPin,
   MessageSquare,
   Camera,
+  Mic,
   Radio,
   Sailboat,
   Undo2,
@@ -40,6 +41,8 @@ import {
   liveCommentRemark,
   liveFuelRemark,
   livePhotoRemark,
+  liveVoiceRemark,
+  parseLiveVoiceRemark,
   livePrecipRemark,
   liveSailsRemark,
   liveSogRemark,
@@ -64,8 +67,13 @@ import {
 import { useDialog } from './ModalDialog.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
 import LiveCameraCapture from './LiveCameraCapture.tsx'
+import LiveVoiceCapture from './LiveVoiceCapture.tsx'
+import VoiceMemoPlayer from './VoiceMemoPlayer.tsx'
 import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
+import { saveEntryVoiceMemo, deleteEntryVoiceMemo } from '../services/voiceAttachments.js'
 import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
+import { blobToAudioDataUrl } from '../utils/audioBlob.js'
+import { useEntryVoiceMemos } from '../hooks/useEntryVoiceMemos.js'
 
 interface LiveLogViewProps {
   logbookId: string
@@ -90,6 +98,7 @@ type LiveModal =
   | 'stw'
   | 'fix'
   | 'photo'
+  | 'voice'
 
 const AUTO_POSITION_INTERVAL_MS = 3 * 60 * 60 * 1000
 const AUTO_POSITION_CHECK_MS = 60_000
@@ -164,10 +173,13 @@ export default function LiveLogView({
   const [fixGpsUnavailable, setFixGpsUnavailable] = useState(false)
   const [photoCaption, setPhotoCaption] = useState('')
   const [photoSaving, setPhotoSaving] = useState(false)
-  const [undoHint, setUndoHint] = useState<'event' | 'photo'>('event')
+  const [voiceCaption, setVoiceCaption] = useState('')
+  const [voiceSaving, setVoiceSaving] = useState(false)
+  const [undoHint, setUndoHint] = useState<'event' | 'photo' | 'voice'>('event')
 
   const streamEndRef = useRef<HTMLDivElement | null>(null)
   const undoPhotoIdRef = useRef<string | null>(null)
+  const undoVoiceIdRef = useRef<string | null>(null)
   const undoTimerRef = useRef<number | null>(null)
   const autoPositionBusyRef = useRef(false)
   const busyRef = useRef(busy)
@@ -194,6 +206,7 @@ export default function LiveLogView({
     () => (date ? getLatestPositionFix(events, date) != null : false),
     [events, date]
   )
+  const voiceMemoLookup = useEntryVoiceMemos(logbookId, entryId)
 
   const applyLoadedEntry = useCallback((loaded: NonNullable<Awaited<ReturnType<typeof loadEntry>>>) => {
     const entryEvents = (loaded.data.events as LogEventPayload[]) || []
@@ -208,7 +221,7 @@ export default function LiveLogView({
     applyLoadedEntry(loaded)
   }, [logbookId, applyLoadedEntry])
 
-  const showUndo = useCallback((hint: 'event' | 'photo' = 'event') => {
+  const showUndo = useCallback((hint: 'event' | 'photo' | 'voice' = 'event') => {
     setUndoHint(hint)
     setUndoVisible(true)
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current)
@@ -216,6 +229,7 @@ export default function LiveLogView({
       setUndoVisible(false)
       undoTimerRef.current = null
       undoPhotoIdRef.current = null
+      undoVoiceIdRef.current = null
     }, UNDO_TIMEOUT_MS)
   }, [])
 
@@ -610,8 +624,10 @@ export default function LiveLogView({
   const handleUndo = () => {
     if (!entryId || busy) return
     const photoId = undoPhotoIdRef.current
+    const voiceId = undoVoiceIdRef.current
     setUndoVisible(false)
     undoPhotoIdRef.current = null
+    undoVoiceIdRef.current = null
     if (undoTimerRef.current) {
       window.clearTimeout(undoTimerRef.current)
       undoTimerRef.current = null
@@ -619,6 +635,9 @@ export default function LiveLogView({
     void runQuickAction(async () => {
       if (photoId) {
         await deleteEntryPhoto(logbookId, photoId)
+      }
+      if (voiceId) {
+        await deleteEntryVoiceMemo(logbookId, voiceId)
       }
       await removeLastEvent(logbookId, entryId)
     }, 'undo', false)
@@ -633,6 +652,56 @@ export default function LiveLogView({
     if (photoSaving) return
     setModal('none')
     setPhotoCaption('')
+  }
+
+  const openVoiceModal = () => {
+    setVoiceCaption('')
+    setModal('voice')
+  }
+
+  const closeVoiceModal = () => {
+    if (voiceSaving) return
+    setModal('none')
+    setVoiceCaption('')
+  }
+
+  const handleVoiceSave = (blob: Blob, mimeType: string, durationSec: number) => {
+    if (!entryId || voiceSaving) return
+    const caption = voiceCaption.trim()
+    setVoiceSaving(true)
+    void (async () => {
+      try {
+        const audioDataUrl = await blobToAudioDataUrl(blob)
+        const voiceId = await saveEntryVoiceMemo({
+          logbookId,
+          entryId,
+          audioDataUrl,
+          mimeType,
+          durationSec,
+          caption,
+          analyticsContext: 'live_log'
+        })
+        await appendQuickEvent(logbookId, entryId, {
+          remarks: liveVoiceRemark(voiceId)
+        })
+        await refreshEntry(entryId)
+        undoVoiceIdRef.current = voiceId
+        setModal('none')
+        setVoiceCaption('')
+        showUndo('voice')
+        trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'voice' })
+      } catch (err: unknown) {
+        console.error('Live log voice save failed:', err)
+        const msg = err instanceof Error && err.message === 'VOICE_MEMO_TOO_LARGE'
+          ? t('logs.live_voice_too_large')
+          : err instanceof Error
+            ? err.message
+            : t('logs.live_voice_error')
+        void showAlert(msg, t('logs.live_voice_btn'))
+      } finally {
+        setVoiceSaving(false)
+      }
+    })()
   }
 
   const handlePhotoCapture = (blob: Blob) => {
@@ -979,6 +1048,10 @@ export default function LiveLogView({
             <Camera size={18} />
             {t('logs.live_photo_btn')}
           </button>
+          <button type="button" className="live-log-action-btn" onClick={openVoiceModal} disabled={busy || voiceSaving}>
+            <Mic size={18} />
+            {t('logs.live_voice_btn')}
+          </button>
         </aside>
 
         <section className="live-log-stream-panel" aria-label={t('logs.live_stream_label')}>
@@ -987,12 +1060,30 @@ export default function LiveLogView({
             <p className="live-log-empty">{t('logs.live_no_events')}</p>
           ) : (
             <ol className="live-log-stream">
-              {events.map((event, index) => (
-                <li key={`${event.time}-${index}`} className="live-log-entry">
-                  <time className="live-log-time">{event.time}</time>
-                  <span className="live-log-summary">{formatEventSummary(event, t)}</span>
-                </li>
-              ))}
+              {events.map((event, index) => {
+                const voiceId = parseLiveVoiceRemark(event.remarks.trim())
+                const voicePreloaded = voiceId ? voiceMemoLookup.get(voiceId) : undefined
+                let summary = formatEventSummary(event, t)
+                if (voiceId && voicePreloaded?.caption) {
+                  summary = t('logs.live_voice_entry', { caption: voicePreloaded.caption })
+                }
+                return (
+                  <li key={`${event.time}-${index}`} className="live-log-entry">
+                    <time className="live-log-time">{event.time}</time>
+                    <div className="live-log-summary-block">
+                      <span className="live-log-summary">{summary}</span>
+                      {voiceId && (
+                        <VoiceMemoPlayer
+                          audioId={voiceId}
+                          logbookId={logbookId}
+                          preloaded={voicePreloaded}
+                          compact
+                        />
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
               <div ref={streamEndRef} />
             </ol>
           )}
@@ -1006,7 +1097,11 @@ export default function LiveLogView({
         <div className="live-log-undo-bar" role="status">
           <div className="live-log-undo-bar-inner">
             <span>
-              {undoHint === 'photo' ? t('logs.live_undo_photo_hint') : t('logs.live_undo_hint')}
+              {undoHint === 'photo'
+                ? t('logs.live_undo_photo_hint')
+                : undoHint === 'voice'
+                  ? t('logs.live_undo_voice_hint')
+                  : t('logs.live_undo_hint')}
             </span>
             <button type="button" className="btn secondary" onClick={handleUndo} disabled={busy}>
               <Undo2 size={16} />
@@ -1257,6 +1352,15 @@ export default function LiveLogView({
         onCaptionChange={setPhotoCaption}
         onClose={closePhotoModal}
         onCapture={handlePhotoCapture}
+      />
+
+      <LiveVoiceCapture
+        open={modal === 'voice'}
+        busy={voiceSaving}
+        caption={voiceCaption}
+        onCaptionChange={setVoiceCaption}
+        onClose={closeVoiceModal}
+        onSave={handleVoiceSave}
       />
       </>,
       document.body

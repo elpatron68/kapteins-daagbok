@@ -65,6 +65,16 @@ export interface LocalPhoto {
   updatedAt: string
 }
 
+export interface LocalVoiceMemo {
+  payloadId: string
+  entryId: string
+  logbookId: string
+  encryptedData: string
+  iv: string
+  tag: string
+  updatedAt: string
+}
+
 export interface LocalGpsTrack {
   entryId: string // one track per daily journal entry
   logbookId: string
@@ -132,6 +142,7 @@ export interface SyncQueueItem {
     | 'entry'
     | 'logbook'
     | 'photo'
+    | 'voiceMemo'
     | 'gpsTrack'
     | 'logbookCrew'
     | 'logbookVessel'
@@ -166,6 +177,7 @@ class DaagboxDatabase extends Dexie {
   deviations!: Table<LocalDeviation>
   entries!: Table<LocalEntry>
   photos!: Table<LocalPhoto>
+  voiceMemos!: Table<LocalVoiceMemo>
   gpsTracks!: Table<LocalGpsTrack>
   nmeaArchives!: Table<LocalNmeaArchive>
   logbookKeys!: Table<LocalLogbookKey>
@@ -279,6 +291,25 @@ class DaagboxDatabase extends Dexie {
       entries: 'payloadId, logbookId, updatedAt',
       syncQueue: '++id, action, type, payloadId, logbookId',
       photos: 'payloadId, entryId, logbookId, updatedAt',
+      gpsTracks: 'entryId, logbookId, updatedAt',
+      nmeaArchives: 'entryId, logbookId, updatedAt',
+      logbookKeys: 'logbookId',
+      personPool: 'payloadId, updatedAt',
+      vesselPool: 'payloadId, updatedAt',
+      logbookCrewSelections: 'logbookId, updatedAt',
+      logbookVesselSelections: 'logbookId, updatedAt',
+      userSyncQueue: '++id, action, type, payloadId',
+      entryDrafts: '[logbookId+entryId], updatedAt'
+    })
+    this.version(10).stores({
+      logbooks: 'id, encryptedTitle, updatedAt, isSynced, isShared, isDemo',
+      yachts: 'logbookId, updatedAt',
+      crews: 'payloadId, logbookId, updatedAt',
+      deviations: 'logbookId, updatedAt',
+      entries: 'payloadId, logbookId, updatedAt',
+      syncQueue: '++id, action, type, payloadId, logbookId',
+      photos: 'payloadId, entryId, logbookId, updatedAt',
+      voiceMemos: 'payloadId, entryId, logbookId, updatedAt',
       gpsTracks: 'entryId, logbookId, updatedAt',
       nmeaArchives: 'entryId, logbookId, updatedAt',
       logbookKeys: 'logbookId',

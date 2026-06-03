@@ -61,6 +61,8 @@ async function entityExistsLocally(item: SyncQueueItem): Promise<boolean> {
       return !!(await db.entries.get(item.payloadId))
     case 'photo':
       return !!(await db.photos.get(item.payloadId))
+    case 'voiceMemo':
+      return !!(await db.voiceMemos.get(item.payloadId))
     case 'gpsTrack':
       return !!(await db.gpsTracks.get(item.payloadId))
     case 'logbookCrew':
@@ -230,6 +232,7 @@ type PulledServerPayload = {
   crews?: Array<{ payloadId: string; updatedAt: string }>
   entries?: Array<{ payloadId: string; updatedAt: string }>
   photos?: Array<{ payloadId: string; updatedAt: string }>
+  voiceMemos?: Array<{ payloadId: string; updatedAt: string }>
   gpsTracks?: Array<{ entryId: string; updatedAt: string }>
 }
 
@@ -253,6 +256,7 @@ async function pruneAcknowledgedQueueItems(
   for (const c of server.crews ?? []) serverTimes.set('crew:' + c.payloadId, c.updatedAt)
   for (const e of server.entries ?? []) serverTimes.set('entry:' + e.payloadId, e.updatedAt)
   for (const p of server.photos ?? []) serverTimes.set('photo:' + p.payloadId, p.updatedAt)
+  for (const v of server.voiceMemos ?? []) serverTimes.set('voiceMemo:' + v.payloadId, v.updatedAt)
   for (const gt of server.gpsTracks ?? []) serverTimes.set('gpsTrack:' + gt.entryId, gt.updatedAt)
 
   const localLogbook = await db.logbooks.get(logbookId)
@@ -299,7 +303,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       return false
     }
 
-    const { yacht, deviation, crews, logbookCrewSelection, logbookVesselSelection, entries, photos, gpsTracks } =
+    const { yacht, deviation, crews, logbookCrewSelection, logbookVesselSelection, entries, photos, voiceMemos, gpsTracks } =
       await response.json()
 
     // Large pull payloads block on JSON.parse — yield before applying to IndexedDB.
@@ -313,6 +317,7 @@ async function pullChanges(logbookId: string): Promise<boolean> {
       crews,
       entries,
       photos,
+      voiceMemos,
       gpsTracks
     }
 
@@ -467,6 +472,38 @@ async function pullChanges(logbookId: string): Promise<boolean> {
           .first()
         if (!pendingCreate) {
           await db.photos.delete(lp.payloadId)
+        }
+      }
+    }
+
+    // 5b. Sync Voice Memos
+    const serverVoiceMap = new Map<string, any>()
+    if (voiceMemos && Array.isArray(voiceMemos)) {
+      await forEachInBatches(voiceMemos, 20, async (v) => {
+        serverVoiceMap.set(v.payloadId, v)
+        const local = await db.voiceMemos.get(v.payloadId)
+        if (!local || isNewer(v.updatedAt, local.updatedAt)) {
+          await db.voiceMemos.put({
+            payloadId: v.payloadId,
+            entryId: v.entryId,
+            logbookId,
+            encryptedData: v.encryptedData,
+            iv: v.iv,
+            tag: v.tag,
+            updatedAt: v.updatedAt
+          })
+        }
+      })
+    }
+
+    const localVoiceMemos = await db.voiceMemos.where({ logbookId }).toArray()
+    for (const lv of localVoiceMemos) {
+      if (!serverVoiceMap.has(lv.payloadId)) {
+        const pendingCreate = await db.syncQueue
+          .where({ payloadId: lv.payloadId, action: 'create' })
+          .first()
+        if (!pendingCreate) {
+          await db.voiceMemos.delete(lv.payloadId)
         }
       }
     }

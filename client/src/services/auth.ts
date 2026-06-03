@@ -556,6 +556,7 @@ export async function deleteAccount(): Promise<boolean> {
         db.deviations.clear(),
         db.entries.clear(),
         db.photos.clear(),
+        db.voiceMemos.clear(),
         db.gpsTracks.clear(),
         db.syncQueue.clear(),
         db.logbookKeys.clear(),

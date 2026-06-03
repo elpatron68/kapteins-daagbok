@@ -143,6 +143,8 @@ router.post('/push', async (req: any, res) => {
             await prisma.entryPayload.deleteMany({ where: { logbookId, payloadId } })
           } else if (type === 'photo') {
             await prisma.photoPayload.deleteMany({ where: { logbookId, payloadId } })
+          } else if (type === 'voiceMemo') {
+            await prisma.voiceMemoPayload.deleteMany({ where: { logbookId, payloadId } })
           } else if (type === 'gpsTrack') {
             await prisma.gpsTrackPayload.deleteMany({ where: { logbookId, entryId: payloadId } })
           } else if (type === 'logbookCrew') {
@@ -229,6 +231,22 @@ router.post('/push', async (req: any, res) => {
             }
             const entryId = parsed.entryId || ''
             await prisma.photoPayload.upsert({
+              where: { logbookId_payloadId: { logbookId, payloadId } },
+              create: { logbookId, payloadId, entryId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
+              update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
+            })
+          }
+        } else if (type === 'voiceMemo') {
+          {
+            const existing = await prisma.voiceMemoPayload.findUnique({
+              where: { logbookId_payloadId: { logbookId, payloadId } }
+            })
+            if (existing && new Date(existing.updatedAt) > itemUpdatedAt) {
+              results.push({ payloadId, status: 'conflict', reason: 'Server version is newer' })
+              continue
+            }
+            const entryId = parsed.entryId || ''
+            await prisma.voiceMemoPayload.upsert({
               where: { logbookId_payloadId: { logbookId, payloadId } },
               create: { logbookId, payloadId, entryId, encryptedData, iv, tag, updatedAt: itemUpdatedAt },
               update: { encryptedData, iv, tag, updatedAt: itemUpdatedAt }
@@ -365,6 +383,7 @@ router.get('/pull', async (req: any, res) => {
     const crews = await prisma.crewPayload.findMany({ where: { logbookId } })
     const entries = await prisma.entryPayload.findMany({ where: { logbookId } })
     const photos = await prisma.photoPayload.findMany({ where: { logbookId } })
+    const voiceMemos = await prisma.voiceMemoPayload.findMany({ where: { logbookId } })
     const gpsTracks = await prisma.gpsTrackPayload.findMany({ where: { logbookId } })
     const { findLogbookCrewSelectionSafe, findLogbookVesselSelectionSafe } =
       await import('../utils/crewPoolSchema.js')
@@ -379,6 +398,7 @@ router.get('/pull', async (req: any, res) => {
       logbookVesselSelection,
       entries,
       photos,
+      voiceMemos,
       gpsTracks
     })
   } catch (error: any) {
