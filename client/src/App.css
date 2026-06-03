@@ -5573,7 +5573,7 @@ html.theme-cupertino .events-scroll-container {
   flex-wrap: wrap;
   gap: 6px;
   padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.4;
   color: #64748b;
   background: rgba(11, 12, 16, 0.72);
@@ -5615,7 +5615,7 @@ html.theme-cupertino .events-scroll-container {
   gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: #94a3b8;
   text-decoration: none;

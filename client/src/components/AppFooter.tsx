@@ -35,7 +35,7 @@ export default function AppFooter() {
         aria-label={t('footer.kofi_title')}
         onClick={() => trackPlausibleEvent(PlausibleEvents.KOFI_LINK_CLICKED)}
       >
-        <Coffee size={12} aria-hidden="true" />
+        <Coffee size={14} aria-hidden="true" />
         <span>{t('footer.kofi_label')}</span>
       </a>
     </footer>
