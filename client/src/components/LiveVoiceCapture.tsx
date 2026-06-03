@@ -86,6 +86,9 @@ export default function LiveVoiceCapture({
       el.addEventListener('loadedmetadata', handleLoadedMetadata)
     }
 
+    log('Calling el.load() to force loading of the media resource...')
+    el.load()
+
     return () => {
       el.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }

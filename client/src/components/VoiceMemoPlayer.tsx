@@ -53,6 +53,10 @@ export default function VoiceMemoPlayer({
       el.addEventListener('loadedmetadata', handleLoadedMetadata)
     }
 
+    if (src) {
+      el.load()
+    }
+
     return () => {
       el.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
@@ -103,7 +107,7 @@ export default function VoiceMemoPlayer({
 
   return (
     <div className="voice-memo-player-shell">
-      <audio ref={audioRef} className={playerClass} controls preload="none" src={src} />
+      <audio ref={audioRef} className={playerClass} controls preload="metadata" src={src} />
     </div>
   )
 }
