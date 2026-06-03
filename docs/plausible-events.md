@@ -37,9 +37,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | CSV Exported | CSV-Download aus der Eintragsliste (`LogEntriesList.tsx`) | — |
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
 | Photo Uploaded | Foto hochgeladen (`photoAttachments.ts`, `PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `live_log` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
-| Live Log Photo Uploaded | Foto im Live-Journal per Kamera gespeichert (`photoAttachments.ts`, `analyticsContext`: `live_log`) | — |
 | Voice Memo Uploaded | Sprachnotiz gespeichert (`voiceAttachments.ts`) | `context`: `logbook` \| `live_log` |
-| Live Log Voice Uploaded | Sprachnotiz im Live-Journal gespeichert (`voiceAttachments.ts`, `analyticsContext`: `live_log`) | — |
 | OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
 | AI Summary Generated | Erfolgreiche KI-Zusammenfassung eines Reisetags (`aiSummary.ts`) | — |
 | Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes` (Anzahlen/Größe, keine Inhalte) |
@@ -139,7 +137,7 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
 9. **NMEA-Import:** NMEA Uploaded → NMEA Imported (Modus, `events`, optional Track; Upload-Funnel vs. Abbruch)
-10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`) → Live Log Photo Uploaded
+10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`) → Photo Uploaded / Voice Memo Uploaded (Filter `context`: `live_log`)
 11. **OpenWeatherMap:** OWM Weather Fetched (Verteilung `source`; Live-Journal vs. Reisetag-Editor)
 12. **PWA-Stabilitaet:** PWA Boot Watchdog Soft → PWA Boot Watchdog Hard → PWA Boot Watchdog Fallback → PWA Boot Watchdog Manual Repair
 
@@ -152,7 +150,8 @@ trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
 trackPlausibleEvent(PlausibleEvents.ENTRY_SIGNED, { role: 'skipper' })
 trackPlausibleEvent(PlausibleEvents.LANGUAGE_CHANGED, { from: 'de', to: 'da' })
 trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'course' })
-trackPlausibleEvent(PlausibleEvents.LIVE_LOG_PHOTO_UPLOADED)
+trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'live_log' })
+trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_UPLOADED, { context: 'live_log' })
 trackPlausibleEvent(PlausibleEvents.OWM_WEATHER_FETCHED, { source: 'live_log' })
 trackPlausibleEvent(PlausibleEvents.NMEA_UPLOADED, { lines: 1200, candidates: 8, duplicate: false, has_position: true })
 trackPlausibleEvent(PlausibleEvents.NMEA_IMPORTED, { mode: 'both', events: 6, track: true })

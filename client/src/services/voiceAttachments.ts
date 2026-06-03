@@ -66,9 +66,6 @@ export async function saveEntryVoiceMemo(options: {
   })
 
   trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_UPLOADED, { context: analyticsContext })
-  if (analyticsContext === 'live_log') {
-    trackPlausibleEvent(PlausibleEvents.LIVE_LOG_VOICE_UPLOADED)
-  }
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
   return voiceId
 }
