@@ -5,10 +5,12 @@ import { useDialog } from './ModalDialog.tsx'
 import {
   downloadBackupBlob,
   exportLogbookBackup,
+  formatBackupBytes,
   parseLogbookBackupFile,
   previewLogbookBackup,
   restoreLogbookBackup,
-  type LogbookBackupFile,
+  BACKUP_SIZE_CONFIRM_BYTES,
+  type ParsedLogbookBackup,
   type LogbookBackupPreview
 } from '../services/logbookBackup.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -27,6 +29,12 @@ function mapBackupError(code: string, t: (key: string) => string): string {
       return t('settings.backup_not_owner')
     case 'BACKUP_INVALID_JSON':
       return t('settings.backup_invalid_json')
+    case 'BACKUP_INVALID_ARCHIVE':
+      return t('settings.backup_invalid_archive')
+    case 'BACKUP_VERSION_UNSUPPORTED':
+      return t('settings.backup_version_unsupported')
+    case 'BACKUP_WRONG_PASSPHRASE':
+      return t('settings.backup_wrong_passphrase')
     case 'BACKUP_INVALID_FORMAT':
       return t('settings.backup_invalid_format')
     case 'BACKUP_NOT_AUTHENTICATED':
@@ -53,9 +61,10 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
   const [importPassphrase, setImportPassphrase] = useState('')
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] = useState<LogbookBackupPreview | null>(null)
-  const [parsedBackup, setParsedBackup] = useState<LogbookBackupFile | null>(null)
+  const [parsedBackup, setParsedBackup] = useState<ParsedLogbookBackup | null>(null)
   const [importing, setImporting] = useState(false)
   const [previewing, setPreviewing] = useState(false)
+  const [exportProgress, setExportProgress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -83,21 +92,36 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
     }
 
     setExporting(true)
+    setExportProgress(null)
     try {
-      const { blob, filename, backup } = await exportLogbookBackup(logbookId, exportPassphrase)
+      const { blob, filename, manifest } = await exportLogbookBackup(logbookId, exportPassphrase, {
+        onProgress: (p) => {
+          if (p.phase === 'pack') {
+            setExportProgress(
+              t('settings.backup_export_progress', {
+                current: p.current,
+                total: p.total
+              })
+            )
+          }
+        }
+      })
       downloadBackupBlob(blob, filename)
-      setSuccess(t('settings.backup_export_success', { count: backup.counts.entries }))
+      setSuccess(t('settings.backup_export_success', { count: manifest.counts.entries }))
       setExportPassphrase('')
       setExportConfirm('')
       trackPlausibleEvent(PlausibleEvents.BACKUP_EXPORTED, {
-        entries: backup.counts.entries,
-        photos: backup.counts.photos
+        entries: manifest.counts.entries,
+        photos: manifest.counts.photos,
+        voiceMemos: manifest.counts.voiceMemos,
+        bytes: manifest.totalUncompressedBytes
       })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       setError(mapBackupError(message, t))
     } finally {
       setExporting(false)
+      setExportProgress(null)
     }
   }
 
@@ -138,6 +162,18 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
   const handleRestore = async (options: { overwrite?: boolean; assignNewId?: boolean } = {}) => {
     if (!parsedBackup || !importPassphrase) return
 
+    if (parsedBackup.manifest.totalUncompressedBytes > BACKUP_SIZE_CONFIRM_BYTES) {
+      const ok = await showConfirm(
+        t('settings.backup_import_size_confirm', {
+          size: formatBackupBytes(parsedBackup.manifest.totalUncompressedBytes)
+        }),
+        t('settings.backup_restore_title'),
+        t('logs.confirm_yes'),
+        t('logs.confirm_no')
+      )
+      if (!ok) return
+    }
+
     setImporting(true)
     setError(null)
     try {
@@ -149,8 +185,10 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
       setParsedBackup(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
       trackPlausibleEvent(PlausibleEvents.BACKUP_RESTORED, {
-        entries: parsedBackup.counts.entries,
-        photos: parsedBackup.counts.photos,
+        entries: parsedBackup.manifest.counts.entries,
+        photos: parsedBackup.manifest.counts.photos,
+        voiceMemos: parsedBackup.manifest.counts.voiceMemos,
+        bytes: parsedBackup.manifest.totalUncompressedBytes,
         mode: options.overwrite ? 'overwrite' : options.assignNewId ? 'new_id' : 'same_id'
       })
       onRestored?.(result.logbookId, result.title)
@@ -258,6 +296,11 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
             <Download size={16} />
             {exporting ? t('settings.backup_exporting') : t('settings.backup_export_btn')}
           </button>
+          {exportProgress && (
+            <p className="text-muted backup-export-progress" role="status">
+              {exportProgress}
+            </p>
+          )}
         </form>
       </section>
 
@@ -275,7 +318,7 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
               id="backup-import-file"
               ref={fileInputRef}
               type="file"
-              accept=".daagbok.json,application/json"
+              accept=".daagbok,application/zip"
               className="input-text"
               onChange={handleFileChange}
               disabled={importing}
@@ -330,8 +373,14 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
             <ul className="backup-preview-stats">
               <li>{t('settings.backup_stat_entries', { count: importPreview.counts.entries })}</li>
               <li>{t('settings.backup_stat_photos', { count: importPreview.counts.photos })}</li>
+              <li>{t('settings.backup_stat_voice', { count: importPreview.counts.voiceMemos })}</li>
               <li>{t('settings.backup_stat_crew', { count: importPreview.counts.crews })}</li>
               <li>{t('settings.backup_stat_tracks', { count: importPreview.counts.gpsTracks })}</li>
+              <li className="text-muted">
+                {t('settings.backup_stat_size', {
+                  size: formatBackupBytes(importPreview.totalUncompressedBytes)
+                })}
+              </li>
             </ul>
             <p className="text-muted backup-preview-date">
               {t('settings.backup_exported_at', {

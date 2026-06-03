@@ -9,98 +9,54 @@ import { decryptLogbookTitle, deleteLocalLogbookCache } from './logbook.js'
 import { ensureLogbookKey, getLogbookKey, saveLogbookKey } from './logbookKeys.js'
 import { syncLogbook } from './sync.js'
 import type { SyncQueueItem } from './db.js'
+import { getAppVersion } from './pwaVersion.js'
+import { dexieFieldsFromEncBytes, encBytesFromDexieFields } from './logbookBackup/encBlob.js'
+import {
+  BACKUP_FORMAT,
+  BACKUP_VERSION,
+  type BackupManifestCounts,
+  type BackupManifestV2,
+  type LogbookMetaJson
+} from './logbookBackup/manifest.js'
+import {
+  buildArchiveFromCollected,
+  collectLogbookBackupData,
+  type BackupExportProgress
+} from './logbookBackup/collector.js'
+import {
+  isZipArchive,
+  readBinaryFile,
+  readManifestFromArchive,
+  readTextFile,
+  unzipArchive
+} from './logbookBackup/zipArchive.js'
 
-export const BACKUP_FORMAT = 'kapteins-daagbok-backup' as const
-export const BACKUP_VERSION = 1 as const
-
-export interface LogbookBackupFile {
-  format: typeof BACKUP_FORMAT
-  version: typeof BACKUP_VERSION
-  exportedAt: string
-  logbook: {
-    id: string
-    encryptedTitle: string
-    updatedAt: string
-    isDemo?: boolean
-  }
-  logbookKey: {
-    ciphertext: string
-    iv: string
-    tag: string
-  }
-  payloads: {
-    yacht: {
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    } | null
-    deviation: {
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    } | null
-    crews: Array<{
-      payloadId: string
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    }>
-    entries: Array<{
-      payloadId: string
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    }>
-    photos: Array<{
-      payloadId: string
-      entryId: string
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    }>
-    voiceMemos: Array<{
-      payloadId: string
-      entryId: string
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    }>
-    gpsTracks: Array<{
-      entryId: string
-      encryptedData: string
-      iv: string
-      tag: string
-      updatedAt: string
-    }>
-  }
-  counts: {
-    entries: number
-    photos: number
-    voiceMemos: number
-    crews: number
-    gpsTracks: number
-    hasYacht: boolean
-    hasDeviation: boolean
-  }
-}
+export { BACKUP_FORMAT, BACKUP_VERSION }
+export type { BackupExportProgress, BackupManifestCounts, BackupManifestV2 }
 
 export interface LogbookBackupPreview {
   title: string
   exportedAt: string
   sourceLogbookId: string
-  counts: LogbookBackupFile['counts']
+  counts: BackupManifestCounts
+  totalUncompressedBytes: number
 }
+
+export interface ParsedLogbookBackup {
+  manifest: BackupManifestV2
+  files: Record<string, Uint8Array>
+}
+
+export interface ExportLogbookBackupOptions {
+  onProgress?: (progress: BackupExportProgress) => void
+}
+
+const BACKUP_PASSPHRASE_SALT = 'KapteinsDaagbokBackupFileSalt_v1'
 
 async function deriveBackupPassphraseKey(passphrase: string): Promise<CryptoKey> {
   const encoder = new TextEncoder()
   const passphraseBytes = encoder.encode(passphrase.trim())
-  const saltBytes = encoder.encode('KapteinsDaagbokBackupFileSalt_v1')
+  const saltBytes = encoder.encode(BACKUP_PASSPHRASE_SALT)
 
   const baseKey = await window.crypto.subtle.importKey(
     'raw',
@@ -129,35 +85,17 @@ async function wrapLogbookKey(logbookKey: ArrayBuffer, passphrase: string) {
   return encryptBuffer(logbookKey, key)
 }
 
-async function unwrapLogbookKey(
-  wrapped: LogbookBackupFile['logbookKey'],
+async function unwrapLogbookKeyFromEnc(
+  keyEnc: Uint8Array,
   passphrase: string
 ): Promise<ArrayBuffer> {
-  const key = await deriveBackupPassphraseKey(passphrase)
-  return decryptBuffer(wrapped.ciphertext, wrapped.iv, wrapped.tag, key)
-}
-
-function normalizeBackupPayloads(
-  payloads: LogbookBackupFile['payloads']
-): LogbookBackupFile['payloads'] {
-  return {
-    ...payloads,
-    voiceMemos: payloads.voiceMemos ?? []
+  try {
+    const fields = dexieFieldsFromEncBytes(keyEnc)
+    const cryptoKey = await deriveBackupPassphraseKey(passphrase)
+    return decryptBuffer(fields.encryptedData, fields.iv, fields.tag, cryptoKey)
+  } catch {
+    throw new Error('BACKUP_WRONG_PASSPHRASE')
   }
-}
-
-function isBackupFile(value: unknown): value is LogbookBackupFile {
-  if (!value || typeof value !== 'object') return false
-  const obj = value as Partial<LogbookBackupFile>
-  return (
-    obj.format === BACKUP_FORMAT &&
-    obj.version === BACKUP_VERSION &&
-    typeof obj.exportedAt === 'string' &&
-    !!obj.logbook?.id &&
-    !!obj.logbook?.encryptedTitle &&
-    !!obj.logbookKey?.ciphertext &&
-    !!obj.payloads
-  )
 }
 
 function encryptedPayloadData(
@@ -174,106 +112,12 @@ function encryptedPayloadData(
   })
 }
 
-async function collectLogbookPayloads(logbookId: string): Promise<LogbookBackupFile['payloads']> {
-  const [yacht, deviation, crews, entries, photos, voiceMemos, gpsTracks] = await Promise.all([
-    db.yachts.get(logbookId),
-    db.deviations.get(logbookId),
-    db.crews.where({ logbookId }).toArray(),
-    db.entries.where({ logbookId }).toArray(),
-    db.photos.where({ logbookId }).toArray(),
-    db.voiceMemos.where({ logbookId }).toArray(),
-    db.gpsTracks.where({ logbookId }).toArray()
-  ])
-
-  return {
-    yacht: yacht
-      ? {
-          encryptedData: yacht.encryptedData,
-          iv: yacht.iv,
-          tag: yacht.tag,
-          updatedAt: yacht.updatedAt
-        }
-      : null,
-    deviation: deviation
-      ? {
-          encryptedData: deviation.encryptedData,
-          iv: deviation.iv,
-          tag: deviation.tag,
-          updatedAt: deviation.updatedAt
-        }
-      : null,
-    crews: crews.map((c) => ({
-      payloadId: c.payloadId,
-      encryptedData: c.encryptedData,
-      iv: c.iv,
-      tag: c.tag,
-      updatedAt: c.updatedAt
-    })),
-    entries: entries.map((e) => ({
-      payloadId: e.payloadId,
-      encryptedData: e.encryptedData,
-      iv: e.iv,
-      tag: e.tag,
-      updatedAt: e.updatedAt
-    })),
-    photos: photos.map((p) => ({
-      payloadId: p.payloadId,
-      entryId: p.entryId,
-      encryptedData: p.encryptedData,
-      iv: p.iv,
-      tag: p.tag,
-      updatedAt: p.updatedAt
-    })),
-    voiceMemos: voiceMemos.map((v) => ({
-      payloadId: v.payloadId,
-      entryId: v.entryId,
-      encryptedData: v.encryptedData,
-      iv: v.iv,
-      tag: v.tag,
-      updatedAt: v.updatedAt
-    })),
-    gpsTracks: gpsTracks.map((t) => ({
-      entryId: t.entryId,
-      encryptedData: t.encryptedData,
-      iv: t.iv,
-      tag: t.tag,
-      updatedAt: t.updatedAt
-    }))
-  }
-}
-
-function remapBackup(
-  backup: LogbookBackupFile,
-  newLogbookId: string
-): LogbookBackupFile {
-  return {
-    ...backup,
-    logbook: {
-      ...backup.logbook,
-      id: newLogbookId
-    },
-    payloads: {
-      ...backup.payloads,
-      yacht: backup.payloads.yacht
-        ? { ...backup.payloads.yacht, updatedAt: backup.payloads.yacht.updatedAt }
-        : null,
-      deviation: backup.payloads.deviation
-        ? { ...backup.payloads.deviation, updatedAt: backup.payloads.deviation.updatedAt }
-        : null,
-      crews: backup.payloads.crews.map((c) => ({ ...c })),
-      entries: backup.payloads.entries.map((e) => ({ ...e })),
-      photos: backup.payloads.photos.map((p) => ({ ...p })),
-      voiceMemos: (backup.payloads.voiceMemos ?? []).map((v) => ({ ...v })),
-      gpsTracks: backup.payloads.gpsTracks.map((t) => ({ ...t }))
-    }
-  }
-}
-
 async function queueRestoredLogbookForSync(
   logbookId: string,
   encryptedTitle: string,
   logbookKey: ArrayBuffer,
-  payloads: LogbookBackupFile['payloads']
+  manifest: BackupManifestV2,
+  files: Record<string, Uint8Array>
 ): Promise<void> {
   const masterKey = getActiveMasterKey()
   if (!masterKey) throw new Error('Master key not found')
@@ -304,91 +148,123 @@ async function queueRestoredLogbookForSync(
     }
   ]
 
-  if (payloads.yacht) {
+  const readFields = (path: string | null) => {
+    if (!path) return null
+    return dexieFieldsFromEncBytes(readBinaryFile(files, path))
+  }
+
+  const yacht = readFields(manifest.files.yacht)
+  if (yacht) {
     items.push({
       action: 'update',
       type: 'yacht',
       payloadId: logbookId,
       logbookId,
-      data: encryptedPayloadData(
-        payloads.yacht.encryptedData,
-        payloads.yacht.iv,
-        payloads.yacht.tag
-      ),
-      updatedAt: payloads.yacht.updatedAt
+      data: encryptedPayloadData(yacht.encryptedData, yacht.iv, yacht.tag),
+      updatedAt: now
     })
   }
 
-  if (payloads.deviation) {
+  const deviation = readFields(manifest.files.deviation)
+  if (deviation) {
     items.push({
       action: 'update',
       type: 'deviation',
       payloadId: logbookId,
       logbookId,
-      data: encryptedPayloadData(
-        payloads.deviation.encryptedData,
-        payloads.deviation.iv,
-        payloads.deviation.tag
-      ),
-      updatedAt: payloads.deviation.updatedAt
+      data: encryptedPayloadData(deviation.encryptedData, deviation.iv, deviation.tag),
+      updatedAt: now
     })
   }
 
-  for (const crew of payloads.crews) {
+  const logbookCrew = readFields(manifest.files.logbookCrewSelection)
+  if (logbookCrew) {
+    items.push({
+      action: 'update',
+      type: 'logbookCrew',
+      payloadId: logbookId,
+      logbookId,
+      data: encryptedPayloadData(logbookCrew.encryptedData, logbookCrew.iv, logbookCrew.tag),
+      updatedAt: now
+    })
+  }
+
+  const logbookVessel = readFields(manifest.files.logbookVesselSelection)
+  if (logbookVessel) {
+    items.push({
+      action: 'update',
+      type: 'logbookVessel',
+      payloadId: logbookId,
+      logbookId,
+      data: encryptedPayloadData(
+        logbookVessel.encryptedData,
+        logbookVessel.iv,
+        logbookVessel.tag
+      ),
+      updatedAt: now
+    })
+  }
+
+  for (const crew of manifest.files.crews) {
+    const f = readFields(crew.path)
     items.push({
       action: 'create',
       type: 'crew',
       payloadId: crew.payloadId,
       logbookId,
-      data: encryptedPayloadData(crew.encryptedData, crew.iv, crew.tag),
+      data: encryptedPayloadData(f!.encryptedData, f!.iv, f!.tag),
       updatedAt: crew.updatedAt
     })
   }
 
-  for (const entry of payloads.entries) {
+  for (const entry of manifest.files.entries) {
+    const f = readFields(entry.path)
     items.push({
       action: 'create',
       type: 'entry',
       payloadId: entry.payloadId,
       logbookId,
-      data: encryptedPayloadData(entry.encryptedData, entry.iv, entry.tag),
+      data: encryptedPayloadData(f!.encryptedData, f!.iv, f!.tag),
       updatedAt: entry.updatedAt
     })
   }
 
-  for (const photo of payloads.photos) {
+  for (const photo of manifest.files.photos) {
+    const f = readFields(photo.path)
     items.push({
       action: 'create',
       type: 'photo',
       payloadId: photo.payloadId,
       logbookId,
-      data: encryptedPayloadData(photo.encryptedData, photo.iv, photo.tag, {
+      data: encryptedPayloadData(f!.encryptedData, f!.iv, f!.tag, {
         entryId: photo.entryId
       }),
       updatedAt: photo.updatedAt
     })
   }
 
-  for (const voice of payloads.voiceMemos ?? []) {
+  for (const voice of manifest.files.voiceMemos) {
+    const f = readFields(voice.path)
     items.push({
       action: 'create',
       type: 'voiceMemo',
       payloadId: voice.payloadId,
       logbookId,
-      data: encryptedPayloadData(voice.encryptedData, voice.iv, voice.tag, {
+      data: encryptedPayloadData(f!.encryptedData, f!.iv, f!.tag, {
         entryId: voice.entryId
       }),
       updatedAt: voice.updatedAt
     })
   }
 
-  for (const track of payloads.gpsTracks) {
+  for (const track of manifest.files.gpsTracks) {
+    const f = readFields(track.path)
     items.push({
       action: 'create',
       type: 'gpsTrack',
       payloadId: track.entryId,
       logbookId,
-      data: encryptedPayloadData(track.encryptedData, track.iv, track.tag),
+      data: encryptedPayloadData(f!.encryptedData, f!.iv, f!.tag),
       updatedAt: track.updatedAt
     })
   }
@@ -398,116 +274,190 @@ async function queueRestoredLogbookForSync(
 
 async function writeBackupToDexie(
   logbookId: string,
-  backup: LogbookBackupFile,
-  logbookKey: ArrayBuffer
+  logbookMeta: LogbookMetaJson,
+  logbookKey: ArrayBuffer,
+  manifest: BackupManifestV2,
+  files: Record<string, Uint8Array>
 ): Promise<void> {
-  const { logbook, payloads } = backup
-
   await db.logbooks.put({
     id: logbookId,
-    encryptedTitle: logbook.encryptedTitle,
-    updatedAt: logbook.updatedAt,
+    encryptedTitle: logbookMeta.encryptedTitle,
+    updatedAt: logbookMeta.updatedAt,
     isSynced: 0,
     isShared: 0,
-    isDemo: logbook.isDemo ? 1 : 0
+    isDemo: logbookMeta.isDemo ? 1 : 0
   })
 
   await saveLogbookKey(logbookId, logbookKey)
 
-  if (payloads.yacht) {
+  const readFields = (path: string | null) => {
+    if (!path) return null
+    return dexieFieldsFromEncBytes(readBinaryFile(files, path))
+  }
+
+  const yacht = readFields(manifest.files.yacht)
+  if (yacht) {
     await db.yachts.put({
       logbookId,
-      encryptedData: payloads.yacht.encryptedData,
-      iv: payloads.yacht.iv,
-      tag: payloads.yacht.tag,
-      updatedAt: payloads.yacht.updatedAt
+      encryptedData: yacht.encryptedData,
+      iv: yacht.iv,
+      tag: yacht.tag,
+      updatedAt: logbookMeta.updatedAt
     })
   }
 
-  if (payloads.deviation) {
+  const deviation = readFields(manifest.files.deviation)
+  if (deviation) {
     await db.deviations.put({
       logbookId,
-      encryptedData: payloads.deviation.encryptedData,
-      iv: payloads.deviation.iv,
-      tag: payloads.deviation.tag,
-      updatedAt: payloads.deviation.updatedAt
+      encryptedData: deviation.encryptedData,
+      iv: deviation.iv,
+      tag: deviation.tag,
+      updatedAt: logbookMeta.updatedAt
     })
   }
 
-  if (payloads.crews.length > 0) {
+  const logbookCrew = readFields(manifest.files.logbookCrewSelection)
+  if (logbookCrew) {
+    await db.logbookCrewSelections.put({
+      logbookId,
+      encryptedData: logbookCrew.encryptedData,
+      iv: logbookCrew.iv,
+      tag: logbookCrew.tag,
+      updatedAt: logbookMeta.updatedAt
+    })
+  }
+
+  const logbookVessel = readFields(manifest.files.logbookVesselSelection)
+  if (logbookVessel) {
+    await db.logbookVesselSelections.put({
+      logbookId,
+      encryptedData: logbookVessel.encryptedData,
+      iv: logbookVessel.iv,
+      tag: logbookVessel.tag,
+      updatedAt: logbookMeta.updatedAt
+    })
+  }
+
+  if (manifest.files.crews.length > 0) {
     await db.crews.bulkPut(
-      payloads.crews.map((c) => ({
-        payloadId: c.payloadId,
-        logbookId,
-        encryptedData: c.encryptedData,
-        iv: c.iv,
-        tag: c.tag,
-        updatedAt: c.updatedAt
-      }))
+      manifest.files.crews.map((c) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, c.path))
+        return {
+          payloadId: c.payloadId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          updatedAt: c.updatedAt
+        }
+      })
     )
   }
 
-  if (payloads.entries.length > 0) {
+  if (manifest.files.entries.length > 0) {
     await db.entries.bulkPut(
-      payloads.entries.map((e) => ({
-        payloadId: e.payloadId,
-        logbookId,
-        encryptedData: e.encryptedData,
-        iv: e.iv,
-        tag: e.tag,
-        updatedAt: e.updatedAt
-      }))
+      manifest.files.entries.map((e) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, e.path))
+        return {
+          payloadId: e.payloadId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          updatedAt: e.updatedAt
+        }
+      })
     )
   }
 
-  if (payloads.photos.length > 0) {
+  if (manifest.files.photos.length > 0) {
     await db.photos.bulkPut(
-      payloads.photos.map((p) => ({
-        payloadId: p.payloadId,
-        entryId: p.entryId,
-        logbookId,
-        encryptedData: p.encryptedData,
-        iv: p.iv,
-        tag: p.tag,
-        caption: '',
-        updatedAt: p.updatedAt
-      }))
+      manifest.files.photos.map((p) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, p.path))
+        return {
+          payloadId: p.payloadId,
+          entryId: p.entryId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          caption: '',
+          updatedAt: p.updatedAt
+        }
+      })
     )
   }
 
-  const voiceMemosToRestore = payloads.voiceMemos ?? []
-  if (voiceMemosToRestore.length > 0) {
+  if (manifest.files.voiceMemos.length > 0) {
     await db.voiceMemos.bulkPut(
-      voiceMemosToRestore.map((v) => ({
-        payloadId: v.payloadId,
-        entryId: v.entryId,
-        logbookId,
-        encryptedData: v.encryptedData,
-        iv: v.iv,
-        tag: v.tag,
-        updatedAt: v.updatedAt
-      }))
+      manifest.files.voiceMemos.map((v) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, v.path))
+        return {
+          payloadId: v.payloadId,
+          entryId: v.entryId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          updatedAt: v.updatedAt
+        }
+      })
     )
   }
 
-  if (payloads.gpsTracks.length > 0) {
+  if (manifest.files.gpsTracks.length > 0) {
     await db.gpsTracks.bulkPut(
-      payloads.gpsTracks.map((t) => ({
-        entryId: t.entryId,
-        logbookId,
-        encryptedData: t.encryptedData,
-        iv: t.iv,
-        tag: t.tag,
-        updatedAt: t.updatedAt
-      }))
+      manifest.files.gpsTracks.map((t) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, t.path))
+        return {
+          entryId: t.entryId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          updatedAt: t.updatedAt
+        }
+      })
     )
+  }
+
+  if (manifest.files.nmeaArchives.length > 0) {
+    await db.nmeaArchives.bulkPut(
+      manifest.files.nmeaArchives.map((n) => {
+        const f = dexieFieldsFromEncBytes(readBinaryFile(files, n.path))
+        return {
+          entryId: n.entryId,
+          logbookId,
+          encryptedData: f.encryptedData,
+          iv: f.iv,
+          tag: f.tag,
+          updatedAt: n.updatedAt
+        }
+      })
+    )
+  }
+}
+
+function remapParsedBackup(
+  parsed: ParsedLogbookBackup,
+  newLogbookId: string
+): ParsedLogbookBackup {
+  const logbookMeta = JSON.parse(readTextFile(parsed.files, parsed.manifest.files.logbook)) as LogbookMetaJson
+  logbookMeta.id = newLogbookId
+  const newFiles = { ...parsed.files }
+  newFiles[parsed.manifest.files.logbook] = new TextEncoder().encode(JSON.stringify(logbookMeta))
+  return {
+    manifest: { ...parsed.manifest, logbookId: newLogbookId },
+    files: newFiles
   }
 }
 
 export async function exportLogbookBackup(
   logbookId: string,
-  passphrase: string
-): Promise<{ blob: Blob; filename: string; backup: LogbookBackupFile }> {
+  passphrase: string,
+  options: ExportLogbookBackupOptions = {}
+): Promise<{ blob: Blob; filename: string; manifest: BackupManifestV2 }> {
   if (!passphrase.trim() || passphrase.length < 8) {
     throw new Error('BACKUP_PASSPHRASE_TOO_SHORT')
   }
@@ -523,78 +473,84 @@ export async function exportLogbookBackup(
     })
   }
 
+  options.onProgress?.({ phase: 'collect', current: 0, total: 1, bytesPacked: 0 })
+  const collected = await collectLogbookBackupData(logbookId)
   const logbookKey = (await getLogbookKey(logbookId)) ?? (await ensureLogbookKey(logbookId))
-  const payloads = await collectLogbookPayloads(logbookId)
-  const wrappedKey = await wrapLogbookKey(logbookKey, passphrase)
+  const wrapped = await wrapLogbookKey(logbookKey, passphrase)
+  const keyEnc = encBytesFromDexieFields({
+    encryptedData: wrapped.ciphertext,
+    iv: wrapped.iv,
+    tag: wrapped.tag
+  })
 
-  const backup: LogbookBackupFile = {
-    format: BACKUP_FORMAT,
-    version: BACKUP_VERSION,
+  const { zipBytes, manifest } = buildArchiveFromCollected(collected, keyEnc, {
     exportedAt: new Date().toISOString(),
-    logbook: {
-      id: logbook.id,
-      encryptedTitle: logbook.encryptedTitle,
-      updatedAt: logbook.updatedAt,
-      isDemo: logbook.isDemo === 1
-    },
-    logbookKey: wrappedKey,
-    payloads,
-    counts: {
-      entries: payloads.entries.length,
-      photos: payloads.photos.length,
-      voiceMemos: payloads.voiceMemos?.length ?? 0,
-      crews: payloads.crews.length,
-      gpsTracks: payloads.gpsTracks.length,
-      hasYacht: !!payloads.yacht,
-      hasDeviation: !!payloads.deviation
-    }
-  }
+    appVersion: getAppVersion(),
+    onProgress: options.onProgress
+  })
 
   const title = await decryptLogbookTitle(logbookId, logbook.encryptedTitle)
   const safeTitle = title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'logbook'
   const datePart = new Date().toISOString().slice(0, 10)
-  const filename = `${safeTitle}-${datePart}.daagbok.json`
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+  const filename = `${safeTitle}-${datePart}.daagbok`
+  const blob = new Blob([zipBytes.slice()], { type: 'application/zip' })
 
-  return { blob, filename, backup }
+  return { blob, filename, manifest }
 }
 
-export async function parseLogbookBackupFile(file: File): Promise<LogbookBackupFile> {
-  const text = await file.text()
-  let parsed: unknown
+function detectLegacyJsonV1(text: string): boolean {
+  const trimmed = text.trimStart()
+  if (!trimmed.startsWith('{')) return false
   try {
-    parsed = JSON.parse(text)
+    const parsed = JSON.parse(trimmed) as { format?: string; version?: number }
+    return parsed.format === BACKUP_FORMAT && parsed.version === 1
   } catch {
-    throw new Error('BACKUP_INVALID_JSON')
+    return false
   }
+}
 
-  if (!isBackupFile(parsed)) {
-    throw new Error('BACKUP_INVALID_FORMAT')
-  }
+export async function parseLogbookBackupFile(file: File): Promise<ParsedLogbookBackup> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
 
-  return {
-    ...parsed,
-    payloads: normalizeBackupPayloads(parsed.payloads),
-    counts: {
-      ...parsed.counts,
-      voiceMemos: parsed.counts.voiceMemos ?? parsed.payloads.voiceMemos?.length ?? 0
+  if (!isZipArchive(bytes)) {
+    const text = new TextDecoder().decode(bytes)
+    if (detectLegacyJsonV1(text)) {
+      throw new Error('BACKUP_VERSION_UNSUPPORTED')
     }
+    throw new Error('BACKUP_INVALID_ARCHIVE')
   }
+
+  const files = unzipArchive(bytes)
+  const manifest = readManifestFromArchive(files)
+  return { manifest, files }
 }
 
 export async function previewLogbookBackup(
-  backup: LogbookBackupFile,
+  backup: ParsedLogbookBackup,
   passphrase: string
 ): Promise<LogbookBackupPreview> {
-  const logbookKey = await unwrapLogbookKey(backup.logbookKey, passphrase)
-  const parsed = JSON.parse(backup.logbook.encryptedTitle)
-  const title = await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, logbookKey)
+  const logbookKey = await unwrapLogbookKeyFromEnc(
+    readBinaryFile(backup.files, backup.manifest.files.key),
+    passphrase
+  )
+  const logbookMeta = JSON.parse(
+    readTextFile(backup.files, backup.manifest.files.logbook)
+  ) as LogbookMetaJson
+  const parsed = JSON.parse(logbookMeta.encryptedTitle)
+  let title: string
+  try {
+    title = await decryptJson(parsed.ciphertext, parsed.iv, parsed.tag, logbookKey)
+  } catch {
+    throw new Error('BACKUP_WRONG_PASSPHRASE')
+  }
 
   return {
     title,
-    exportedAt: backup.exportedAt,
-    sourceLogbookId: backup.logbook.id,
-    counts: backup.counts
+    exportedAt: backup.manifest.exportedAt,
+    sourceLogbookId: backup.manifest.logbookId,
+    counts: backup.manifest.counts,
+    totalUncompressedBytes: backup.manifest.totalUncompressedBytes
   }
 }
 
@@ -604,7 +560,7 @@ export interface RestoreLogbookOptions {
 }
 
 export async function restoreLogbookBackup(
-  backup: LogbookBackupFile,
+  backup: ParsedLogbookBackup,
   passphrase: string,
   options: RestoreLogbookOptions = {}
 ): Promise<{ logbookId: string; title: string }> {
@@ -612,16 +568,22 @@ export async function restoreLogbookBackup(
     throw new Error('BACKUP_NOT_AUTHENTICATED')
   }
 
-  const logbookKey = await unwrapLogbookKey(backup.logbookKey, passphrase)
-  const parsedTitle = JSON.parse(backup.logbook.encryptedTitle)
-  const title = await decryptJson(
-    parsedTitle.ciphertext,
-    parsedTitle.iv,
-    parsedTitle.tag,
-    logbookKey
+  const logbookKey = await unwrapLogbookKeyFromEnc(
+    readBinaryFile(backup.files, backup.manifest.files.key),
+    passphrase
   )
+  const logbookMeta = JSON.parse(
+    readTextFile(backup.files, backup.manifest.files.logbook)
+  ) as LogbookMetaJson
+  const parsedTitle = JSON.parse(logbookMeta.encryptedTitle)
+  let title: string
+  try {
+    title = await decryptJson(parsedTitle.ciphertext, parsedTitle.iv, parsedTitle.tag, logbookKey)
+  } catch {
+    throw new Error('BACKUP_WRONG_PASSPHRASE')
+  }
 
-  let targetId = backup.logbook.id
+  let targetId = backup.manifest.logbookId
   const existing = await db.logbooks.get(targetId)
 
   if (existing && !options.overwrite && !options.assignNewId) {
@@ -632,24 +594,29 @@ export async function restoreLogbookBackup(
     await deleteLocalLogbookCache(targetId)
   }
 
+  let prepared = backup
   if (options.assignNewId || (existing && !options.overwrite)) {
     targetId = crypto.randomUUID()
+    prepared = remapParsedBackup(backup, targetId)
   }
 
-  const normalized = {
-    ...backup,
-    payloads: normalizeBackupPayloads(backup.payloads)
-  }
-  const prepared = targetId === normalized.logbook.id
-    ? normalized
-    : remapBackup(normalized, targetId)
+  const finalMeta = JSON.parse(
+    readTextFile(prepared.files, prepared.manifest.files.logbook)
+  ) as LogbookMetaJson
 
-  await writeBackupToDexie(targetId, prepared, logbookKey)
+  await writeBackupToDexie(
+    targetId,
+    finalMeta,
+    logbookKey,
+    prepared.manifest,
+    prepared.files
+  )
   await queueRestoredLogbookForSync(
     targetId,
-    prepared.logbook.encryptedTitle,
+    finalMeta.encryptedTitle,
     logbookKey,
-    prepared.payloads
+    prepared.manifest,
+    prepared.files
   )
 
   if (navigator.onLine) {
@@ -669,3 +636,13 @@ export function downloadBackupBlob(blob: Blob, filename: string): void {
   anchor.click()
   URL.revokeObjectURL(url)
 }
+
+/** Human-readable size for UI warnings. */
+export function formatBackupBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+export const BACKUP_SIZE_WARN_BYTES = 50_000_000
+export const BACKUP_SIZE_CONFIRM_BYTES = 150_000_000

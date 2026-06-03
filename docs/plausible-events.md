@@ -42,8 +42,8 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Live Log Voice Uploaded | Sprachnotiz im Live-Journal gespeichert (`voiceAttachments.ts`, `analyticsContext`: `live_log`) | — |
 | OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
 | AI Summary Generated | Erfolgreiche KI-Zusammenfassung eines Reisetags (`aiSummary.ts`) | — |
-| Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`) | `entries`, `photos` (Anzahlen, keine Inhalte) |
-| Backup Restored | Backup wiederhergestellt (`LogbookBackupPanel.tsx`) | `entries`, `photos`, `mode`: `same_id` \| `overwrite` \| `new_id` |
+| Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes` (Anzahlen/Größe, keine Inhalte) |
+| Backup Restored | Backup wiederhergestellt (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes`, `mode`: `same_id` \| `overwrite` \| `new_id` |
 | Push Enabled | Crew-Änderungs-Push aktiviert (`PushNotificationSettings.tsx`) | — |
 | Push Disabled | Crew-Änderungs-Push deaktiviert (`PushNotificationSettings.tsx`) | — |
 | Footer Link Clicked | Klick auf Autoren-Link im App-Footer (`AppFooter.tsx`) | — |
