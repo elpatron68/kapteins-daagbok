@@ -43,34 +43,53 @@ export default function LiveVoiceCapture({
   const [previewMime, setPreviewMime] = useState('audio/webm')
   const [previewDurationSec, setPreviewDurationSec] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [logs, setLogs] = useState<string[]>([])
+
+  const log = useCallback((msg: string) => {
+    console.log(`[VoiceDebug] ${msg}`)
+    setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`])
+  }, [])
 
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const el = previewAudioRef.current
-    if (!el) return
+    if (!el) {
+      log('previewAudioRef is null')
+      return
+    }
+
+    log('Preview audio player loaded. readyState=' + el.readyState + ', duration=' + el.duration + ', src=' + el.src)
 
     const handleLoadedMetadata = () => {
+      log('loadedmetadata event fired. readyState=' + el.readyState + ', duration=' + el.duration)
       if (el.duration === Infinity || isNaN(el.duration) || el.duration === 0) {
+        log('Duration correction hack triggered (duration=' + el.duration + '). Seeking to 1e10...')
         el.currentTime = 1e10
         const onTimeUpdate = () => {
+          log('timeupdate event. currentTime=' + el.currentTime + ', duration=' + el.duration)
           el.currentTime = 0
           el.removeEventListener('timeupdate', onTimeUpdate)
+          log('currentTime reset to 0. Final duration=' + el.duration)
         }
         el.addEventListener('timeupdate', onTimeUpdate)
+      } else {
+        log('Duration correction skipped (duration is valid)')
       }
     }
 
     if (el.readyState >= 1) {
+      log('readyState >= 1. Executing hack immediately...')
       handleLoadedMetadata()
     } else {
+      log('readyState = 0. Adding loadedmetadata event listener...')
       el.addEventListener('loadedmetadata', handleLoadedMetadata)
     }
 
     return () => {
       el.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
-  }, [previewUrl])
+  }, [previewUrl, log])
 
   const stopStream = useCallback(() => {
     for (const track of streamRef.current?.getTracks() ?? []) {
@@ -143,22 +162,46 @@ export default function LiveVoiceCapture({
   const startRecording = async () => {
     setMicError(null)
     chunksRef.current = []
+    log('startRecording flow triggered')
     if (!navigator.mediaDevices?.getUserMedia) {
+      log('navigator.mediaDevices.getUserMedia is unavailable')
       setMicError(t('logs.live_voice_mic_denied'))
       return
     }
     try {
+      log('Requesting getUserMedia audio stream...')
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
+      log('Stream obtained successfully. active=' + stream.active)
+      stream.getTracks().forEach((track, i) => {
+        log(`Track ${i}: label="${track.label}" enabled=${track.enabled} readyState=${track.readyState} muted=${track.muted}`)
+      })
+
       const mimeType = pickMediaRecorderMimeType()
+      log('MIME type candidates support check:')
+      const MIME_CANDIDATES = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus'
+      ]
+      MIME_CANDIDATES.forEach(mime => {
+        log(` - ${mime}: ${MediaRecorder.isTypeSupported(mime) ? 'SUPPORTED' : 'UNSUPPORTED'}`)
+      })
+      log('Selected MIME from picker: ' + mimeType)
+
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
         : new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
       const resolvedMime = recorder.mimeType || mimeType || 'audio/webm'
+      log('MediaRecorder created. Resolved mime=' + resolvedMime)
 
       recorder.ondataavailable = (ev) => {
-        if (ev.data.size > 0) chunksRef.current.push(ev.data)
+        log(`ondataavailable event: data size=${ev.data?.size} bytes`)
+        if (ev.data && ev.data.size > 0) {
+          chunksRef.current.push(ev.data)
+        }
       }
 
       recorder.onstop = () => {
@@ -166,47 +209,67 @@ export default function LiveVoiceCapture({
           VOICE_MEMO_MAX_DURATION_SEC,
           Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
         )
+        log(`onstop triggered. durationSec=${durationSec}. Wrapping in 50ms timeout...`)
         setTimeout(() => {
+          log(`Creating Blob from ${chunksRef.current.length} chunks. Resolved mime=${resolvedMime}`)
+          const totalChunksSize = chunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0)
+          log(`Total raw chunks size: ${totalChunksSize} bytes`)
           const blob = new Blob(chunksRef.current, { type: resolvedMime })
           chunksRef.current = []
           stopStream()
+          log(`Blob finalized: size=${blob.size} bytes, type=${blob.type}`)
           try {
             assertVoiceMemoBlobSize(blob)
+            log('Blob size assertion passed. Calling finishRecording...')
             finishRecording(blob, resolvedMime, durationSec)
-          } catch {
+          } catch (err) {
+            log('Blob size assertion failed (too large)')
             setMicError(t('logs.live_voice_too_large'))
             setPhase('idle')
           }
         }, 50)
       }
 
-      recorder.onerror = () => {
+      recorder.onerror = (ev) => {
+        log('MediaRecorder onerror triggered: ' + JSON.stringify(ev))
         setMicError(t('logs.live_voice_record_failed'))
         resetAll()
       }
 
       startedAtRef.current = Date.now()
+      log('Calling recorder.start()...')
       recorder.start()
+      log('recorder.start() called. State=' + recorder.state)
       setPhase('recording')
       setElapsedSec(0)
       timerRef.current = window.setInterval(() => {
         const sec = Math.floor((Date.now() - startedAtRef.current) / 1000)
         setElapsedSec(sec)
         if (sec >= VOICE_MEMO_MAX_DURATION_SEC) {
+          log('Max duration reached. Stopping recording...')
           stopRecording()
         }
       }, 250)
-    } catch {
+    } catch (err: any) {
+      log('Error in startRecording try-catch block: ' + (err instanceof Error ? err.stack || err.message : String(err)))
       setMicError(t('logs.live_voice_mic_denied'))
       stopStream()
     }
   }
 
   const handleSave = async () => {
-    if (!previewBlob || saving || busy) return
+    if (!previewBlob || saving || busy) {
+      log('handleSave ignored. previewBlob=' + (previewBlob ? 'PRESENT' : 'NULL') + ' saving=' + saving + ' busy=' + busy)
+      return
+    }
+    log('handleSave triggered. Saving blob size=' + previewBlob.size + ' mime=' + previewMime + ' duration=' + previewDurationSec)
     setSaving(true)
     try {
-      onSave(previewBlob, previewMime, previewDurationSec)
+      log('Invoking onSave callback...')
+      await onSave(previewBlob, previewMime, previewDurationSec)
+      log('onSave callback successfully finished!')
+    } catch (err: any) {
+      log('Error during onSave execution: ' + (err instanceof Error ? err.stack || err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -308,6 +371,41 @@ export default function LiveVoiceCapture({
             </div>
           </>
         )}
+
+        {/* Debug Logs Panel */}
+        <div style={{
+          marginTop: '20px',
+          padding: '10px',
+          background: 'rgba(0,0,0,0.6)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '8px',
+          maxHeight: '180px',
+          overflowY: 'auto',
+          textAlign: 'left',
+          fontSize: '11px',
+          fontFamily: 'monospace',
+          color: '#4ade80',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
+            <span>Debug Console Logs:</span>
+            <button 
+              type="button" 
+              onClick={() => setLogs([])}
+              style={{ background: 'none', border: 'none', color: '#fda4af', cursor: 'pointer', fontSize: '10px', padding: '0 4px', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
+          </div>
+          {logs.length === 0 ? (
+            <span style={{ color: '#94a3b8' }}>No logs yet. Start recording to debug.</span>
+          ) : (
+            logs.map((l, i) => (
+              <div key={i} style={{ wordBreak: 'break-all', marginBottom: '2px' }}>{l}</div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
