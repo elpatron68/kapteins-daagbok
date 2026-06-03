@@ -1,4 +1,5 @@
 const SIGNATURE_KEYS = new Set(['signSkipper', 'signCrew'])
+const AI_SUMMARY_KEYS = new Set(['aiSummary', 'aiSummaryGeneratedAt'])
 
 function sortEventsByTime(items: unknown[]): unknown[] {
   return [...items]
@@ -25,7 +26,7 @@ function sortValue(value: unknown, parentKey?: string): unknown {
   const obj = value as Record<string, unknown>
   const sorted: Record<string, unknown> = {}
   for (const key of Object.keys(obj).sort()) {
-    if (SIGNATURE_KEYS.has(key)) continue
+    if (SIGNATURE_KEYS.has(key) || AI_SUMMARY_KEYS.has(key)) continue
     sorted[key] = sortValue(obj[key], key)
   }
   return sorted

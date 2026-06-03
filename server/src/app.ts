@@ -10,6 +10,7 @@ import collaborationRouter from './routes/collaboration.js'
 import signRouter from './routes/sign.js'
 import pushRouter from './routes/push.js'
 import weatherRouter from './routes/weather.js'
+import aiRouter from './routes/ai.js'
 import feedbackRouter from './routes/feedback.js'
 import { prisma } from './db.js'
 import { buildCorsOptions } from './cors.js'
@@ -118,6 +119,7 @@ export function createApp(): express.Express {
   app.use('/api/sign', signRouter)
   app.use('/api/push', pushRouter)
   app.use('/api/weather', weatherRouter)
+  app.use('/api/ai', aiRouter)
   app.use('/api/feedback', feedbackRouter)
 
   app.get('/api/health', async (_req, res) => {

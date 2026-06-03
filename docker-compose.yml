@@ -32,6 +32,8 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@kapteins-daagbok.eu}
       OpenWeatherMapAPIKey: ${OpenWeatherMapAPIKey:-}
+      OpenRouterAPIKey: ${OpenRouterAPIKey:-}
+      OpenRouterModel: ${OpenRouterModel:-anthropic/claude-3.5-haiku}
       SESSION_SECRET: ${SESSION_SECRET:-}
       NTFY_SERVER: ${NTFY_SERVER:-https://ntfy.sh}
       NTFY_TOPIC: ${NTFY_TOPIC:-}

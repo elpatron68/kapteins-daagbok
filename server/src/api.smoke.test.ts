@@ -45,4 +45,18 @@ describe('API smoke', () => {
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/Token/i)
   })
+
+  it('POST /api/ai/summary requires session', async () => {
+    const res = await request(app)
+      .post('/api/ai/summary')
+      .send({ logbookId: 'x', entryId: 'y', context: {} })
+    expect(res.status).toBe(401)
+    expect(res.body.error).toMatch(/Unauthorized/i)
+  })
+
+  it('GET /api/ai/usage requires session', async () => {
+    const res = await request(app).get('/api/ai/usage')
+    expect(res.status).toBe(401)
+    expect(res.body.error).toMatch(/Unauthorized/i)
+  })
 })

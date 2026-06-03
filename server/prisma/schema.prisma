@@ -252,3 +252,14 @@ model GpsTrackPayload {
 
   @@index([logbookId])
 }
+
+model AiSummaryUsage {
+  id        String   @id @default(uuid())
+  logbookId String
+  entryId   String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([logbookId, entryId])
+  @@index([logbookId])
+}

@@ -74,7 +74,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
 
   // Headers matching the requested event fields & metadata
   const headers = [
-    'Date', 'Day of Travel', 'Departure Port', 'Destination Port',
+    'Date', 'Day of Travel', 'Departure Port', 'Destination Port', 'AI Summary',
     'Skipper Signature', 'Crew Signature',
     'Track Distance (nm)', 'Track Max Speed (kn)', 'Track Avg Speed (kn)', 'Motor Hours (h)',
     'Event Time', 'MgK Course', 'RwK Course',
@@ -120,12 +120,13 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     const fuelE = entry.fuel?.evening ?? '';
     const fuelCons = entry.fuel?.consumption ?? '';
     const greywaterLevel = entry.greywater?.level ?? '';
+    const aiSummary = entry.aiSummary ?? '';
 
     const eventsList = entry.events || [];
     if (eventsList.length === 0) {
       // Create one row even if there are no events for the day
       rows.push([
-        dateVal, travelDay, dep, dest,
+        dateVal, travelDay, dep, dest, aiSummary,
         signS, signC,
         trackDist, trackMax, trackAvg, motorH,
         '', '', '',
@@ -142,7 +143,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
       const sortedEvents = sortLogEventsByTime(eventsList);
       for (const ev of sortedEvents) {
         rows.push([
-          dateVal, travelDay, dep, dest,
+          dateVal, travelDay, dep, dest, aiSummary,
           signS, signC,
           trackDist, trackMax, trackAvg, motorH,
           ev.time || '', ev.mgk || '', ev.rwk || '',

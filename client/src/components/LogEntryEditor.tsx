@@ -8,7 +8,7 @@ import { syncLogbook } from '../services/sync.js'
 import { saveEntryDraft, clearEntryDraft } from '../services/entryDraft.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import SignatureSection from './SignatureSection.tsx'
 import EntryCrewSection from './EntryCrewSection.tsx'
@@ -37,6 +37,12 @@ import { putEntryRecord } from '../utils/entryListCache.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
+import {
+  buildTravelDayContext,
+  fetchTravelDaySummaryUsage,
+  generateTravelDaySummary,
+  TravelDaySummaryApiError
+} from '../services/aiSummary.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -199,6 +205,13 @@ export default function LogEntryEditor({
   const [signCrew, setSignCrew] = useState<SignatureValue | ''>('')
   const [canSignSkipper, setCanSignSkipper] = useState(false)
   const [canSignCrew, setCanSignCrew] = useState(false)
+
+  const [aiSummary, setAiSummary] = useState('')
+  const [aiSummaryGeneratedAt, setAiSummaryGeneratedAt] = useState('')
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null)
+  const [aiSummaryRemaining, setAiSummaryRemaining] = useState<number | null>(null)
+  const [aiSummaryMaxAttempts, setAiSummaryMaxAttempts] = useState(3)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [entryHash, setEntryHash] = useState('')
 
@@ -434,6 +447,8 @@ export default function LogEntryEditor({
       eventsOverride?: LogEvent[]
       signSkipper?: SignatureValue | ''
       signCrew?: SignatureValue | ''
+      aiSummary?: string
+      aiSummaryGeneratedAt?: string
     }
   ) => {
     if (readOnly) return
@@ -442,14 +457,21 @@ export default function LogEntryEditor({
     const eventsOverride = normalized.eventsOverride
     const skipperToSave = normalized.signSkipper !== undefined ? normalized.signSkipper : signSkipper
     const crewToSave = normalized.signCrew !== undefined ? normalized.signCrew : signCrew
+    const summaryToSave = normalized.aiSummary !== undefined ? normalized.aiSummary : aiSummary
+    const summaryAtToSave =
+      normalized.aiSummaryGeneratedAt !== undefined ? normalized.aiSummaryGeneratedAt : aiSummaryGeneratedAt
 
     const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
     if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
-    const entryData = {
+    const entryData: Record<string, unknown> = {
       ...buildPayloadForSigning(eventsOverride),
       signSkipper: normalizedSerializedSignature(skipperToSave),
       signCrew: normalizedSerializedSignature(crewToSave)
+    }
+    if (summaryToSave.trim()) {
+      entryData.aiSummary = summaryToSave.trim()
+      entryData.aiSummaryGeneratedAt = summaryAtToSave || new Date().toISOString()
     }
 
     const encrypted = await encryptJson(entryData, masterKey)
@@ -489,7 +511,8 @@ export default function LogEntryEditor({
     setEntryHash(hash)
     lockedContentHashRef.current = hasAnySignature(skipperToSave, crewToSave) ? hash : null
   }, [
-    readOnly, logbookId, entryId, events, buildPayloadForSigning, signSkipper, signCrew
+    readOnly, logbookId, entryId, events, buildPayloadForSigning, signSkipper, signCrew,
+    aiSummary, aiSummaryGeneratedAt
   ])
 
   useEffect(() => {
@@ -513,6 +536,24 @@ export default function LogEntryEditor({
       )
     })
   }, [logbookId])
+
+  useEffect(() => {
+    if (!canSignSkipper || readOnly) {
+      setAiSummaryRemaining(null)
+      return
+    }
+    let cancelled = false
+    fetchTravelDaySummaryUsage(logbookId, entryId)
+      .then((usage) => {
+        if (cancelled) return
+        setAiSummaryRemaining(usage.remainingAttempts)
+        setAiSummaryMaxAttempts(usage.maxAttempts)
+      })
+      .catch((err) => {
+        console.warn('Failed to load AI summary usage:', err)
+      })
+    return () => { cancelled = true }
+  }, [canSignSkipper, readOnly, logbookId, entryId])
 
   useEffect(() => {
     const seq = ++entryHashSeqRef.current
@@ -740,6 +781,8 @@ export default function LogEntryEditor({
           setEntryCrew(entryCrewFromPreviousEntry(preloadedEntry as Record<string, unknown>))
           loadTrackStatsFromEntry(preloadedEntry)
           setEvents(sortLogEventsByTime((preloadedEntry.events || []).map(normalizeLogEvent)))
+          setAiSummary(String(preloadedEntry.aiSummary || ''))
+          setAiSummaryGeneratedAt(String(preloadedEntry.aiSummaryGeneratedAt || ''))
           setSavedFingerprint(fingerprintFromStoredEntry(preloadedEntry))
           return
         }
@@ -779,6 +822,8 @@ export default function LogEntryEditor({
             setEntryCrew(entryCrewFromPreviousEntry(decrypted as Record<string, unknown>))
             loadTrackStatsFromEntry(decrypted)
             setEvents(sortLogEventsByTime((decrypted.events || []).map(normalizeLogEvent)))
+            setAiSummary(String(decrypted.aiSummary || ''))
+            setAiSummaryGeneratedAt(String(decrypted.aiSummaryGeneratedAt || ''))
             setSavedFingerprint(fingerprintFromStoredEntry(decrypted))
           }
         }
@@ -1029,6 +1074,83 @@ export default function LogEntryEditor({
       showAlert(t('settings.weather_error'))
     } finally {
       setWeatherLoading(false)
+    }
+  }
+
+  const handleGenerateAiSummary = async () => {
+    if (!canSignSkipper || readOnly || aiSummaryLoading) return
+    if (aiSummaryRemaining === 0) {
+      setAiSummaryError(t('logs.ai_summary_error_rate_limited'))
+      return
+    }
+
+    setAiSummaryLoading(true)
+    setAiSummaryError(null)
+    try {
+      const context = buildTravelDayContext(
+        {
+          date,
+          dayOfTravel,
+          departure,
+          destination,
+          trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
+          trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
+          trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
+          motorHours: motorHours.trim() ? parseFloat(motorHours) : undefined,
+          freshwater: {
+            morning: parseFloat(fwMorning) || 0,
+            refilled: parseFloat(fwRefilled) || 0,
+            evening: parseFloat(fwEvening) || 0,
+            consumption: parseFloat(fwConsumption) || 0
+          },
+          fuel: {
+            morning: parseFloat(fuelMorning) || 0,
+            refilled: parseFloat(fuelRefilled) || 0,
+            evening: parseFloat(fuelEvening) || 0,
+            consumption: parseFloat(fuelConsumption) || 0
+          },
+          greywaterLevel: parseFloat(greywaterLevel) || 0,
+          events
+        },
+        t
+      )
+
+      const language = i18n.language.split('-')[0] || 'en'
+      const result = await generateTravelDaySummary({
+        logbookId,
+        entryId,
+        language,
+        context
+      })
+
+      const generatedAt = new Date().toISOString()
+      setAiSummary(result.summary)
+      setAiSummaryGeneratedAt(generatedAt)
+      setAiSummaryRemaining(result.remainingAttempts)
+      setAiSummaryMaxAttempts(result.maxAttempts)
+
+      await persistEntryToDb({
+        aiSummary: result.summary,
+        aiSummaryGeneratedAt: generatedAt
+      })
+    } catch (err) {
+      if (err instanceof TravelDaySummaryApiError) {
+        if (err.code === 'NO_KEY') {
+          setAiSummaryError(t('logs.ai_summary_error_no_key'))
+        } else if (err.code === 'RATE_LIMITED') {
+          setAiSummaryError(t('logs.ai_summary_error_rate_limited'))
+          setAiSummaryRemaining(0)
+        } else if (err.code === 'FORBIDDEN') {
+          setAiSummaryError(t('logs.ai_summary_error_forbidden'))
+        } else {
+          setAiSummaryError(err.message || t('logs.ai_summary_error'))
+        }
+      } else {
+        console.error('AI summary generation failed:', err)
+        setAiSummaryError(getErrorMessage(err, t('logs.ai_summary_error')))
+      }
+    } finally {
+      setAiSummaryLoading(false)
     }
   }
 
@@ -1397,6 +1519,47 @@ export default function LogEntryEditor({
             </div>
           </div>
         </div>
+
+        {(aiSummary.trim() || canSignSkipper) && (
+          <div className="form-card">
+            <div className="form-header">
+              <Sparkles size={20} className="form-icon" />
+              <h3>{t('logs.ai_summary_title')}</h3>
+            </div>
+            {aiSummary.trim() ? (
+              <p style={{ whiteSpace: 'pre-wrap', margin: '0 0 16px', lineHeight: 1.5 }}>{aiSummary}</p>
+            ) : (
+              <p style={{ margin: '0 0 16px', opacity: 0.75 }}>{t('logs.ai_summary_empty')}</p>
+            )}
+            {canSignSkipper && !readOnly && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void handleGenerateAiSummary()}
+                  disabled={saving || aiSummaryLoading || aiSummaryRemaining === 0}
+                  style={{ width: 'auto' }}
+                >
+                  <Sparkles size={16} />
+                  {aiSummaryLoading
+                    ? t('logs.ai_summary_generating')
+                    : aiSummary.trim()
+                      ? t('logs.ai_summary_regenerate')
+                      : t('logs.ai_summary_generate')}
+                </button>
+                {aiSummaryRemaining !== null && (
+                  <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                    {t('logs.ai_summary_attempts_remaining', {
+                      remaining: aiSummaryRemaining,
+                      max: aiSummaryMaxAttempts
+                    })}
+                  </span>
+                )}
+              </div>
+            )}
+            {aiSummaryError && <div className="auth-error" style={{ marginTop: '12px' }}>{aiSummaryError}</div>}
+          </div>
+        )}
 
         {/* Section 2: Freshwater and Fuel Consumption */}
         <div className="form-grid">
