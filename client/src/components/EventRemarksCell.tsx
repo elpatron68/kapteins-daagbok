@@ -25,7 +25,7 @@ export default function EventRemarksCell({
   }
 
   return (
-    <div className="event-remarks-cell">
+    <div className={`event-remarks-cell${voiceId ? ' event-remarks-cell--voice' : ''}`}>
       <span>{summary}</span>
       {voiceId && (
         <VoiceMemoPlayer

@@ -3667,8 +3667,12 @@ html.theme-cupertino .events-scroll-container {
 .live-log-summary-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+}
+
+.live-log-summary-block .voice-memo-player-shell {
+  margin-top: 2px;
 }
 
 .live-voice-modal .live-voice-modal-header {
@@ -3719,14 +3723,27 @@ html.theme-cupertino .events-scroll-container {
   font-size: 13px;
 }
 
+.voice-memo-player-shell {
+  display: block;
+  max-width: 100%;
+  padding: 2px 4px 2px 0;
+  box-sizing: border-box;
+}
+
 .voice-memo-player {
+  display: block;
   width: 100%;
-  max-width: 280px;
-  height: 32px;
+  max-width: 300px;
+  min-width: 260px;
+  height: 36px;
+  box-sizing: content-box;
+  padding-inline: 2px 12px;
 }
 
 .voice-memo-player--compact {
-  max-width: 220px;
+  max-width: 280px;
+  min-width: 240px;
+  padding-inline-end: 14px;
 }
 
 .voice-memo-player-unavailable {
@@ -3740,6 +3757,18 @@ html.theme-cupertino .events-scroll-container {
   flex-direction: column;
   gap: 6px;
   align-items: flex-start;
+}
+
+.event-remarks-cell--voice {
+  gap: 8px;
+}
+
+.events-table .remarks-td {
+  padding-right: 20px;
+}
+
+.events-table .remarks-td + .events-actions-td {
+  padding-left: 12px;
 }
 
 @media (max-width: 720px) {

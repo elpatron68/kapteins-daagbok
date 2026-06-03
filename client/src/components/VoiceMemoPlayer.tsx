@@ -69,12 +69,13 @@ export default function VoiceMemoPlayer({
     )
   }
 
+  const playerClass = compact
+    ? 'voice-memo-player voice-memo-player--compact'
+    : 'voice-memo-player'
+
   return (
-    <audio
-      className={compact ? 'voice-memo-player voice-memo-player--compact' : 'voice-memo-player'}
-      controls
-      preload="none"
-      src={src}
-    />
+    <div className="voice-memo-player-shell">
+      <audio className={playerClass} controls preload="none" src={src} />
+    </div>
   )
 }
