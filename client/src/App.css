@@ -5297,8 +5297,9 @@ html.theme-cupertino .events-scroll-container {
 /* PWA install prompt */
 .pwa-install-banner {
   position: fixed;
-  left: 16px;
-  right: 16px;
+  left: 0;
+  right: 0;
+  width: calc(100% - 32px);
   bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   z-index: 1200;
   display: grid;
@@ -5461,8 +5462,9 @@ html.theme-cupertino .events-scroll-container {
 .pwa-update-banner {
   position: fixed;
   top: calc(12px + env(safe-area-inset-top, 0px));
-  left: 16px;
-  right: 16px;
+  left: 0;
+  right: 0;
+  width: calc(100% - 32px);
   z-index: 1300;
   display: grid;
   grid-template-columns: auto 1fr auto;
