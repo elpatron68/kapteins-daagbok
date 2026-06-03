@@ -373,6 +373,7 @@
       "export_pdf": "Download PDF.",
       "exporting_pdf": "PDF er genereret...",
       "ai_summary_title": "AI-resumé",
+      "ai_summary_read_only": "Oprettet af skipperen — kun læsning for besætningen.",
       "ai_summary_empty": "Intet resumé endnu.",
       "ai_summary_generate": "Generér resumé",
       "ai_summary_regenerate": "Generér igen",

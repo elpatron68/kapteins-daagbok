@@ -373,6 +373,7 @@
       "export_pdf": "Hämta PDF.",
       "exporting_pdf": "PDF genereras...",
       "ai_summary_title": "AI-sammanfattning",
+      "ai_summary_read_only": "Skapad av skepparen — endast läsning för besättningen.",
       "ai_summary_empty": "Ingen sammanfattning ännu.",
       "ai_summary_generate": "Generera sammanfattning",
       "ai_summary_regenerate": "Generera igen",

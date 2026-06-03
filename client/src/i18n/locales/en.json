@@ -373,6 +373,7 @@
       "export_pdf": "Download PDF",
       "exporting_pdf": "Generating PDF...",
       "ai_summary_title": "AI Summary",
+      "ai_summary_read_only": "Created by the skipper — read-only for crew.",
       "ai_summary_empty": "No summary yet.",
       "ai_summary_generate": "Generate summary",
       "ai_summary_regenerate": "Regenerate",

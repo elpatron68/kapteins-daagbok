@@ -43,6 +43,7 @@ import {
   generateTravelDaySummary,
   TravelDaySummaryApiError
 } from '../services/aiSummary.js'
+import { tryDecryptEntryPayload } from '../services/quickEventLog.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -457,12 +458,27 @@ export default function LogEntryEditor({
     const eventsOverride = normalized.eventsOverride
     const skipperToSave = normalized.signSkipper !== undefined ? normalized.signSkipper : signSkipper
     const crewToSave = normalized.signCrew !== undefined ? normalized.signCrew : signCrew
-    const summaryToSave = normalized.aiSummary !== undefined ? normalized.aiSummary : aiSummary
-    const summaryAtToSave =
+    let summaryToSave = normalized.aiSummary !== undefined ? normalized.aiSummary : aiSummary
+    let summaryAtToSave =
       normalized.aiSummaryGeneratedAt !== undefined ? normalized.aiSummaryGeneratedAt : aiSummaryGeneratedAt
 
     const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
     if (!masterKey) throw new Error('Encryption key not found. Please log in.')
+
+    // Crew edits must not drop the skipper's AI summary when it is not loaded into editor state.
+    if (!summaryToSave.trim()) {
+      const local = await db.entries.get(entryId)
+      if (local) {
+        const decrypted = await tryDecryptEntryPayload(local, masterKey)
+        const existing =
+          decrypted && typeof decrypted.aiSummary === 'string' ? decrypted.aiSummary.trim() : ''
+        if (existing) {
+          summaryToSave = existing
+          summaryAtToSave =
+            typeof decrypted.aiSummaryGeneratedAt === 'string' ? decrypted.aiSummaryGeneratedAt : ''
+        }
+      }
+    }
 
     const entryData: Record<string, unknown> = {
       ...buildPayloadForSigning(eventsOverride),
@@ -1551,6 +1567,11 @@ export default function LogEntryEditor({
               <Sparkles size={20} className="form-icon" />
               <h3>{t('logs.ai_summary_title')}</h3>
             </div>
+            {aiSummary.trim() && !canSignSkipper && (
+              <p style={{ margin: '0 0 12px', fontSize: '0.9rem', opacity: 0.8 }}>
+                {t('logs.ai_summary_read_only')}
+              </p>
+            )}
             {aiSummary.trim() ? (
               <p style={{ whiteSpace: 'pre-wrap', margin: '0 0 16px', lineHeight: 1.5 }}>{aiSummary}</p>
             ) : (
