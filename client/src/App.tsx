@@ -103,7 +103,7 @@ function App() {
     [activeLogbookId]
   )
 
-  const [activeAccessRole, setActiveAccessRole] = useState<LogbookAccessRole | null>('OWNER')
+  const [activeAccessRole, setActiveAccessRole] = useState<LogbookAccessRole | null>(null)
 
   useEffect(() => {
     if (!activeLogbookId) {
@@ -574,7 +574,8 @@ function App() {
   const logbookReadOnly =
     activeLogbookRecord?.isShared === 1 && activeAccessRole === 'READ'
   const isLogbookOwner =
-    activeAccessRole === 'OWNER' || activeLogbookRecord?.isShared !== 1
+    activeAccessRole === 'OWNER' ||
+    (activeLogbookRecord != null && activeLogbookRecord.isShared !== 1)
 
   if (showUserProfile) {
     return (

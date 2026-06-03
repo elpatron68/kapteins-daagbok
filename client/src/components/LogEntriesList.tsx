@@ -9,7 +9,7 @@ import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
-import { findTodayEntryId } from '../services/quickEventLog.js'
+import { findTodayEntryId, tryDecryptEntryPayload } from '../services/quickEventLog.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
 import LiveLogView from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
@@ -136,7 +136,7 @@ export default function LogEntriesList({
       }
 
       await forEachInBatches(needsDecrypt, 8, async (entry) => {
-        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+        const decrypted = await tryDecryptEntryPayload(entry, masterKey)
         if (!decrypted) return
 
         const listCache = await buildEntryListCache(decrypted as Record<string, unknown>)
@@ -266,7 +266,7 @@ export default function LogEntriesList({
       const decryptedEntries: Array<LogEntryTankSource & TravelDaySortable> = []
 
       for (const entry of localEntries) {
-        const decrypted = await decryptJson(entry.encryptedData, entry.iv, entry.tag, masterKey)
+        const decrypted = await tryDecryptEntryPayload(entry, masterKey)
         if (decrypted) decryptedEntries.push(decrypted as LogEntryTankSource & TravelDaySortable)
       }
 

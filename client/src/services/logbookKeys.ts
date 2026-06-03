@@ -91,6 +91,7 @@ export function clearLogbookKeysCache() {
 export async function ensureLogbookKey(logbookId: string): Promise<ArrayBuffer> {
   const localLb = await db.logbooks.get(logbookId)
   const encryptedTitle = localLb ? localLb.encryptedTitle : ''
+  const isShared = localLb?.isShared === 1
   const masterKey = getActiveMasterKey()
 
   let key = await getLogbookKey(logbookId)
@@ -103,6 +104,11 @@ export async function ensureLogbookKey(logbookId: string): Promise<ArrayBuffer> 
       // Key works, return it
       return key
     } catch (err) {
+      if (isShared) {
+        throw new Error(
+          'Shared logbook encryption key is missing or invalid. Please go online and refresh your logbooks.'
+        )
+      }
       console.warn('Stored logbook key failed to decrypt title. Testing if master key works (legacy migration)...')
       try {
         const parsed = JSON.parse(encryptedTitle)
@@ -145,6 +151,12 @@ export async function ensureLogbookKey(logbookId: string): Promise<ArrayBuffer> 
 
   // If no logbook key exists yet
   if (!key) {
+    if (isShared) {
+      throw new Error(
+        'Shared logbook encryption key not found. Please go online and refresh your logbooks.'
+      )
+    }
+
     if (encryptedTitle && masterKey) {
       try {
         // Check if title is already decryptable using masterKey (meaning it is a legacy logbook)

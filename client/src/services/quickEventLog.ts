@@ -124,11 +124,22 @@ function buildEncryptedPayload(
   })
 
   const clear = options.clearSignatures
-  return {
+  const entryData: Record<string, unknown> = {
     ...payload,
     signSkipper: clear ? '' : (data.signSkipper ?? ''),
     signCrew: clear ? '' : (data.signCrew ?? '')
   }
+
+  const summary = typeof data.aiSummary === 'string' ? data.aiSummary.trim() : ''
+  if (summary) {
+    entryData.aiSummary = summary
+    entryData.aiSummaryGeneratedAt =
+      typeof data.aiSummaryGeneratedAt === 'string' && data.aiSummaryGeneratedAt
+        ? data.aiSummaryGeneratedAt
+        : new Date().toISOString()
+  }
+
+  return entryData
 }
 
 export async function loadEntry(logbookId: string, entryId: string): Promise<LoadedEntry | null> {

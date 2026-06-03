@@ -527,6 +527,8 @@ export default function LogEntryEditor({
   }, [])
 
   useEffect(() => {
+    setCanSignSkipper(false)
+    setCanSignCrew(false)
     getLogbookAccess(logbookId).then((access) => {
       if (!access) return
       setCanSignSkipper(access.isOwner)
