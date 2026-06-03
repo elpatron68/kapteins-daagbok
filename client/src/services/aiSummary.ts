@@ -5,11 +5,11 @@ import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayl
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 
 export class TravelDaySummaryApiError extends Error {
-  code: 'NO_KEY' | 'FORBIDDEN' | 'RATE_LIMITED' | 'REQUEST_FAILED'
+  code: 'NO_KEY' | 'FORBIDDEN' | 'RATE_LIMITED' | 'OFFLINE' | 'REQUEST_FAILED'
 
   constructor(
     message: string,
-    code: 'NO_KEY' | 'FORBIDDEN' | 'RATE_LIMITED' | 'REQUEST_FAILED' = 'REQUEST_FAILED'
+    code: 'NO_KEY' | 'FORBIDDEN' | 'RATE_LIMITED' | 'OFFLINE' | 'REQUEST_FAILED' = 'REQUEST_FAILED'
   ) {
     super(message)
     this.name = 'TravelDaySummaryApiError'
@@ -146,6 +146,10 @@ export async function generateTravelDaySummary(params: {
   language: string
   context: TravelDaySummaryContext
 }): Promise<{ summary: string; remainingAttempts: number; maxAttempts: number }> {
+  if (!navigator.onLine) {
+    throw new TravelDaySummaryApiError('Offline', 'OFFLINE')
+  }
+
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), SUMMARY_FETCH_TIMEOUT_MS)
 

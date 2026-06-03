@@ -44,6 +44,17 @@ describe('fetchOpenWeatherCurrent', () => {
     })
   })
 
+  it('throws OFFLINE when navigator.onLine is false', async () => {
+    vi.stubGlobal('navigator', { ...navigator, onLine: false })
+
+    const { fetchOpenWeatherCurrent, WeatherApiError } = await import('./weather.js')
+    const err = await fetchOpenWeatherCurrent({ lat: '54', lon: '10' }).catch((e) => e)
+    expect(err).toBeInstanceOf(WeatherApiError)
+    expect((err as InstanceType<typeof WeatherApiError>).code).toBe('OFFLINE')
+
+    expect(apiFetch).not.toHaveBeenCalled()
+  })
+
   it('does not track when the API request fails', async () => {
     apiFetch.mockResolvedValue({
       ok: false,

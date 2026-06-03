@@ -7,9 +7,9 @@ import {
 } from './analytics.js'
 
 export class WeatherApiError extends Error {
-  code: 'NO_KEY' | 'REQUEST_FAILED'
+  code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED'
 
-  constructor(message: string, code: 'NO_KEY' | 'REQUEST_FAILED' = 'REQUEST_FAILED') {
+  constructor(message: string, code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED' = 'REQUEST_FAILED') {
     super(message)
     this.name = 'WeatherApiError'
     this.code = code
@@ -26,6 +26,10 @@ export async function fetchOpenWeatherCurrent(
   },
   options?: { analyticsSource: OwmAnalyticsSource }
 ): Promise<Record<string, unknown>> {
+  if (!navigator.onLine) {
+    throw new WeatherApiError('Offline', 'OFFLINE')
+  }
+
   const searchParams = new URLSearchParams()
 
   if (params.lat && params.lon) {

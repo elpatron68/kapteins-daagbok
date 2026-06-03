@@ -152,6 +152,7 @@ export default function LiveLogView({
   const [modal, setModal] = useState<LiveModal>('none')
   const [weatherExpanded, setWeatherExpanded] = useState(false)
   const [weatherOwmLoading, setWeatherOwmLoading] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [commentText, setCommentText] = useState('')
   const [valueInput, setValueInput] = useState('')
   const [valueInputSecondary, setValueInputSecondary] = useState('')
@@ -268,6 +269,17 @@ export default function LiveLogView({
       }
     }
   }, [logbookId, applyLoadedEntry, t])
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   useEffect(() => {
     void runInit()
@@ -503,6 +515,10 @@ export default function LiveLogView({
 
   const handleFetchOwmWeather = () => {
     if (!entryId || busy || weatherOwmLoading) return
+    if (!isOnline) {
+      void showAlert(t('logs.weather_offline'), t('logs.live_weather_owm_btn'))
+      return
+    }
 
     const position = getLastPositionFixWithin(
       events,
@@ -533,6 +549,10 @@ export default function LiveLogView({
             { analyticsSource: 'live_log' }
           )
         } catch (err) {
+          if (err instanceof WeatherApiError && err.code === 'OFFLINE') {
+            void showAlert(t('logs.weather_offline'), t('logs.live_weather_owm_btn'))
+            return
+          }
           if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
             void showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
             return

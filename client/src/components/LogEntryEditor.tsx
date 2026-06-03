@@ -538,7 +538,7 @@ export default function LogEntryEditor({
   }, [logbookId])
 
   useEffect(() => {
-    if (!canSignSkipper || readOnly) {
+    if (!canSignSkipper || readOnly || !isOnline) {
       setAiSummaryRemaining(null)
       return
     }
@@ -553,7 +553,7 @@ export default function LogEntryEditor({
         console.warn('Failed to load AI summary usage:', err)
       })
     return () => { cancelled = true }
-  }, [canSignSkipper, readOnly, logbookId, entryId])
+  }, [canSignSkipper, readOnly, isOnline, logbookId, entryId])
 
   useEffect(() => {
     const seq = ++entryHashSeqRef.current
@@ -986,6 +986,10 @@ export default function LogEntryEditor({
         showAlert('GPS capturing failed, and no location name is entered in "Ort / Hafen" or "Start-Hafen" to look up coordinates.')
         return
       }
+      if (!isOnline) {
+        showAlert(t('logs.weather_offline'))
+        return
+      }
 
       try {
         const data = await fetchOpenWeatherCurrent(
@@ -999,6 +1003,10 @@ export default function LogEntryEditor({
           showAlert(`Coordinates loaded for "${locationQuery}" via OpenWeatherMap.`)
         }
       } catch (e) {
+        if (e instanceof WeatherApiError && e.code === 'OFFLINE') {
+          showAlert(t('logs.weather_offline'))
+          return
+        }
         if (e instanceof WeatherApiError && e.code === 'NO_KEY') {
           showAlert(t('settings.no_key'))
           return
@@ -1025,6 +1033,11 @@ export default function LogEntryEditor({
   }
 
   const handleFetchWeather = async () => {
+    if (!isOnline) {
+      showAlert(t('logs.weather_offline'))
+      return
+    }
+
     const localToday = new Date()
     const todayStr = `${localToday.getFullYear()}-${String(localToday.getMonth() + 1).padStart(2, '0')}-${String(localToday.getDate()).padStart(2, '0')}`
 
@@ -1066,6 +1079,10 @@ export default function LogEntryEditor({
 
       showAlert(t('settings.weather_success'))
     } catch (err) {
+      if (err instanceof WeatherApiError && err.code === 'OFFLINE') {
+        showAlert(t('logs.weather_offline'))
+        return
+      }
       if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
         showAlert(t('settings.no_key'))
         return
@@ -1079,6 +1096,10 @@ export default function LogEntryEditor({
 
   const handleGenerateAiSummary = async () => {
     if (!canSignSkipper || readOnly || aiSummaryLoading) return
+    if (!isOnline) {
+      setAiSummaryError(t('logs.ai_summary_offline'))
+      return
+    }
     if (aiSummaryRemaining === 0) {
       setAiSummaryError(t('logs.ai_summary_error_rate_limited'))
       return
@@ -1135,7 +1156,9 @@ export default function LogEntryEditor({
       })
     } catch (err) {
       if (err instanceof TravelDaySummaryApiError) {
-        if (err.code === 'NO_KEY') {
+        if (err.code === 'OFFLINE') {
+          setAiSummaryError(t('logs.ai_summary_offline'))
+        } else if (err.code === 'NO_KEY') {
           setAiSummaryError(t('logs.ai_summary_error_no_key'))
         } else if (err.code === 'RATE_LIMITED') {
           setAiSummaryError(t('logs.ai_summary_error_rate_limited'))
