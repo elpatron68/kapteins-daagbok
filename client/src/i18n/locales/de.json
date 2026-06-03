@@ -344,6 +344,7 @@
       "carry_over_tanks_yes": "Übernehmen",
       "carry_over_tanks_no": "Mit 0 starten",
       "event_title": "Chronologisches Ereignisprotokoll",
+      "event_creator": "Eingetragen von",
       "no_events": "Noch keine Ereignisse für diesen Reisetag eingetragen.",
       "event_time": "Uhrzeit",
       "event_mgk": "MgK Kurs",

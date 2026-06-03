@@ -22,6 +22,7 @@ export interface LogEventPayload {
   gpsLat: string
   gpsLng: string
   remarks: string
+  creatorId?: string
 }
 
 /** Calendar date YYYY-MM-DD in local timezone (matches logbook entry `date` field). */
@@ -85,7 +86,7 @@ export function joinTimeHHMM(hours: string, minutes: string): string {
 const LOG_EVENT_FIELDS: (keyof LogEventPayload)[] = [
   'time', 'mgk', 'rwk', 'windPressure', 'windDirection', 'windStrength', 'seaState',
   'visibility', 'weatherIcon', 'current', 'heel', 'sailsOrMotor', 'logReading', 'distance',
-  'gpsLat', 'gpsLng', 'remarks'
+  'gpsLat', 'gpsLng', 'remarks', 'creatorId'
 ]
 
 /** Normalize partial/legacy events so all fields are strings (safe for form + save). */
@@ -109,10 +110,11 @@ export function normalizeLogEvent(event: Partial<LogEventPayload> | Record<strin
     distance: '',
     gpsLat: '',
     gpsLng: '',
-    remarks: ''
+    remarks: '',
+    creatorId: e.creatorId ? String(e.creatorId).trim() : undefined
   }
   for (const key of LOG_EVENT_FIELDS) {
-    if (key === 'time' || key === 'mgk' || key === 'rwk' || key === 'windDirection') continue
+    if (key === 'time' || key === 'mgk' || key === 'rwk' || key === 'windDirection' || key === 'creatorId') continue
     normalized[key] = String(e[key] ?? '').trim()
   }
   return normalized
@@ -122,7 +124,7 @@ export function logEventsEqual(a: LogEventPayload, b: LogEventPayload): boolean 
   return LOG_EVENT_FIELDS.every((key) => a[key] === b[key])
 }
 
-const LOG_EVENT_CONTENT_FIELDS = LOG_EVENT_FIELDS.filter((key) => key !== 'time')
+const LOG_EVENT_CONTENT_FIELDS = LOG_EVENT_FIELDS.filter((key) => key !== 'time' && key !== 'creatorId')
 
 /** Draft with only a time (or empty fields) — not an unsaved log entry change. */
 export function isLogEventDraftEmpty(event: LogEventPayload): boolean {

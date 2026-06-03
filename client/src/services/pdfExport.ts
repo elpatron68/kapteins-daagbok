@@ -13,12 +13,13 @@ function formatPasskeySignDate(signedAt: string): string {
 }
 
 export async function generateLogbookPagePdf(logbookId: string, entryId: string, preloadedData?: { yacht: any; entry: any }): Promise<jsPDF> {
-  let yachtName = '', homePort = '', registration = '', callsign = '', atis = '', mmsi = '';
+  let yachtName = '', owner = '', homePort = '', registration = '', callsign = '', atis = '', mmsi = '';
   let entry: any = null;
 
   if (preloadedData) {
     const yacht = preloadedData.yacht || {};
     yachtName = yacht.name || '';
+    owner = yacht.owner || '';
     homePort = yacht.port || '';
     registration = yacht.registrationNumber || yacht.registration || '';
     callsign = yacht.callSign || '';
@@ -35,6 +36,7 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
     const yacht = await resolveVesselForLogbook(logbookId)
     if (yacht) {
       yachtName = yacht.name || ''
+      owner = yacht.owner || ''
       homePort = yacht.homePort || ''
       registration = yacht.registrationNumber || ''
       callsign = yacht.callSign || ''
@@ -74,24 +76,56 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
   doc.setFontSize(8.5);
   doc.setFont('Helvetica', 'normal');
   doc.text(`Yachtname: ${yachtName || '—'}`, 10, 21);
-  doc.text(`Heimathafen: ${homePort || '—'}`, 60, 21);
-  doc.text(`Kennzeichen: ${registration || '—'}`, 110, 21);
-  doc.text(`Rufzeichen: ${callsign || '—'}`, 160, 21);
-  doc.text(`ATIS: ${atis || '—'}`, 210, 21);
-  doc.text(`MMSI: ${mmsi || '—'}`, 250, 21);
+  doc.text(`Eigner: ${owner || '—'}`, 55, 21);
+  doc.text(`Heimathafen: ${homePort || '—'}`, 100, 21);
+  doc.text(`Kennzeichen: ${registration || '—'}`, 145, 21);
+  doc.text(`Rufzeichen: ${callsign || '—'}`, 190, 21);
+  doc.text(`ATIS: ${atis || '—'}`, 230, 21);
+  doc.text(`MMSI: ${mmsi || '—'}`, 260, 21);
 
-  doc.text(`Datum: ${entry.date || '—'}`, 10, 23);
-  doc.text(`Reisetag: ${entry.dayOfTravel || '—'}`, 60, 23);
-  doc.text(`Reise von (Departure): ${entry.departure || '—'}`, 110, 23);
-  doc.text(`nach (Destination): ${entry.destination || '—'}`, 200, 23);
+  doc.text(`Datum: ${entry.date || '—'}`, 10, 24);
+  doc.text(`Reisetag: ${entry.dayOfTravel || '—'}`, 60, 24);
+  doc.text(`Reise von (Departure): ${entry.departure || '—'}`, 110, 24);
+  doc.text(`nach (Destination): ${entry.destination || '—'}`, 200, 24);
 
+  // Format Crew names with initials
+  const crewSnapshots = (entry.crewSnapshotsById as Record<string, any>) || {}
+  const crewList: string[] = []
+  
+  if (entry.selectedSkipperId && crewSnapshots[entry.selectedSkipperId]) {
+    const name = crewSnapshots[entry.selectedSkipperId].name || 'Skipper'
+    const initial = name.trim().split(/\s+/)[0]?.charAt(0).toUpperCase() || 'S'
+    crewList.push(`${name} [${initial}] (Skipper)`)
+  } else if (crewSnapshots['skipper']) {
+    const name = crewSnapshots['skipper'].name || 'Skipper'
+    crewList.push(`${name} [S] (Skipper)`)
+  }
+  
+  if (Array.isArray(entry.selectedCrewIds)) {
+    for (const crewId of entry.selectedCrewIds) {
+      const snap = crewSnapshots[crewId]
+      if (snap) {
+        const name = snap.name || ''
+        const initial = name.trim().split(/\s+/)[0]?.charAt(0).toUpperCase() || '?'
+        crewList.push(`${name} [${initial}]`)
+      }
+    }
+  }
+
+  const crewText = crewList.length > 0 ? `Besatzung (Crew): ${crewList.join(', ')}` : ''
+
+  doc.setFont('Helvetica', 'normal');
   if (entry.trackDistanceNm) {
-    doc.setFont('Helvetica', 'normal');
     doc.text(
       `GPS-Track: ${entry.trackDistanceNm} sm · max. ${entry.trackSpeedMaxKn ?? '—'} kn · Ø ${entry.trackSpeedAvgKn ?? '—'} kn`,
       10,
       27
     );
+    if (crewText) {
+      doc.text(crewText, 140, 27);
+    }
+  } else if (crewText) {
+    doc.text(crewText, 10, 27);
   }
 
   // Divider line
@@ -175,8 +209,28 @@ export async function generateLogbookPagePdf(logbookId: string, entryId: string,
       doc.text(gps, writeX + 1, y + 4.2);
       writeX += colWidths[11];
 
+      const crewSnapshots = (entry.crewSnapshotsById as Record<string, any>) || {};
+      let initial = '';
+      if (ev.creatorId) {
+        const snap = crewSnapshots[ev.creatorId];
+        let name = '';
+        if (snap) {
+          name = snap.name || '';
+        } else if (ev.creatorId === 'skipper') {
+          name = 'Skipper';
+        } else {
+          name = ev.creatorId;
+        }
+        if (name) {
+          initial = name.trim().split(/\s+/)[0]?.charAt(0).toUpperCase() || '';
+        }
+      }
+
       // Clip remarks to fit within the 94mm bounds
-      const remarks = ev.remarks || '';
+      let remarks = ev.remarks || '';
+      if (initial) {
+        remarks = `[${initial}] ${remarks}`;
+      }
       const maxChars = 65;
       const clippedRemarks = remarks.length > maxChars ? remarks.substring(0, maxChars) + '...' : remarks;
       doc.text(clippedRemarks, writeX + 1, y + 4.2);

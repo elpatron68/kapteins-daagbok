@@ -97,6 +97,14 @@ function buildEncryptedPayload(
     consumption: fuel.consumption ?? 0
   }
 
+  const entryCrew = data.selectedSkipperId
+    ? {
+        selectedSkipperId: String(data.selectedSkipperId),
+        selectedCrewIds: Array.isArray(data.selectedCrewIds) ? data.selectedCrewIds.map(String) : [],
+        crewSnapshotsById: (data.crewSnapshotsById as Record<string, any>) || {}
+      }
+    : undefined
+
   const payload = buildLogEntryPayload({
     date: String(data.date || ''),
     dayOfTravel: String(data.dayOfTravel || ''),
@@ -121,7 +129,8 @@ function buildEncryptedPayload(
       motorHoursRaw != null && motorHoursRaw !== ''
         ? parseFloat(String(motorHoursRaw))
         : undefined,
-    events: options.events
+    events: options.events,
+    entryCrew
   })
 
   const clear = options.clearSignatures

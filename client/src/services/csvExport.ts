@@ -77,7 +77,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     'Date', 'Day of Travel', 'Departure Port', 'Destination Port', 'AI Summary',
     'Skipper Signature', 'Crew Signature',
     'Track Distance (nm)', 'Track Max Speed (kn)', 'Track Avg Speed (kn)', 'Motor Hours (h)',
-    'Event Time', 'MgK Course', 'RwK Course',
+    'Event Time', 'Event Creator', 'MgK Course', 'RwK Course',
     'Wind Dir', 'Wind Str', 'Barometer (hPa)', 'Sea State', 'Visibility',
     'Current', 'Heel Angle', 'Sails/Motor', 'Log (nm)', 'Distance (nm)',
     'Latitude', 'Longitude', 'Remarks',
@@ -122,6 +122,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
     const greywaterLevel = entry.greywater?.level ?? '';
     const aiSummary = entry.aiSummary ?? '';
 
+    const crewSnapshots = (entry.crewSnapshotsById as Record<string, any>) || {};
     const eventsList = entry.events || [];
     if (eventsList.length === 0) {
       // Create one row even if there are no events for the day
@@ -129,7 +130,7 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
         dateVal, travelDay, dep, dest, aiSummary,
         signS, signC,
         trackDist, trackMax, trackAvg, motorH,
-        '', '', '',
+        '', '', '', '',
         '', '', '', '', '',
         '', '', '', '', '',
         '', '', '',
@@ -142,11 +143,21 @@ export async function exportLogbookToCsv(logbookId: string, preloadedData?: { ya
       // Sort events chronologically by time
       const sortedEvents = sortLogEventsByTime(eventsList);
       for (const ev of sortedEvents) {
+        const creatorSnap = ev.creatorId ? crewSnapshots[ev.creatorId] : null;
+        let creatorName = '';
+        if (creatorSnap) {
+          creatorName = creatorSnap.name || '';
+        } else if (ev.creatorId === 'skipper') {
+          creatorName = 'Skipper';
+        } else if (ev.creatorId) {
+          creatorName = ev.creatorId;
+        }
+
         rows.push([
           dateVal, travelDay, dep, dest, aiSummary,
           signS, signC,
           trackDist, trackMax, trackAvg, motorH,
-          ev.time || '', ev.mgk || '', ev.rwk || '',
+          ev.time || '', creatorName, ev.mgk || '', ev.rwk || '',
           ev.windDirection || '', ev.windStrength || '', ev.windPressure || '', ev.seaState || '',
           ev.visibility || '',
           ev.current || '', ev.heel || '', ev.sailsOrMotor || '', ev.logReading || '', ev.distance || '',

@@ -344,6 +344,7 @@
       "carry_over_tanks_yes": "Tag over",
       "carry_over_tanks_no": "Start med 0",
       "event_title": "Kronologisk hændelseslog",
+      "event_creator": "Indtastet af",
       "no_events": "Der er endnu ikke indtastet nogen begivenheder for denne rejsedag.",
       "event_time": "Tidspunkt på dagen",
       "event_mgk": "MgK-kursus",

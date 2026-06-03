@@ -23,13 +23,14 @@ import {
 } from 'lucide-react'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import {
-  appendQuickEvent,
-  appendQuickEvents,
-  appendTankRefill,
+  appendQuickEvent as apiAppendQuickEvent,
+  appendQuickEvents as apiAppendQuickEvents,
+  appendTankRefill as apiAppendTankRefill,
   findOrCreateTodayEntry,
   loadEntry,
   removeLastEvent
 } from '../services/quickEventLog.js'
+import CreatorAvatar from './CreatorAvatar.tsx'
 import { formatEventSummary } from '../utils/formatEventSummary.js'
 import {
   getLastAutoPositionMs,
@@ -160,6 +161,24 @@ function gpsFailureAlertBody(
   return `${t(geolocationErrorI18nKey(reason))}\n\n${t('logs.live_position_manual_hint')}`
 }
 
+function findActiveCreatorId(
+  activeUsername: string | null,
+  crewSnapshotsById: Record<string, any>,
+  selectedSkipperId: string | null
+): string {
+  const username = (activeUsername || '').trim()
+  if (username) {
+    const matchEntry = Object.entries(crewSnapshotsById).find(
+      ([_, snap]) => (snap?.name || '').trim().toLowerCase() === username.toLowerCase()
+    )
+    if (matchEntry) {
+      return matchEntry[0]
+    }
+    return username
+  }
+  return selectedSkipperId || 'skipper'
+}
+
 export default function LiveLogView({
   logbookId,
   onOpenEditor,
@@ -173,6 +192,8 @@ export default function LiveLogView({
   const [dayOfTravel, setDayOfTravel] = useState('')
   const [date, setDate] = useState('')
   const [events, setEvents] = useState<LogEventPayload[]>([])
+  const [crewSnapshotsById, setCrewSnapshotsById] = useState<Record<string, any>>({})
+  const [selectedSkipperId, setSelectedSkipperId] = useState<string | null>(null)
   const [yachtSails, setYachtSails] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -214,6 +235,51 @@ export default function LiveLogView({
   dateRef.current = date
   busyRef.current = busy
 
+  const getActiveCreatorId = useCallback(() => {
+    const activeUsername = localStorage.getItem('active_username')
+    return findActiveCreatorId(activeUsername, crewSnapshotsById, selectedSkipperId)
+  }, [crewSnapshotsById, selectedSkipperId])
+
+  const appendQuickEvent = useCallback((
+    logbookId: string,
+    entryId: string,
+    partialEvent: Partial<LogEventPayload>,
+    headerPatch?: { departure?: string; destination?: string }
+  ) => {
+    return apiAppendQuickEvent(
+      logbookId,
+      entryId,
+      { creatorId: getActiveCreatorId(), ...partialEvent },
+      headerPatch
+    )
+  }, [getActiveCreatorId])
+
+  const appendQuickEvents = useCallback((
+    logbookId: string,
+    entryId: string,
+    partialEvents: Partial<LogEventPayload>[]
+  ) => {
+    const creatorId = getActiveCreatorId()
+    const mapped = partialEvents.map((p) => ({ creatorId, ...p }))
+    return apiAppendQuickEvents(logbookId, entryId, mapped)
+  }, [getActiveCreatorId])
+
+  const appendTankRefill = useCallback((
+    logbookId: string,
+    entryId: string,
+    tank: 'fuel' | 'freshwater',
+    addLiters: number,
+    event: Partial<LogEventPayload>
+  ) => {
+    return apiAppendTankRefill(
+      logbookId,
+      entryId,
+      tank,
+      addLiters,
+      { creatorId: getActiveCreatorId(), ...event }
+    )
+  }, [getActiveCreatorId])
+
   const defaultSails = useMemo(
     () => (i18n.language === 'de'
       ? ['Großsegel', 'Genua', 'Fock', 'Spinnaker', 'Gennaker']
@@ -237,6 +303,8 @@ export default function LiveLogView({
     setDayOfTravel(String(loaded.data.dayOfTravel || ''))
     setDate(String(loaded.data.date || ''))
     setEvents(sortLogEventsByTime(entryEvents.map((e) => ({ ...e }))))
+    setCrewSnapshotsById((loaded.data.crewSnapshotsById as Record<string, any>) || {})
+    setSelectedSkipperId(typeof loaded.data.selectedSkipperId === 'string' ? loaded.data.selectedSkipperId : null)
   }, [])
 
   const refreshEntry = useCallback(async (id: string) => {
@@ -1152,6 +1220,11 @@ export default function LiveLogView({
                 return (
                   <li key={`${event.time}-${index}`} className="live-log-entry">
                     <time className="live-log-time">{event.time}</time>
+                    <CreatorAvatar
+                      creatorId={event.creatorId}
+                      crewSnapshotsById={crewSnapshotsById}
+                      size={24}
+                    />
                     <div className="live-log-summary-block">
                       <span className="live-log-summary">{summary}</span>
                       {voiceId && (

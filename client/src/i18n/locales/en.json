@@ -344,6 +344,7 @@
       "carry_over_tanks_yes": "Carry over",
       "carry_over_tanks_no": "Start at 0",
       "event_title": "Chronological Event Logbook",
+      "event_creator": "Entered by",
       "no_events": "No events logged for this travel day yet.",
       "event_time": "Time",
       "event_mgk": "MgK Course",

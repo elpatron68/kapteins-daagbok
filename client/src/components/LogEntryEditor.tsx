@@ -11,6 +11,7 @@ import { downloadLogbookPagePdf } from '../services/pdfExport.js'
 import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import EventRemarksCell from './EventRemarksCell.tsx'
+import CreatorAvatar from './CreatorAvatar.tsx'
 import { useEntryVoiceMemos } from '../hooks/useEntryVoiceMemos.js'
 import { parseLiveVoiceRemark } from '../utils/liveEventCodes.js'
 import { deleteEntryVoiceMemo } from '../services/voiceAttachments.js'
@@ -171,6 +172,24 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
     signSkipper: fingerprintSignature(decrypted.signSkipper),
     signCrew: fingerprintSignature(decrypted.signCrew)
   })
+}
+
+function findActiveCreatorId(
+  activeUsername: string | null,
+  crewSnapshotsById: Record<string, any>,
+  selectedSkipperId: string | null
+): string {
+  const username = (activeUsername || '').trim()
+  if (username) {
+    const matchEntry = Object.entries(crewSnapshotsById).find(
+      ([_, snap]) => (snap?.name || '').trim().toLowerCase() === username.toLowerCase()
+    )
+    if (matchEntry) {
+      return matchEntry[0]
+    }
+    return username
+  }
+  return selectedSkipperId || 'skipper'
 }
 
 interface LogEntryEditorProps {
@@ -418,8 +437,17 @@ export default function LogEntryEditor({
     })
   }, [buildPayloadForSigning, signSkipper, signCrew])
 
-  const buildEventFromForm = (): LogEvent =>
-    normalizeLogEvent({
+  const buildEventFromForm = (): LogEvent => {
+    let creatorId: string | undefined = undefined
+    if (editingEventIndex !== null && events[editingEventIndex]) {
+      creatorId = events[editingEventIndex].creatorId
+    }
+    if (!creatorId) {
+      const activeUsername = localStorage.getItem('active_username')
+      creatorId = findActiveCreatorId(activeUsername, entryCrew.crewSnapshotsById, entryCrew.selectedSkipperId)
+    }
+
+    return normalizeLogEvent({
       time: evTime,
       mgk: evMgk,
       rwk: evRwk,
@@ -436,8 +464,10 @@ export default function LogEntryEditor({
       distance: evDistance,
       gpsLat: evGpsLat,
       gpsLng: evGpsLng,
-      remarks: evRemarks
+      remarks: evRemarks,
+      creatorId
     })
+  }
 
   const applyEventFormToEvents = (eventData: LogEvent): LogEvent[] => {
     if (editingEventIndex !== null) {
@@ -1815,6 +1845,7 @@ export default function LogEntryEditor({
                 <thead>
                   <tr>
                     <th>{t('logs.event_time')}</th>
+                    <th>{t('logs.event_creator')}</th>
                     <th>{t('logs.event_mgk')}</th>
                     <th>{t('logs.event_rwk')}</th>
                     <th>{t('logs.event_wind_direction')}</th>
@@ -1831,6 +1862,13 @@ export default function LogEntryEditor({
                   {events.map((ev, idx) => (
                     <tr key={idx}>
                       <td className="font-mono">{ev.time}</td>
+                      <td style={{ textAlign: 'center', width: '40px', verticalAlign: 'middle' }}>
+                        <CreatorAvatar
+                          creatorId={ev.creatorId}
+                          crewSnapshotsById={entryCrew.crewSnapshotsById}
+                          size={24}
+                        />
+                      </td>
                       <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
                       <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
                       <td>{ev.windDirection || '—'}</td>
