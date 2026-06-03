@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Camera, X } from 'lucide-react'
 import {
+  cameraErrorKeyFromDomException,
+  probeCameraAvailability
+} from '../utils/cameraAvailability.js'
+import {
   captureVideoFrame,
   preferNativeCameraPicker
 } from '../utils/captureVideoFrame.js'
@@ -15,7 +19,7 @@ interface LiveCameraCaptureProps {
   onCapture: (blob: Blob) => void
 }
 
-type Phase = 'live' | 'preview' | 'native'
+type Phase = 'checking' | 'live' | 'preview' | 'native'
 
 export default function LiveCameraCapture({
   open,
@@ -34,7 +38,7 @@ export default function LiveCameraCapture({
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [capturing, setCapturing] = useState(false)
-  const [phase, setPhase] = useState<Phase>(() => (preferNativeCameraPicker() ? 'native' : 'live'))
+  const [phase, setPhase] = useState<Phase>('checking')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null)
   const [streamGeneration, setStreamGeneration] = useState(0)
@@ -87,12 +91,37 @@ export default function LiveCameraCapture({
       clearPreview()
       setCameraError(null)
       setCapturing(false)
-      setPhase(preferNativeCameraPicker() ? 'native' : 'live')
+      setPhase('checking')
       return
     }
-    setPhase(preferNativeCameraPicker() ? 'native' : 'live')
+
+    let cancelled = false
     clearPreview()
-  }, [open, stopStream, clearPreview])
+    setCameraError(null)
+    setCapturing(false)
+    setPhase('checking')
+
+    const probe = async () => {
+      const availability = await probeCameraAvailability()
+      if (cancelled) return
+
+      if (availability === 'unsupported') {
+        setCameraError(t('logs.live_photo_camera_unavailable'))
+        return
+      }
+      if (availability === 'none') {
+        setCameraError(t('logs.live_photo_no_camera'))
+        return
+      }
+
+      setPhase(preferNativeCameraPicker() ? 'native' : 'live')
+    }
+
+    void probe()
+    return () => {
+      cancelled = true
+    }
+  }, [open, clearPreview, stopStream, t])
 
   useEffect(() => {
     if (!open || phase !== 'live') {
@@ -105,11 +134,6 @@ export default function LiveCameraCapture({
     const start = async () => {
       setCameraError(null)
       setReady(false)
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraError(t('logs.live_photo_camera_unavailable'))
-        return
-      }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -141,7 +165,7 @@ export default function LiveCameraCapture({
       } catch (err) {
         console.error('Camera access failed:', err)
         if (!cancelled) {
-          setCameraError(t('logs.live_photo_camera_denied'))
+          setCameraError(t(cameraErrorKeyFromDomException(err)))
         }
       }
     }
@@ -243,7 +267,9 @@ export default function LiveCameraCapture({
               className="live-camera-preview live-camera-preview-still"
             />
           </div>
-        ) : phase === 'native' ? (
+        ) : phase === 'checking' && !cameraError ? (
+          <p className="live-camera-loading">{t('logs.live_photo_camera_starting')}</p>
+        ) : phase === 'native' && !cameraError ? (
           <div className="live-camera-native-prompt">
             <p className="live-log-modal-hint">{t('logs.live_photo_native_hint')}</p>
             <button
@@ -256,7 +282,7 @@ export default function LiveCameraCapture({
               {t('logs.live_photo_open_camera_btn')}
             </button>
           </div>
-        ) : cameraError && !ready ? null : (
+        ) : phase === 'live' && !cameraError ? (
           <div className="live-camera-preview-wrap">
             <video
               ref={videoRef}
@@ -269,7 +295,7 @@ export default function LiveCameraCapture({
               <p className="live-camera-loading">{t('logs.live_photo_camera_starting')}</p>
             )}
           </div>
-        )}
+        ) : null}
 
         {onCaptionChange && (
           <div className="input-group live-camera-caption">

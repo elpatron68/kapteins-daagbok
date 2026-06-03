@@ -266,6 +266,7 @@
       "live_photo_camera_starting": "Starter kamera…",
       "live_photo_camera_denied": "Kameratilgang nektet eller utilgjengelig.",
       "live_photo_camera_unavailable": "Kamera støttes ikke i denne nettleseren.",
+      "live_photo_no_camera": "Ingen kamera er tilgjengelig på denne enheten.",
       "live_photo_error": "Kunne ikke lagre foto.",
       "live_photo_entry": "Foto: {{caption}}",
       "live_photo_entry_plain": "Foto tatt",

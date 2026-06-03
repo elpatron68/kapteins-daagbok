@@ -266,6 +266,7 @@
       "live_photo_camera_starting": "Kamera wird gestartet…",
       "live_photo_camera_denied": "Kamerazugriff verweigert oder nicht verfügbar.",
       "live_photo_camera_unavailable": "Kamera wird von diesem Browser nicht unterstützt.",
+      "live_photo_no_camera": "Auf diesem Gerät ist keine Kamera verfügbar.",
       "live_photo_error": "Foto konnte nicht gespeichert werden.",
       "live_photo_entry": "Foto: {{caption}}",
       "live_photo_entry_plain": "Foto aufgenommen",
