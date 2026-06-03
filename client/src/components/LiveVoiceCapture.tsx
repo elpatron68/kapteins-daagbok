@@ -110,8 +110,7 @@ export default function LiveVoiceCapture({
     if (!recorder || recorder.state !== 'recording') return
     recorder.stop()
     clearTimer()
-    stopStream()
-  }, [clearTimer, stopStream])
+  }, [clearTimer])
 
   const startRecording = async () => {
     setMicError(null)
@@ -141,6 +140,7 @@ export default function LiveVoiceCapture({
         )
         const blob = new Blob(chunksRef.current, { type: resolvedMime })
         chunksRef.current = []
+        stopStream()
         try {
           assertVoiceMemoBlobSize(blob)
           finishRecording(blob, resolvedMime, durationSec)
