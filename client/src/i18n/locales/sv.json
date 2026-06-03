@@ -6,6 +6,10 @@
       "beta": "Beta",
       "beta_hint": "Betaversion - funktioner kan fortfarande ändras"
     },
+    "footer": {
+      "kofi_label": "Ko-fi",
+      "kofi_title": "Stöd projektet, vidareutveckling och driftskostnader på Ko-fi"
+    },
     "languages": {
       "de": "Deutsch",
       "en": "English",

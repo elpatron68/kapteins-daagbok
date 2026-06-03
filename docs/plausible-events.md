@@ -47,6 +47,7 @@ Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Scri
 | Push Enabled | Crew-Änderungs-Push aktiviert (`PushNotificationSettings.tsx`) | — |
 | Push Disabled | Crew-Änderungs-Push deaktiviert (`PushNotificationSettings.tsx`) | — |
 | Footer Link Clicked | Klick auf Autoren-Link im App-Footer (`AppFooter.tsx`) | — |
+| Ko-fi Link Clicked | Klick auf Ko-fi-Unterstützen-Badge im App-Footer (`AppFooter.tsx`) | — |
 | Profile Opened | Profilseite geöffnet (`UserProfilePage.tsx`, einmal pro Mount) | — |
 | Passkey Added | Passkey erfolgreich registriert (`UserProfilePage.tsx`) | `labeled`: `true` \| `false` (optionaler Name gesetzt) |
 | Passkey Removed | Passkey entfernt, mindestens ein Key verbleibt (`UserProfilePage.tsx`) | — |

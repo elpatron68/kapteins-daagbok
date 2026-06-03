@@ -26,6 +26,7 @@ export const PlausibleEvents = {
   PUSH_ENABLED: 'Push Enabled',
   PUSH_DISABLED: 'Push Disabled',
   FOOTER_LINK_CLICKED: 'Footer Link Clicked',
+  KOFI_LINK_CLICKED: 'Ko-fi Link Clicked',
   PROFILE_OPENED: 'Profile Opened',
   PASSKEY_ADDED: 'Passkey Added',
   PASSKEY_REMOVED: 'Passkey Removed',
