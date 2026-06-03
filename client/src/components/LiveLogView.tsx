@@ -50,6 +50,10 @@ import {
   liveTempRemark,
   liveWaterRemark
 } from '../utils/liveEventCodes.js'
+import { formatAppDecimal, formatTankLiters, parseAppDecimal } from '../utils/numberFormat.js'
+
+const formatSpeedKn = (speedKn: number) =>
+  formatAppDecimal(speedKn, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
 import {
@@ -921,45 +925,45 @@ export default function LiveLogView({
         break
       }
       case 'fuel': {
-        const liters = parseFloat(primary)
-        if (!Number.isFinite(liters) || liters <= 0) return
+        const liters = parseAppDecimal(primary)
+        if (liters == null || liters <= 0) return
         setModal('none')
         void runQuickAction(async () => {
           await appendTankRefill(logbookId, entryId, 'fuel', liters, {
-            remarks: liveFuelRemark(String(liters))
+            remarks: liveFuelRemark(formatTankLiters(liters))
           })
         }, 'fuel')
         break
       }
       case 'water': {
-        const liters = parseFloat(primary)
-        if (!Number.isFinite(liters) || liters <= 0) return
+        const liters = parseAppDecimal(primary)
+        if (liters == null || liters <= 0) return
         setModal('none')
         void runQuickAction(async () => {
           await appendTankRefill(logbookId, entryId, 'freshwater', liters, {
-            remarks: liveWaterRemark(String(liters))
+            remarks: liveWaterRemark(formatTankLiters(liters))
           })
         }, 'water')
         break
       }
       case 'sog': {
-        const speedKn = parseFloat(primary.replace(',', '.'))
-        if (!Number.isFinite(speedKn) || speedKn < 0) return
+        const speedKn = parseAppDecimal(primary)
+        if (speedKn == null || speedKn < 0) return
         setModal('none')
         void runQuickAction(async () => {
           await appendQuickEvent(logbookId, entryId, {
-            remarks: liveSogRemark(String(speedKn))
+            remarks: liveSogRemark(formatSpeedKn(speedKn))
           })
         }, 'sog')
         break
       }
       case 'stw': {
-        const speedKn = parseFloat(primary.replace(',', '.'))
-        if (!Number.isFinite(speedKn) || speedKn < 0) return
+        const speedKn = parseAppDecimal(primary)
+        if (speedKn == null || speedKn < 0) return
         setModal('none')
         void runQuickAction(async () => {
           await appendQuickEvent(logbookId, entryId, {
-            remarks: liveStwRemark(String(speedKn))
+            remarks: liveStwRemark(formatSpeedKn(speedKn))
           })
         }, 'stw')
         break

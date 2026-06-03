@@ -1,4 +1,5 @@
 import type { TrackWaypoint } from '../services/trackUpload.js'
+import { formatAppDecimal } from './numberFormat.js'
 
 const NM_IN_METERS = 1852
 const MAX_PLAUSIBLE_KNOTS = 50
@@ -100,8 +101,14 @@ export function formatTrackStats(stats: TrackStats): {
   speedAvgKn: string
 } {
   return {
-    distanceNm: stats.distanceNm.toFixed(2),
-    speedMaxKn: stats.speedMaxKn > 0 ? stats.speedMaxKn.toFixed(1) : '',
-    speedAvgKn: stats.speedAvgKn > 0 ? stats.speedAvgKn.toFixed(1) : ''
+    distanceNm: formatAppDecimal(stats.distanceNm, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    speedMaxKn:
+      stats.speedMaxKn > 0
+        ? formatAppDecimal(stats.speedMaxKn, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+        : '',
+    speedAvgKn:
+      stats.speedAvgKn > 0
+        ? formatAppDecimal(stats.speedAvgKn, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+        : ''
   }
 }

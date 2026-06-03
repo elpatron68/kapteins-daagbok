@@ -14,6 +14,7 @@ import {
 } from '../services/statsAggregation.js'
 import { compareTravelDaysChronological } from '../utils/logEntryTankLevels.js'
 import { formatFuelPerMotorHour } from '../utils/fuelStats.js'
+import { formatAppDecimal } from '../utils/numberFormat.js'
 import {
   loadLogbookEventSeries,
   type EventSeriesPoint,
@@ -211,8 +212,8 @@ function PropulsionBreakdown({ totals }: { totals: StatsTotals }) {
         )}
       </div>
       <div className="stats-propulsion-labels">
-        <span>{t('stats.sail_distance')}: {formatNm(totals.sailDistanceNm)} {t('stats.unit_nm')} ({sailPct.toFixed(0)}%)</span>
-        <span>{t('stats.motor_distance')}: {formatNm(totals.motorDistanceNm)} {t('stats.unit_nm')} ({motorPct.toFixed(0)}%)</span>
+        <span>{t('stats.sail_distance')}: {formatNm(totals.sailDistanceNm)} {t('stats.unit_nm')} ({formatAppDecimal(sailPct, { maximumFractionDigits: 0 })}%)</span>
+        <span>{t('stats.motor_distance')}: {formatNm(totals.motorDistanceNm)} {t('stats.unit_nm')} ({formatAppDecimal(motorPct, { maximumFractionDigits: 0 })}%)</span>
         {totals.unknownPropulsionNm > 0 && (
           <span>{t('stats.unknown_propulsion')}: {formatNm(totals.unknownPropulsionNm)} {t('stats.unit_nm')}</span>
         )}

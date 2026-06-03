@@ -103,6 +103,17 @@ import {
   formatTankLitersForInput,
   type VesselTankCapacities
 } from '../utils/tankCapacity.js'
+import {
+  formatAppCoordinate,
+  parseAppDecimal,
+  parseAppDecimalOrZero
+} from '../utils/numberFormat.js'
+
+function parseOptionalFormDecimal(input: string): number | undefined {
+  const trimmed = input.trim()
+  if (!trimmed) return undefined
+  return parseAppDecimal(trimmed) ?? undefined
+}
 
 function emptyTankLevels() {
   return { morning: 0, refilled: 0, evening: 0, consumption: 0 }
@@ -137,19 +148,19 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
     greywater: gw ? { level: gw.level || 0 } : undefined,
     trackDistanceNm:
       trackDistance != null && trackDistance !== ''
-        ? parseFloat(String(trackDistance))
+        ? (parseAppDecimal(String(trackDistance)) ?? undefined)
         : undefined,
     trackSpeedMaxKn:
       trackSpeedMax != null && trackSpeedMax !== ''
-        ? parseFloat(String(trackSpeedMax))
+        ? (parseAppDecimal(String(trackSpeedMax)) ?? undefined)
         : undefined,
     trackSpeedAvgKn:
       trackSpeedAvg != null && trackSpeedAvg !== ''
-        ? parseFloat(String(trackSpeedAvg))
+        ? (parseAppDecimal(String(trackSpeedAvg)) ?? undefined)
         : undefined,
     motorHours:
       motorHoursRaw != null && motorHoursRaw !== ''
-        ? parseFloat(String(motorHoursRaw))
+        ? (parseAppDecimal(String(motorHoursRaw)) ?? undefined)
         : undefined,
     events: (decrypted.events as LogEventPayload[]) || [],
     entryCrew: entryCrewFromPreviousEntry(decrypted as Record<string, unknown>)
@@ -324,22 +335,22 @@ export default function LogEntryEditor({
       departure,
       destination,
       freshwater: {
-        morning: parseFloat(fwMorning) || 0,
-        refilled: parseFloat(fwRefilled) || 0,
-        evening: parseFloat(fwEvening) || 0,
-        consumption: parseFloat(fwConsumption) || 0
+        morning: parseAppDecimalOrZero(fwMorning),
+        refilled: parseAppDecimalOrZero(fwRefilled),
+        evening: parseAppDecimalOrZero(fwEvening),
+        consumption: parseAppDecimalOrZero(fwConsumption)
       },
       fuel: {
-        morning: parseFloat(fuelMorning) || 0,
-        refilled: parseFloat(fuelRefilled) || 0,
-        evening: parseFloat(fuelEvening) || 0,
-        consumption: parseFloat(fuelConsumption) || 0
+        morning: parseAppDecimalOrZero(fuelMorning),
+        refilled: parseAppDecimalOrZero(fuelRefilled),
+        evening: parseAppDecimalOrZero(fuelEvening),
+        consumption: parseAppDecimalOrZero(fuelConsumption)
       },
-      greywater: { level: parseFloat(greywaterLevel) || 0 },
-      trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
-      trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
-      trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
-      motorHours: motorHours.trim() ? parseFloat(motorHours) : undefined,
+      greywater: { level: parseAppDecimalOrZero(greywaterLevel) },
+      trackDistanceNm: parseOptionalFormDecimal(trackDistanceNm),
+      trackSpeedMaxKn: parseOptionalFormDecimal(trackSpeedMaxKn),
+      trackSpeedAvgKn: parseOptionalFormDecimal(trackSpeedAvgKn),
+      motorHours: parseOptionalFormDecimal(motorHours),
       events: eventsOverride ?? events,
       entryCrew
     })
@@ -362,7 +373,7 @@ export default function LogEntryEditor({
   }, [readOnly, loading, logbookId, entryId, buildPayloadForSigning, date])
 
   const fuelPerMotorHour = useMemo(
-    () => computeFuelPerMotorHour(parseFloat(fuelConsumption) || 0, parseFloat(motorHours) || 0),
+    () => computeFuelPerMotorHour(parseAppDecimalOrZero(fuelConsumption), parseAppDecimalOrZero(motorHours)),
     [fuelConsumption, motorHours]
   )
 
@@ -698,18 +709,18 @@ export default function LogEntryEditor({
 
   // Auto-calculate Freshwater Consumption
   useEffect(() => {
-    const morning = parseFloat(fwMorning) || 0
-    const refilled = parseFloat(fwRefilled) || 0
-    const evening = parseFloat(fwEvening) || 0
+    const morning = parseAppDecimalOrZero(fwMorning)
+    const refilled = parseAppDecimalOrZero(fwRefilled)
+    const evening = parseAppDecimalOrZero(fwEvening)
     const cons = morning + refilled - evening
     setFwConsumption(cons >= 0 ? String(cons) : '0')
   }, [fwMorning, fwRefilled, fwEvening])
 
   // Auto-calculate Fuel Consumption
   useEffect(() => {
-    const morning = parseFloat(fuelMorning) || 0
-    const refilled = parseFloat(fuelRefilled) || 0
-    const evening = parseFloat(fuelEvening) || 0
+    const morning = parseAppDecimalOrZero(fuelMorning)
+    const refilled = parseAppDecimalOrZero(fuelRefilled)
+    const evening = parseAppDecimalOrZero(fuelEvening)
     const cons = morning + refilled - evening
     setFuelConsumption(cons >= 0 ? String(cons) : '0')
   }, [fuelMorning, fuelRefilled, fuelEvening])
@@ -720,7 +731,7 @@ export default function LogEntryEditor({
     (tankCapacities.fuelCapacityL ?? 0) > 0 && fuelRefilledMax == null
 
   useEffect(() => {
-    const refilled = parseFloat(fwRefilled) || 0
+    const refilled = parseAppDecimalOrZero(fwRefilled)
     if (fwRefilledMax == null) {
       if (fwRefilledNoCapacity && refilled > 0) {
         setFwRefilled(formatTankLitersForInput(0))
@@ -734,14 +745,14 @@ export default function LogEntryEditor({
 
   useEffect(() => {
     if (fwEveningMax == null) return
-    const evening = parseFloat(fwEvening) || 0
+    const evening = parseAppDecimalOrZero(fwEvening)
     if (evening > fwEveningMax) {
       setFwEvening(formatTankLitersForInput(fwEveningMax))
     }
   }, [fwEveningMax, fwEvening])
 
   useEffect(() => {
-    const refilled = parseFloat(fuelRefilled) || 0
+    const refilled = parseAppDecimalOrZero(fuelRefilled)
     if (fuelRefilledMax == null) {
       if (fuelRefilledNoCapacity && refilled > 0) {
         setFuelRefilled(formatTankLitersForInput(0))
@@ -755,7 +766,7 @@ export default function LogEntryEditor({
 
   useEffect(() => {
     if (fuelEveningMax == null) return
-    const evening = parseFloat(fuelEvening) || 0
+    const evening = parseAppDecimalOrZero(fuelEvening)
     if (evening > fuelEveningMax) {
       setFuelEvening(formatTankLitersForInput(fuelEveningMax))
     }
@@ -1042,8 +1053,8 @@ export default function LogEntryEditor({
         )
         const coord = data.coord as { lat?: number; lon?: number } | undefined
         if (coord?.lat !== undefined && coord?.lon !== undefined) {
-          setEvGpsLat(Number(coord.lat).toFixed(6))
-          setEvGpsLng(Number(coord.lon).toFixed(6))
+          setEvGpsLat(formatAppCoordinate(Number(coord.lat)))
+          setEvGpsLng(formatAppCoordinate(Number(coord.lon)))
           showAlert(t('logs.gps_fallback_success', { location: locationQuery }))
         } else {
           showAlert(t('logs.gps_fallback_failed'))
@@ -1124,8 +1135,8 @@ export default function LogEntryEditor({
       const coord = data.coord as { lat?: number; lon?: number } | undefined
       // If fetched by location, automatically pre-fill GPS coordinates
       if (!hasGps && coord?.lat !== undefined && coord?.lon !== undefined) {
-        setEvGpsLat(Number(coord.lat).toFixed(6))
-        setEvGpsLng(Number(coord.lon).toFixed(6))
+        setEvGpsLat(formatAppCoordinate(Number(coord.lat)))
+        setEvGpsLng(formatAppCoordinate(Number(coord.lon)))
       }
 
       const parsed = parseOwmCurrentWeather(data)
@@ -1172,23 +1183,23 @@ export default function LogEntryEditor({
           dayOfTravel,
           departure,
           destination,
-          trackDistanceNm: trackDistanceNm.trim() ? parseFloat(trackDistanceNm) : undefined,
-          trackSpeedMaxKn: trackSpeedMaxKn.trim() ? parseFloat(trackSpeedMaxKn) : undefined,
-          trackSpeedAvgKn: trackSpeedAvgKn.trim() ? parseFloat(trackSpeedAvgKn) : undefined,
-          motorHours: motorHours.trim() ? parseFloat(motorHours) : undefined,
+          trackDistanceNm: parseOptionalFormDecimal(trackDistanceNm),
+          trackSpeedMaxKn: parseOptionalFormDecimal(trackSpeedMaxKn),
+          trackSpeedAvgKn: parseOptionalFormDecimal(trackSpeedAvgKn),
+          motorHours: parseOptionalFormDecimal(motorHours),
           freshwater: {
-            morning: parseFloat(fwMorning) || 0,
-            refilled: parseFloat(fwRefilled) || 0,
-            evening: parseFloat(fwEvening) || 0,
-            consumption: parseFloat(fwConsumption) || 0
+            morning: parseAppDecimalOrZero(fwMorning),
+            refilled: parseAppDecimalOrZero(fwRefilled),
+            evening: parseAppDecimalOrZero(fwEvening),
+            consumption: parseAppDecimalOrZero(fwConsumption)
           },
           fuel: {
-            morning: parseFloat(fuelMorning) || 0,
-            refilled: parseFloat(fuelRefilled) || 0,
-            evening: parseFloat(fuelEvening) || 0,
-            consumption: parseFloat(fuelConsumption) || 0
+            morning: parseAppDecimalOrZero(fuelMorning),
+            refilled: parseAppDecimalOrZero(fuelRefilled),
+            evening: parseAppDecimalOrZero(fuelEvening),
+            consumption: parseAppDecimalOrZero(fuelConsumption)
           },
-          greywaterLevel: parseFloat(greywaterLevel) || 0,
+          greywaterLevel: parseAppDecimalOrZero(greywaterLevel),
           events
         },
         t

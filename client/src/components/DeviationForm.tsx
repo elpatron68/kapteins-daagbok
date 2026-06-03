@@ -6,6 +6,7 @@ import { getLogbookKey } from '../services/logbookKeys.js'
 import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { Compass, Save, Check } from 'lucide-react'
+import { parseAppDecimalOrZero } from '../utils/numberFormat.js'
 
 interface DeviationFormProps {
   logbookId: string
@@ -97,8 +98,8 @@ export default function DeviationForm({ logbookId, readOnly = false, preloadedDa
       const sanitizedDeviations: Record<number, number> = {}
       headings.forEach((h) => {
         const val = deviations[h] || ''
-        const parsed = parseFloat(val.replace('+', '').trim())
-        sanitizedDeviations[h] = isNaN(parsed) ? 0 : parsed
+        const parsed = parseAppDecimalOrZero(val.replace('+', '').trim())
+        sanitizedDeviations[h] = parsed
       })
 
       const dataToSave = {

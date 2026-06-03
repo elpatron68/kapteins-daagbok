@@ -1,3 +1,10 @@
+import {
+  formatAppCoordinate,
+  formatCanonicalCoordinate,
+  formatGpsAccuracyMeters,
+  parseAppDecimal
+} from './numberFormat.js'
+
 const MPS_TO_KNOTS = 1.9438444924406
 
 /** Extra ms beyond the native timeout so hung browsers still reject. */
@@ -28,13 +35,6 @@ export function classifyGpsAccuracyMeters(accuracyM: number | null | undefined):
 
 export function gpsQualityI18nKey(quality: GpsSignalQuality): string {
   return `logs.gps_quality_${quality}`
-}
-
-/** Formats accuracy for i18n (±{{accuracy}} m): 1 m below 100 m, 10 m from 100 m upward. */
-export function formatGpsAccuracyMeters(accuracyM: number): string {
-  return accuracyM < 100
-    ? String(Math.round(accuracyM))
-    : String(Math.round(accuracyM / 10) * 10)
 }
 
 export type GeolocationPermissionState = PermissionState | 'unsupported'
@@ -82,11 +82,10 @@ export interface GetPositionOptions {
   maximumAge?: number
 }
 
+export { formatGpsAccuracyMeters }
+
 export function parseGpsCoordinate(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const n = parseFloat(trimmed.replace(',', '.'))
-  return Number.isFinite(n) ? n : null
+  return parseAppDecimal(value.trim())
 }
 
 /** Validates lat/lng and returns normalized strings for storage, or null. */
@@ -98,7 +97,7 @@ export function normalizeGpsCoordinates(
   const lngN = parseGpsCoordinate(lng)
   if (latN == null || lngN == null) return null
   if (latN < -90 || latN > 90 || lngN < -180 || lngN > 180) return null
-  return { lat: latN.toFixed(6), lng: lngN.toFixed(6) }
+  return { lat: formatCanonicalCoordinate(latN), lng: formatCanonicalCoordinate(lngN) }
 }
 
 /** localStorage: user has seen the Live-Log geolocation intro (allow or dismiss). */
@@ -151,8 +150,8 @@ function positionFromGeolocationPosition(pos: GeolocationPosition): GeoCoordinat
     ? pos.coords.accuracy
     : null
   return {
-    lat: pos.coords.latitude.toFixed(6),
-    lng: pos.coords.longitude.toFixed(6),
+    lat: formatAppCoordinate(pos.coords.latitude),
+    lng: formatAppCoordinate(pos.coords.longitude),
     speedKn,
     accuracyM,
     signalQuality: classifyGpsAccuracyMeters(accuracyM)

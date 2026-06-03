@@ -7,7 +7,4 @@ export function computeFuelPerMotorHour(
   return Number((fuelConsumptionL / motorHours).toFixed(2))
 }
 
-export function formatFuelPerMotorHour(value: number | null | undefined): string {
-  if (value == null) return '—'
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
-}
+export { formatFuelPerMotorHour } from './numberFormat.js'

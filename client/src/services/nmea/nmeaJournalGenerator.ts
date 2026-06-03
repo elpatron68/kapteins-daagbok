@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next'
 import type { LogEventPayload } from '../../utils/logEntryPayload.js'
 import { normalizeLogEvent } from '../../utils/logEntryPayload.js'
 import { formatCourseAngle } from '../../utils/courseAngle.js'
+import { formatAppDecimal, formatCanonicalCoordinate } from '../../utils/numberFormat.js'
 import { degreesToCardinal } from '../../utils/courseAngle.js'
 import type {
   NmeaChangeEvent,
@@ -33,9 +34,12 @@ function pointToLogEvent(
     windDirection: windDir,
     windStrength: point.windSpeedKnots != null ? String(point.windSpeedKnots) : '',
     windPressure: point.pressureHpa != null ? String(Math.round(point.pressureHpa)) : '',
-    gpsLat: point.lat != null ? point.lat.toFixed(6) : '',
-    gpsLng: point.lng != null ? point.lng.toFixed(6) : '',
-    logReading: point.logDistanceNm != null ? point.logDistanceNm.toFixed(2) : '',
+    gpsLat: point.lat != null ? formatCanonicalCoordinate(point.lat) : '',
+    gpsLng: point.lng != null ? formatCanonicalCoordinate(point.lng) : '',
+    logReading:
+      point.logDistanceNm != null
+        ? formatAppDecimal(point.logDistanceNm, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '',
     sailsOrMotor,
     remarks
   })
@@ -51,7 +55,11 @@ function buildRemarks(change: NmeaChangeEvent, t: TFunction): string {
   const parts: string[] = []
   parts.push(t(change.summaryKey, change.summaryParams ?? {}))
   if (change.data?.depthM != null) {
-    parts.push(t('logs.nmea_remark_depth', { depth: change.data.depthM.toFixed(1) }))
+    parts.push(
+      t('logs.nmea_remark_depth', {
+        depth: formatAppDecimal(change.data.depthM, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      })
+    )
   }
   if (change.confidence === 'low') {
     parts.push(t('logs.nmea_remark_uncertain'))

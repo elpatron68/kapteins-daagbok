@@ -1,3 +1,5 @@
+import { formatAppDecimal } from './numberFormat.js'
+
 /** Barometric pressure (hPa), typical marine range. */
 export const PRESSURE_MIN_HPA = 960
 export const PRESSURE_MAX_HPA = 1050
@@ -90,7 +92,9 @@ export function formatVisibilityMeters(meters: number): string {
   if (meters >= 1000) {
     const km = meters / 1000
     const rounded = Math.round(km * 10) / 10
-    return Number.isInteger(rounded) ? `${rounded} km` : `${rounded.toFixed(1)} km`
+    return Number.isInteger(rounded)
+      ? `${formatAppDecimal(rounded, { maximumFractionDigits: 0 })} km`
+      : `${formatAppDecimal(rounded, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`
   }
   return `${Math.round(meters)} m`
 }

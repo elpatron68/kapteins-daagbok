@@ -56,10 +56,7 @@ export function emptyTankLevels(morning = 0): TankLevels {
   return { morning, refilled: 0, evening: 0, consumption: 0 }
 }
 
-export function formatTankLiters(liters: number): string {
-  if (!Number.isFinite(liters) || liters <= 0) return '0'
-  return Number.isInteger(liters) ? String(liters) : liters.toFixed(1)
-}
+export { formatTankLiters } from './numberFormat.js'
 
 export function getClosingGreywaterLevel(greywater?: { level?: number } | null): number {
   return Number(greywater?.level) || 0

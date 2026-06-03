@@ -1,4 +1,5 @@
 import { degreesToCardinal } from './courseAngle.js'
+import { formatAppDecimal } from './numberFormat.js'
 import { formatVisibilityMeters } from './weatherMetrics.js'
 
 /** @deprecated Use formatVisibilityMeters */
@@ -33,7 +34,7 @@ export function mpsToBeaufort(mps: number): number {
 
 export function formatWindStrengthBeaufort(mps: number): string {
   const bft = mpsToBeaufort(mps)
-  return `${bft} Bft (${mps.toFixed(1)} m/s)`
+  return `${bft} Bft (${formatAppDecimal(mps, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m/s)`
 }
 
 export function parseOwmCurrentWeather(data: Record<string, unknown>): ParsedOwmCurrent {
@@ -49,7 +50,7 @@ export function parseOwmCurrentWeather(data: Record<string, unknown>): ParsedOwm
 
   let tempC: string | null = null
   if (main?.temp != null && Number.isFinite(main.temp)) {
-    tempC = Number(main.temp).toFixed(1)
+    tempC = formatAppDecimal(main.temp, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   }
 
   let precipText: string | null = null

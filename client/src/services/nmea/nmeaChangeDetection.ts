@@ -1,6 +1,11 @@
+import { formatAppDecimal } from '../../utils/numberFormat.js'
 import type { NmeaChangeEvent, NmeaDetectionConfig, NmeaTimePoint } from './nmeaTypes.js'
 import { DEFAULT_NMEA_DETECTION_CONFIG } from './nmeaTypes.js'
 import { angularDelta } from './nmeaTimeSeries.js'
+
+function formatNmeaDecimal(value: number): string {
+  return formatAppDecimal(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
 
 function pushUnique(events: NmeaChangeEvent[], event: NmeaChangeEvent, minGapMs: number) {
   const last = events[events.length - 1]
@@ -64,7 +69,7 @@ export function detectNmeaChanges(
           timestamp: p.timestamp,
           confidence: 'medium',
           summaryKey: 'logs.nmea_change_wind_speed',
-          summaryParams: { from: lastWindSpeed.toFixed(1), to: p.windSpeedKnots.toFixed(1) },
+          summaryParams: { from: formatNmeaDecimal(lastWindSpeed), to: formatNmeaDecimal(p.windSpeedKnots) },
           data: p
         }, config.dedupeWindowMs)
       }
@@ -79,7 +84,7 @@ export function detectNmeaChanges(
           timestamp: p.timestamp,
           confidence: 'medium',
           summaryKey: 'logs.nmea_change_pressure',
-          summaryParams: { from: lastPressure.toFixed(1), to: p.pressureHpa.toFixed(1) },
+          summaryParams: { from: formatNmeaDecimal(lastPressure), to: formatNmeaDecimal(p.pressureHpa) },
           data: p
         }, config.dedupeWindowMs)
       }
@@ -95,7 +100,7 @@ export function detectNmeaChanges(
           timestamp: p.timestamp,
           confidence: 'high',
           summaryKey: 'logs.nmea_change_depth',
-          summaryParams: { from: lastDepth.toFixed(1), to: p.depthM.toFixed(1) },
+          summaryParams: { from: formatNmeaDecimal(lastDepth), to: formatNmeaDecimal(p.depthM) },
           data: p
         }, config.dedupeWindowMs)
       }
@@ -156,7 +161,7 @@ export function detectNmeaChanges(
           timestamp: p.timestamp,
           confidence: 'medium',
           summaryKey: 'logs.nmea_change_water_temp',
-          summaryParams: { from: lastWaterTemp.toFixed(1), to: p.waterTempC.toFixed(1) },
+          summaryParams: { from: formatNmeaDecimal(lastWaterTemp), to: formatNmeaDecimal(p.waterTempC) },
           data: p
         }, config.dedupeWindowMs)
       }
@@ -200,7 +205,7 @@ export function detectNmeaChanges(
         timestamp: p.timestamp,
         confidence: 'low',
         summaryKey: 'logs.nmea_change_speed',
-        summaryParams: { from: lastSog.toFixed(1), to: sog.toFixed(1) },
+        summaryParams: { from: formatNmeaDecimal(lastSog), to: formatNmeaDecimal(sog) },
         data: p
       }, config.dedupeWindowMs)
     }

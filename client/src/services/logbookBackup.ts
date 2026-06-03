@@ -1,3 +1,4 @@
+import { formatAppDecimal } from '../utils/numberFormat.js'
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import {
@@ -639,9 +640,10 @@ export function downloadBackupBlob(blob: Blob, filename: string): void {
 
 /** Human-readable size for UI warnings. */
 export function formatBackupBytes(bytes: number): string {
+  const fmt = (n: number) => formatAppDecimal(n, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024 * 1024) return `${fmt(bytes / 1024)} KB`
+  return `${fmt(bytes / (1024 * 1024))} MB`
 }
 
 export const BACKUP_SIZE_WARN_BYTES = 50_000_000

@@ -258,14 +258,4 @@ export function getTrackColor(index: number): string {
   return TRACK_COLORS[index % TRACK_COLORS.length]
 }
 
-export function formatNm(value: number): string {
-  return value.toFixed(2)
-}
-
-export function formatLiters(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
-export function formatHours(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
+export { formatHours, formatLiters, formatNm } from '../utils/numberFormat.js'

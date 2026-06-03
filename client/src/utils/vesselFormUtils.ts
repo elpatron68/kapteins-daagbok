@@ -1,18 +1,21 @@
 import { parseOptionalTankLiters, tankCapacityInputFromStored } from './tankCapacity.js'
+import { formatAppDecimal, parseAppDecimal } from './numberFormat.js'
 import type { VesselData } from '../types/vessel.js'
 
 export function metricInputFromStored(value: unknown): string {
   if (value == null || value === '') return ''
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return formatAppDecimal(value, { maximumFractionDigits: 6 })
+  }
   if (typeof value === 'string') return value.trim()
   return ''
 }
 
 export function parseOptionalMetricMeters(input: string): number | undefined {
-  const trimmed = input.trim().replace(',', '.')
+  const trimmed = input.trim()
   if (!trimmed) return undefined
-  const parsed = Number(trimmed)
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  const parsed = parseAppDecimal(trimmed)
+  if (parsed == null || parsed < 0) {
     throw new Error('invalid_metric')
   }
   return parsed

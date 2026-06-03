@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { clampTankLiters } from '../utils/tankCapacity.js'
+import { formatTankLiters, parseAppDecimalOrZero } from '../utils/numberFormat.js'
 
 interface TankLiterInputProps {
   id?: string
@@ -13,10 +14,8 @@ interface TankLiterInputProps {
 }
 
 function parseInputLiters(value: string): number {
-  const trimmed = value.trim().replace(',', '.')
-  if (!trimmed) return 0
-  const parsed = Number(trimmed)
-  return Number.isFinite(parsed) ? parsed : 0
+  if (!value.trim()) return 0
+  return parseAppDecimalOrZero(value)
 }
 
 export default function TankLiterInput({
@@ -34,8 +33,7 @@ export default function TankLiterInput({
   const emitValue = useCallback(
     (liters: number) => {
       const clamped = clampTankLiters(liters, useSlider ? maxLiters : undefined)
-      const str =
-        Number.isInteger(clamped) ? String(clamped) : String(Number(clamped.toFixed(1)))
+      const str = formatTankLiters(clamped)
       onChange(str)
     },
     [onChange, maxLiters, useSlider]

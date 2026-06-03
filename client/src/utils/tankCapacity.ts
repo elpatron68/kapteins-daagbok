@@ -1,4 +1,4 @@
-import { formatTankLiters } from './logEntryTankLevels.js'
+import { formatTankLiters, parseAppDecimal } from './numberFormat.js'
 
 export interface VesselTankCapacities {
   freshwaterCapacityL?: number
@@ -7,10 +7,10 @@ export interface VesselTankCapacities {
 }
 
 export function parseOptionalTankLiters(input: string): number | undefined {
-  const trimmed = input.trim().replace(',', '.')
+  const trimmed = input.trim()
   if (!trimmed) return undefined
-  const parsed = Number(trimmed)
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  const parsed = parseAppDecimal(trimmed)
+  if (parsed == null || parsed < 0) {
     throw new Error('invalid_tank_liters')
   }
   return parsed
@@ -24,10 +24,10 @@ function capacityFromStored(value: unknown): number | undefined {
   if (value == null || value === '') return undefined
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value
   if (typeof value === 'string') {
-    const trimmed = value.trim().replace(',', '.')
+    const trimmed = value.trim()
     if (!trimmed) return undefined
-    const parsed = Number(trimmed)
-    if (Number.isFinite(parsed) && parsed >= 0) return parsed
+    const parsed = parseAppDecimal(trimmed)
+    if (parsed != null && parsed >= 0) return parsed
   }
   return undefined
 }
