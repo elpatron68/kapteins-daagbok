@@ -470,12 +470,14 @@ export default function LogEntryEditor({
       const local = await db.entries.get(entryId)
       if (local) {
         const decrypted = await tryDecryptEntryPayload(local, masterKey)
-        const existing =
-          decrypted && typeof decrypted.aiSummary === 'string' ? decrypted.aiSummary.trim() : ''
-        if (existing) {
-          summaryToSave = existing
-          summaryAtToSave =
-            typeof decrypted.aiSummaryGeneratedAt === 'string' ? decrypted.aiSummaryGeneratedAt : ''
+        if (decrypted) {
+          const existing =
+            typeof decrypted.aiSummary === 'string' ? decrypted.aiSummary.trim() : ''
+          if (existing) {
+            summaryToSave = existing
+            summaryAtToSave =
+              typeof decrypted.aiSummaryGeneratedAt === 'string' ? decrypted.aiSummaryGeneratedAt : ''
+          }
         }
       }
     }
