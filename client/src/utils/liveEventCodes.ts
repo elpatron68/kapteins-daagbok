@@ -4,7 +4,7 @@ export const LIVE_EVENT_CODES = {
   MOTOR_STOP: '__live:motor_stop',
   CAST_OFF: '__live:cast_off',
   MOOR: '__live:moor',
-  FIX: '__live:fix',
+  POSITION: '__live:position',
   AUTO_POSITION: '__live:auto_position',
   COURSE: '__live:course',
   WIND: '__live:wind',
@@ -12,6 +12,9 @@ export const LIVE_EVENT_CODES = {
   SEA_STATE: '__live:sea_state',
   VISIBILITY: '__live:visibility'
 } as const
+
+/** @deprecated Stored in older log entries; still recognized when reading events. */
+export const LEGACY_LIVE_POSITION_REMARK = '__live:fix'
 
 export type LiveEventCode = (typeof LIVE_EVENT_CODES)[keyof typeof LIVE_EVENT_CODES]
 
@@ -148,27 +151,31 @@ export function getLastAutoPositionMs(
   return null
 }
 
-/** Max age of a logged GPS fix for OpenWeatherMap lookups in live log. */
+/** Max age of a logged position for OpenWeatherMap lookups in live log. */
 export const LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS = 6 * 60 * 60 * 1000
 
-export type LiveLogPositionSource = 'fix' | 'auto_position'
+export type LiveLogPositionSource = 'position' | 'auto_position'
 
-export interface LiveLogPositionFix {
+export interface LiveLogPosition {
   lat: string
   lng: string
   loggedAtMs: number
   source: LiveLogPositionSource
 }
 
-function isPositionEventCode(code: string): boolean {
-  return code === LIVE_EVENT_CODES.FIX || code === LIVE_EVENT_CODES.AUTO_POSITION
+export function isManualPositionEventCode(code: string): boolean {
+  return code === LIVE_EVENT_CODES.POSITION || code === LEGACY_LIVE_POSITION_REMARK
 }
 
-/** Latest FIX or auto-position event with GPS coordinates (any age). */
-export function getLatestPositionFix(
+function isPositionEventCode(code: string): boolean {
+  return isManualPositionEventCode(code) || code === LIVE_EVENT_CODES.AUTO_POSITION
+}
+
+/** Latest manual or auto-position event with GPS coordinates (any age). */
+export function getLatestLoggedPosition(
   events: Array<{ remarks: string; time: string; gpsLat?: string; gpsLng?: string }>,
   entryDate: string
-): LiveLogPositionFix | null {
+): LiveLogPosition | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const event = events[i]
     const code = event.remarks.trim()
@@ -182,20 +189,20 @@ export function getLatestPositionFix(
       lat,
       lng,
       loggedAtMs,
-      source: code === LIVE_EVENT_CODES.FIX ? 'fix' : 'auto_position'
+      source: isManualPositionEventCode(code) ? 'position' : 'auto_position'
     }
   }
   return null
 }
 
-/** GPS fix for weather if logged within `maxAgeMs` (default 6 h). */
-export function getLastPositionFixWithin(
+/** Logged position for weather if recorded within `maxAgeMs` (default 6 h). */
+export function getLastLoggedPositionWithin(
   events: Array<{ remarks: string; time: string; gpsLat?: string; gpsLng?: string }>,
   entryDate: string,
   maxAgeMs: number = LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS,
   nowMs: number = Date.now()
-): LiveLogPositionFix | null {
-  const latest = getLatestPositionFix(events, entryDate)
+): LiveLogPosition | null {
+  const latest = getLatestLoggedPosition(events, entryDate)
   if (!latest) return null
   if (nowMs - latest.loggedAtMs > maxAgeMs) return null
   return latest

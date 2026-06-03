@@ -216,7 +216,7 @@ export default function LiveCameraCapture({
             className="btn secondary live-camera-close"
             onClick={onClose}
             disabled={busy}
-            aria-label={t('logs.confirm_no')}
+            aria-label={t('logs.live_cancel')}
           >
             <X size={18} />
           </button>
@@ -287,7 +287,7 @@ export default function LiveCameraCapture({
 
         <div className="live-log-modal-actions live-camera-actions">
           <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>
-            {t('logs.confirm_no')}
+            {t('logs.live_cancel')}
           </button>
 
           {showPreview ? (

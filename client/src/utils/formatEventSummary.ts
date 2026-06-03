@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next'
 import type { LogEventPayload } from './logEntryPayload.js'
 import {
+  isManualPositionEventCode,
   LIVE_EVENT_CODES,
   parseLiveCommentRemark,
   parseLiveFuelRemark,
@@ -58,16 +59,16 @@ export function formatEventSummary(event: LogEventPayload, t: TFunction): string
   const stw = parseLiveStwRemark(code)
   if (stw) return t('logs.live_stw_entry', { speed: stw })
 
-  if (code === LIVE_EVENT_CODES.FIX || code === LIVE_EVENT_CODES.AUTO_POSITION) {
+  if (isManualPositionEventCode(code) || code === LIVE_EVENT_CODES.AUTO_POSITION) {
     if (event.gpsLat && event.gpsLng) {
       const label = code === LIVE_EVENT_CODES.AUTO_POSITION
         ? t('logs.live_auto_position')
-        : t('logs.live_fix')
+        : t('logs.live_position')
       return `${label} ${event.gpsLat}, ${event.gpsLng}`
     }
     return code === LIVE_EVENT_CODES.AUTO_POSITION
       ? t('logs.live_auto_position')
-      : t('logs.live_fix')
+      : t('logs.live_position')
   }
 
   if (code === LIVE_EVENT_CODES.COURSE && event.mgk) {

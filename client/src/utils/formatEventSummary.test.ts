@@ -21,8 +21,8 @@ const t = (key: string, opts?: Record<string, unknown>) => {
     'logs.live_cast_off': 'Cast off',
     'logs.live_moor': 'Moor',
     'logs.live_sails': `Sails: ${opts?.sails ?? ''}`,
-    'logs.live_fix': 'Fix',
-    'logs.live_fix_coords': `Fix ${opts?.lat}, ${opts?.lng}`,
+    'logs.live_position': 'Position',
+    'logs.live_position_coords': `Position ${opts?.lat}, ${opts?.lng}`,
     'logs.live_event_generic': 'Event',
     'logs.live_temp_entry': `Temperature ${opts?.temp} °C`,
     'logs.live_pressure_entry': `Pressure ${opts?.value} hPa`,
@@ -85,14 +85,14 @@ describe('formatEventSummary', () => {
     expect(formatEventSummary(event, t)).toBe('Sails: Main + Genoa')
   })
 
-  it('formats fix with coordinates', () => {
+  it('formats position with coordinates', () => {
     const event = normalizeLogEvent({
       time: '09:00',
-      remarks: LIVE_EVENT_CODES.FIX,
+      remarks: LIVE_EVENT_CODES.POSITION,
       gpsLat: '54.323000',
       gpsLng: '10.145000'
     })
-    expect(formatEventSummary(event, t)).toBe('Fix 54.323000, 10.145000')
+    expect(formatEventSummary(event, t)).toBe('Position 54.323000, 10.145000')
   })
 
   it('formats pressure entry', () => {

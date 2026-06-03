@@ -199,7 +199,7 @@ export default function LiveVoiceCapture({
             className="btn-icon"
             onClick={onClose}
             disabled={busy || saving || phase === 'recording'}
-            aria-label={t('logs.confirm_no')}
+            aria-label={t('logs.live_cancel')}
           >
             <X size={18} />
           </button>

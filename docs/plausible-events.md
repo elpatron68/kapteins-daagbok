@@ -84,7 +84,7 @@ Property `action` bei **Live Log Event Logged** — stabile englische Schlüssel
 | `temp` | Temperatur |
 | `precip` | Niederschlag |
 | `sea_state` | Seegang |
-| `fix` | GPS-Fix (manuell) |
+| `position` | GPS-Position (manuell) |
 | `comment` | Kommentar |
 | `voice` | Sprachnotiz (Modal gespeichert) |
 | `undo` | Letztes Ereignis rückgängig |
@@ -137,7 +137,7 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 7. **Kontosicherheit:** Profile Opened → Passkey Added / Local PIN Set / Recovery Rotated; Last Passkey Remove Hinted → Account Deleted (selten, aber aussagekräftig)
 8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
 9. **NMEA-Import:** NMEA Uploaded → NMEA Imported (Modus, `events`, optional Track; Upload-Funnel vs. Abbruch)
-10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `fix`, `course`, `motor_start`) → Photo Uploaded / Voice Memo Uploaded (Filter `context`: `live_log`)
+10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `position`, `course`, `motor_start`) → Photo Uploaded / Voice Memo Uploaded (Filter `context`: `live_log`)
 11. **OpenWeatherMap:** OWM Weather Fetched (Verteilung `source`; Live-Journal vs. Reisetag-Editor)
 12. **PWA-Stabilitaet:** PWA Boot Watchdog Soft → PWA Boot Watchdog Hard → PWA Boot Watchdog Fallback → PWA Boot Watchdog Manual Repair
 

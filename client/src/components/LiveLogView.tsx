@@ -33,8 +33,8 @@ import {
 import { formatEventSummary } from '../utils/formatEventSummary.js'
 import {
   getLastAutoPositionMs,
-  getLastPositionFixWithin,
-  getLatestPositionFix,
+  getLastLoggedPositionWithin,
+  getLatestLoggedPosition,
   isMotorRunningFromEvents,
   LIVE_EVENT_CODES,
   LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS,
@@ -96,7 +96,7 @@ type LiveModal =
   | 'water'
   | 'sog'
   | 'stw'
-  | 'fix'
+  | 'position'
   | 'photo'
   | 'voice'
 
@@ -167,10 +167,10 @@ export default function LiveLogView({
   const [valueInputSecondary, setValueInputSecondary] = useState('')
   const [selectedSails, setSelectedSails] = useState<string[]>([])
   const [undoVisible, setUndoVisible] = useState(false)
-  const [fixLat, setFixLat] = useState('')
-  const [fixLng, setFixLng] = useState('')
-  const [fixGpsLoading, setFixGpsLoading] = useState(false)
-  const [fixGpsUnavailable, setFixGpsUnavailable] = useState(false)
+  const [positionLat, setPositionLat] = useState('')
+  const [positionLng, setPositionLng] = useState('')
+  const [positionGpsLoading, setPositionGpsLoading] = useState(false)
+  const [positionGpsUnavailable, setPositionGpsUnavailable] = useState(false)
   const [photoCaption, setPhotoCaption] = useState('')
   const [photoSaving, setPhotoSaving] = useState(false)
   const [voiceCaption, setVoiceCaption] = useState('')
@@ -202,8 +202,8 @@ export default function LiveLogView({
   )
   const motorRunning = isMotorRunningFromEvents(events)
   const motorLabel = t('logs.motor_propulsion')
-  const hasPositionFix = useMemo(
-    () => (date ? getLatestPositionFix(events, date) != null : false),
+  const hasLoggedPosition = useMemo(
+    () => (date ? getLatestLoggedPosition(events, date) != null : false),
     [events, date]
   )
   const voiceMemoLookup = useEntryVoiceMemos(logbookId, entryId)
@@ -358,7 +358,7 @@ export default function LiveLogView({
         })
         await refreshEntry(entryId)
       } catch {
-        // Best-effort; hint banner shows when no position fix exists yet.
+        // Best-effort; hint banner shows when no position has been logged yet.
       } finally {
         autoPositionBusyRef.current = false
       }
@@ -453,16 +453,16 @@ export default function LiveLogView({
     }, 'moor')
   }
 
-  const openFixModal = async () => {
-    setFixLat('')
-    setFixLng('')
-    setFixGpsUnavailable(false)
-    setFixGpsLoading(true)
-    setModal('fix')
+  const openPositionModal = async () => {
+    setPositionLat('')
+    setPositionLng('')
+    setPositionGpsUnavailable(false)
+    setPositionGpsLoading(true)
+    setModal('position')
     try {
       const permission = await queryGeolocationPermission()
       if (permission !== 'granted') {
-        setFixGpsUnavailable(true)
+        setPositionGpsUnavailable(true)
         return
       }
       const coords = await getCurrentPosition({
@@ -470,25 +470,25 @@ export default function LiveLogView({
         enableHighAccuracy: false,
         maximumAge: 60_000
       })
-      setFixLat(coords.lat)
-      setFixLng(coords.lng)
+      setPositionLat(coords.lat)
+      setPositionLng(coords.lng)
     } catch {
-      setFixGpsUnavailable(true)
+      setPositionGpsUnavailable(true)
     } finally {
-      setFixGpsLoading(false)
+      setPositionGpsLoading(false)
     }
   }
 
-  const retryFixGps = async () => {
-    setFixGpsLoading(true)
-    setFixGpsUnavailable(false)
+  const retryPositionGps = async () => {
+    setPositionGpsLoading(true)
+    setPositionGpsUnavailable(false)
     try {
       const permission = await queryGeolocationPermission()
       if (permission !== 'granted') {
-        setFixGpsUnavailable(true)
+        setPositionGpsUnavailable(true)
         await showAlert(
           `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
-          t('logs.live_fix')
+          t('logs.live_position')
         )
         return
       }
@@ -497,23 +497,23 @@ export default function LiveLogView({
         enableHighAccuracy: false,
         maximumAge: 60_000
       })
-      setFixLat(coords.lat)
-      setFixLng(coords.lng)
+      setPositionLat(coords.lat)
+      setPositionLng(coords.lng)
     } catch {
-      setFixGpsUnavailable(true)
+      setPositionGpsUnavailable(true)
       await showAlert(
         `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
-        t('logs.live_fix')
+        t('logs.live_position')
       )
     } finally {
-      setFixGpsLoading(false)
+      setPositionGpsLoading(false)
     }
   }
 
-  const confirmFix = () => {
-    const coords = normalizeGpsCoordinates(fixLat, fixLng)
+  const confirmPosition = () => {
+    const coords = normalizeGpsCoordinates(positionLat, positionLng)
     if (!coords) {
-      void showAlert(t('logs.live_fix_invalid'), t('logs.live_fix'))
+      void showAlert(t('logs.live_position_invalid'), t('logs.live_position'))
       return
     }
     setModal('none')
@@ -522,9 +522,9 @@ export default function LiveLogView({
       await appendQuickEvent(logbookId, entryId, {
         gpsLat: coords.lat,
         gpsLng: coords.lng,
-        remarks: LIVE_EVENT_CODES.FIX
+        remarks: LIVE_EVENT_CODES.POSITION
       })
-    }, 'fix')
+    }, 'position')
   }
 
   const handleFetchOwmWeather = () => {
@@ -534,17 +534,17 @@ export default function LiveLogView({
       return
     }
 
-    const position = getLastPositionFixWithin(
+    const position = getLastLoggedPositionWithin(
       events,
       date,
       LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS
     )
     if (!position) {
-      const latest = getLatestPositionFix(events, date)
+      const latest = getLatestLoggedPosition(events, date)
       void showAlert(
         latest
-          ? t('logs.live_weather_fix_stale')
-          : t('logs.live_weather_fix_required'),
+          ? t('logs.live_weather_position_stale')
+          : t('logs.live_weather_position_required'),
         t('logs.live_weather_owm_btn')
       )
       return
@@ -945,7 +945,7 @@ export default function LiveLogView({
 
       {error && <div className="auth-error mb-4">{error}</div>}
 
-      {!hasPositionFix && (
+      {!hasLoggedPosition && (
         <p className="live-log-gps-hint" role="status">
           <MapPin size={16} aria-hidden />
           {t('logs.live_gps_start_hint')}
@@ -1036,9 +1036,9 @@ export default function LiveLogView({
             )}
           </div>
 
-          <button type="button" className="live-log-action-btn" onClick={() => void openFixModal()} disabled={busy}>
+          <button type="button" className="live-log-action-btn" onClick={() => void openPositionModal()} disabled={busy}>
             <MapPin size={18} />
-            {t('logs.live_fix')}
+            {t('logs.live_position')}
           </button>
           <button type="button" className="live-log-action-btn" onClick={() => { setCommentText(''); setModal('comment') }} disabled={busy}>
             <MessageSquare size={18} />
@@ -1145,7 +1145,7 @@ export default function LiveLogView({
               </p>
             )}
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.live_cancel')}</button>
               <button
                 type="button"
                 className="btn primary"
@@ -1161,68 +1161,68 @@ export default function LiveLogView({
         </div>
       )}
 
-      {modal === 'fix' && (
+      {modal === 'position' && (
         <div
           className="live-log-modal-backdrop"
           onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
         >
           <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{t('logs.live_fix')}</h3>
-            {fixGpsUnavailable && (
+            <h3>{t('logs.live_position')}</h3>
+            {positionGpsUnavailable && (
               <>
                 <p className="live-log-modal-hint live-log-gps-hint-modal">{t('logs.live_gps_start_hint')}</p>
-                <p className="live-log-modal-hint">{t('logs.live_fix_manual_hint')}</p>
+                <p className="live-log-modal-hint">{t('logs.live_position_manual_hint')}</p>
               </>
             )}
-            <fieldset className="live-log-fix-coords" disabled={busy}>
-              <legend className="live-log-fix-label">{t('logs.event_gps')}</legend>
-              <div className="live-log-fix-coords-row">
-                <label className="live-log-fix-field">
-                  <span className="live-log-fix-field-label">{t('logs.live_fix_lat_placeholder')}</span>
+            <fieldset className="live-log-position-coords" disabled={busy}>
+              <legend className="live-log-position-label">{t('logs.event_gps')}</legend>
+              <div className="live-log-position-coords-row">
+                <label className="live-log-position-field">
+                  <span className="live-log-position-field-label">{t('logs.live_position_lat_placeholder')}</span>
                   <input
                     type="text"
                     inputMode="decimal"
                     className="input-text"
                     placeholder="54.123456"
-                    value={fixLat}
-                    onChange={(e) => setFixLat(e.target.value)}
+                    value={positionLat}
+                    onChange={(e) => setPositionLat(e.target.value)}
                     autoFocus
                   />
                 </label>
-                <label className="live-log-fix-field">
-                  <span className="live-log-fix-field-label">{t('logs.live_fix_lng_placeholder')}</span>
+                <label className="live-log-position-field">
+                  <span className="live-log-position-field-label">{t('logs.live_position_lng_placeholder')}</span>
                   <input
                     type="text"
                     inputMode="decimal"
                     className="input-text"
                     placeholder="10.654321"
-                    value={fixLng}
-                    onChange={(e) => setFixLng(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') confirmFix() }}
+                    value={positionLng}
+                    onChange={(e) => setPositionLng(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') confirmPosition() }}
                   />
                 </label>
               </div>
-              <div className="live-log-fix-gps-row">
+              <div className="live-log-position-gps-row">
                 <button
                   type="button"
-                  className="btn secondary live-log-fix-gps-btn"
-                  onClick={() => void retryFixGps()}
+                  className="btn secondary live-log-position-gps-btn"
+                  onClick={() => void retryPositionGps()}
                   title={t('logs.gps_btn')}
-                  disabled={fixGpsLoading}
+                  disabled={positionGpsLoading}
                   aria-label={t('logs.gps_btn')}
                 >
                   <MapPin size={16} />
-                  <span>{fixGpsLoading ? t('logs.live_fix_gps_loading') : t('logs.gps_btn')}</span>
+                  <span>{positionGpsLoading ? t('logs.live_position_gps_loading') : t('logs.gps_btn')}</span>
                 </button>
               </div>
             </fieldset>
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.live_cancel')}</button>
               <button
                 type="button"
                 className="btn primary"
-                onClick={confirmFix}
-                disabled={busy || !normalizeGpsCoordinates(fixLat, fixLng)}
+                onClick={confirmPosition}
+                disabled={busy || !normalizeGpsCoordinates(positionLat, positionLng)}
               >
                 {t('logs.live_sails_confirm')}
               </button>
@@ -1237,7 +1237,7 @@ export default function LiveLogView({
             <h3>{t('logs.live_comment_btn')}</h3>
             <input type="text" className="input-text" value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder={t('logs.live_comment_placeholder')} autoFocus onKeyDown={(e) => { if (e.key === 'Enter') confirmComment() }} />
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.live_cancel')}</button>
               <button type="button" className="btn primary" onClick={confirmComment} disabled={!commentText.trim()}>{t('logs.live_comment_confirm')}</button>
             </div>
           </div>
@@ -1271,7 +1271,7 @@ export default function LiveLogView({
               />
             </div>
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.live_cancel')}</button>
               <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
             </div>
           </div>
@@ -1293,7 +1293,7 @@ export default function LiveLogView({
               />
             </div>
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.live_cancel')}</button>
               <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
             </div>
           </div>
@@ -1338,7 +1338,7 @@ export default function LiveLogView({
               onKeyDown={(e) => { if (e.key === 'Enter') confirmValueModal() }}
             />
             <div className="live-log-modal-actions">
-              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.confirm_no')}</button>
+              <button type="button" className="btn secondary" onClick={() => setModal('none')}>{t('logs.live_cancel')}</button>
               <button type="button" className="btn primary" onClick={confirmValueModal}>{t('logs.live_sails_confirm')}</button>
             </div>
           </div>

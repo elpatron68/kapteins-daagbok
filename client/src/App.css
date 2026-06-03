@@ -3865,14 +3865,14 @@ html.theme-cupertino .events-scroll-container {
   max-width: min(100%, 420px);
 }
 
-.live-log-fix-coords {
+.live-log-position-coords {
   margin: 0;
   padding: 0;
   border: none;
   min-width: 0;
 }
 
-.live-log-fix-label {
+.live-log-position-label {
   display: block;
   margin: 0 0 10px;
   padding: 0;
@@ -3881,35 +3881,35 @@ html.theme-cupertino .events-scroll-container {
   color: var(--app-text-muted);
 }
 
-.live-log-fix-coords-row {
+.live-log-position-coords-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   min-width: 0;
 }
 
-.live-log-fix-field {
+.live-log-position-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
 
-.live-log-fix-field-label {
+.live-log-position-field-label {
   font-size: 12px;
   color: var(--app-text-muted);
 }
 
-.live-log-fix-field .input-text {
+.live-log-position-field .input-text {
   width: 100%;
   box-sizing: border-box;
 }
 
-.live-log-fix-gps-row {
+.live-log-position-gps-row {
   margin-top: 10px;
 }
 
-.live-log-fix-gps-btn {
+.live-log-position-gps-btn {
   width: 100%;
   box-sizing: border-box;
   display: flex;
