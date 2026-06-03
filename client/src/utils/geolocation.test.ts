@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   classifyGpsAccuracyMeters,
+  formatGpsAccuracyMeters,
   geolocationErrorI18nKey,
   GEOLOCATION_LIVE_INTRO_STORAGE_KEY,
   getCurrentPosition,
@@ -79,6 +80,13 @@ describe('geolocation helpers', () => {
       accuracyM: 12,
       signalQuality: 'excellent'
     })
+  })
+
+  it('formats GPS accuracy for display', () => {
+    expect(formatGpsAccuracyMeters(12.4)).toBe('12')
+    expect(formatGpsAccuracyMeters(87)).toBe('87')
+    expect(formatGpsAccuracyMeters(105)).toBe('110')
+    expect(formatGpsAccuracyMeters(247)).toBe('250')
   })
 
   it('classifies GPS accuracy into signal quality', () => {

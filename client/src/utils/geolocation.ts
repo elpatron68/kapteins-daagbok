@@ -30,8 +30,11 @@ export function gpsQualityI18nKey(quality: GpsSignalQuality): string {
   return `logs.gps_quality_${quality}`
 }
 
+/** Formats accuracy for i18n (±{{accuracy}} m): 1 m below 100 m, 10 m from 100 m upward. */
 export function formatGpsAccuracyMeters(accuracyM: number): string {
-  return accuracyM < 100 ? String(Math.round(accuracyM)) : String(Math.round(accuracyM))
+  return accuracyM < 100
+    ? String(Math.round(accuracyM))
+    : String(Math.round(accuracyM / 10) * 10)
 }
 
 export type GeolocationPermissionState = PermissionState | 'unsupported'
