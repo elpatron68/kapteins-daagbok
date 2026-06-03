@@ -43,11 +43,8 @@ export default function LiveVoiceCapture({
   const [previewMime, setPreviewMime] = useState('audio/webm')
   const [previewDurationSec, setPreviewDurationSec] = useState(0)
   const [saving, setSaving] = useState(false)
-  const [logs, setLogs] = useState<string[]>([])
-
   const log = useCallback((msg: string) => {
     console.log(`[VoiceDebug] ${msg}`)
-    setLogs((prev) => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`])
   }, [])
 
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -375,40 +372,7 @@ export default function LiveVoiceCapture({
           </>
         )}
 
-        {/* Debug Logs Panel */}
-        <div style={{
-          marginTop: '20px',
-          padding: '10px',
-          background: 'rgba(0,0,0,0.6)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: '8px',
-          maxHeight: '180px',
-          overflowY: 'auto',
-          textAlign: 'left',
-          fontSize: '11px',
-          fontFamily: 'monospace',
-          color: '#4ade80',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.2)', paddingBottom: '2px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Debug Console Logs:</span>
-            <button 
-              type="button" 
-              onClick={() => setLogs([])}
-              style={{ background: 'none', border: 'none', color: '#fda4af', cursor: 'pointer', fontSize: '10px', padding: '0 4px', textDecoration: 'underline' }}
-            >
-              Clear
-            </button>
-          </div>
-          {logs.length === 0 ? (
-            <span style={{ color: '#94a3b8' }}>No logs yet. Start recording to debug.</span>
-          ) : (
-            logs.map((l, i) => (
-              <div key={i} style={{ wordBreak: 'break-all', marginBottom: '2px' }}>{l}</div>
-            ))
-          )}
-        </div>
+
       </div>
     </div>
   )
