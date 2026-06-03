@@ -116,6 +116,10 @@ export default function LiveVoiceCapture({
   const startRecording = async () => {
     setMicError(null)
     chunksRef.current = []
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError(t('logs.live_voice_mic_denied'))
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
