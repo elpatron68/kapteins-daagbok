@@ -3814,7 +3814,7 @@ html.theme-cupertino .events-scroll-container {
   max-width: 300px;
   min-width: 260px;
   height: 36px;
-  box-sizing: content-box;
+  box-sizing: border-box;
   padding-inline: 2px 12px;
 }
 

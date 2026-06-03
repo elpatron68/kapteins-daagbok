@@ -267,9 +267,13 @@ export default function LiveCameraCapture({
               className="live-camera-preview live-camera-preview-still"
             />
           </div>
-        ) : phase === 'checking' && !cameraError ? (
+        ) : cameraError ? (
+          <div className="live-camera-preview-wrap">
+            <p className="live-camera-loading">{cameraError}</p>
+          </div>
+        ) : phase === 'checking' ? (
           <p className="live-camera-loading">{t('logs.live_photo_camera_starting')}</p>
-        ) : phase === 'native' && !cameraError ? (
+        ) : phase === 'native' ? (
           <div className="live-camera-native-prompt">
             <p className="live-log-modal-hint">{t('logs.live_photo_native_hint')}</p>
             <button
@@ -282,7 +286,7 @@ export default function LiveCameraCapture({
               {t('logs.live_photo_open_camera_btn')}
             </button>
           </div>
-        ) : phase === 'live' && !cameraError ? (
+        ) : phase === 'live' ? (
           <div className="live-camera-preview-wrap">
             <video
               ref={videoRef}
