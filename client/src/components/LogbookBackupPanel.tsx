@@ -68,6 +68,9 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  const exportPassphrasesMatch =
+    exportPassphrase.length >= 8 && exportPassphrase === exportConfirm
+
   const handleExportSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await handleExport()
@@ -291,7 +294,7 @@ export default function LogbookBackupPanel({ logbookId, onRestored }: LogbookBac
           <button
             type="submit"
             className="btn primary"
-            disabled={exporting || !exportPassphrase || !exportConfirm}
+            disabled={exporting || !exportPassphrasesMatch}
           >
             <Download size={16} />
             {exporting ? t('settings.backup_exporting') : t('settings.backup_export_btn')}
