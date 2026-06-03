@@ -5585,6 +5585,12 @@ html.theme-cupertino .events-scroll-container {
   pointer-events: none;
 }
 
+@media (max-width: 768px) {
+  body:has(.app-bottom-nav) .app-version-footer {
+    display: none;
+  }
+}
+
 .app-version-footer a,
 .app-version-footer button {
   pointer-events: auto;
