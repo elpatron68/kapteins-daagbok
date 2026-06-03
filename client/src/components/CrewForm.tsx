@@ -818,7 +818,7 @@ export default function CrewForm({
                       <button className="btn-icon" onClick={() => openEditMember(m)} title="Edit">
                         <Edit2 size={14} />
                       </button>
-                      <button className="btn-icon logout" onClick={() => handleDeleteMember(m.payloadId)} title="Delete">
+                      <button className="btn-icon danger" onClick={() => handleDeleteMember(m.payloadId)} title="Delete">
                         <Trash2 size={14} />
                       </button>
                     </div>

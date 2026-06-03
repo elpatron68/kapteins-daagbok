@@ -1180,10 +1180,27 @@ html.scheme-dark .themed-select-option.is-selected {
   color: var(--app-accent-light);
 }
 
-.btn-icon.logout:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
+.btn-icon.danger {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
   color: #f87171;
+}
+
+.btn-icon.danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.btn-icon.danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-icon.logout:hover {
+  background: var(--app-accent-bg);
+  border-color: var(--app-accent);
+  color: var(--app-accent-light);
 }
 
 .dashboard-main {
@@ -2181,12 +2198,12 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .btn-delete {
-  background: none;
-  border: none;
-  color: #475569;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
   cursor: pointer;
   padding: 6px;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2202,8 +2219,9 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .btn-delete:hover {
-  color: #f43f5e;
-  background: rgba(244, 63, 94, 0.1);
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
 }
 
 .btn-pdf {
@@ -2684,15 +2702,18 @@ html.scheme-dark .themed-select-option.is-selected {
 }
 
 .events-actions-td {
+  width: 1%;
+  min-width: 88px;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
-.events-actions-td .btn-icon {
-  margin-left: 4px;
-}
-
-.events-actions-td .btn-icon:first-child {
-  margin-left: 0;
+.events-actions-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .events-table tbody tr:hover {
@@ -3172,9 +3193,9 @@ html.theme-cupertino .events-scroll-container {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f43f5e;
+  background: rgba(239, 68, 68, 0.22);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
   border-radius: 50%;
   width: 32px;
   height: 32px;
@@ -3186,9 +3207,10 @@ html.theme-cupertino .events-scroll-container {
 }
 
 .photo-btn-delete:hover {
-  background: #f43f5e;
+  background: rgba(239, 68, 68, 0.45);
+  border-color: #ef4444;
   color: #ffffff;
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .photo-caption-bar {
@@ -4083,15 +4105,23 @@ html.theme-cupertino .events-scroll-container {
   min-height: auto !important;
 }
 
+.btn-inline-icon {
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
 .btn.danger {
-  background: rgba(239, 68, 68, 0.15) !important;
+  background: rgba(239, 68, 68, 0.2) !important;
   color: #fca5a5 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  border: 1px solid rgba(239, 68, 68, 0.38) !important;
 }
 
 .btn.danger:hover {
-  background: rgba(239, 68, 68, 0.25) !important;
+  background: rgba(239, 68, 68, 0.32) !important;
   border-color: #ef4444 !important;
+  color: #fecaca !important;
 }
 
 /* Crew Avatar Card Styling */

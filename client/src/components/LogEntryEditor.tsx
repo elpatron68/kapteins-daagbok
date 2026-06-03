@@ -1820,23 +1820,25 @@ export default function LogEntryEditor({
                       </td>
                       {!readOnly && (
                         <td className="events-actions-td">
-                          <button
-                            type="button"
-                            className="btn-icon"
-                            onClick={() => handleEditEvent(idx)}
-                            title={t('logs.edit_event')}
-                            disabled={editingEventIndex !== null && editingEventIndex !== idx}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-icon logout"
-                            onClick={() => handleDeleteEvent(idx)}
-                            title={t('logs.delete_event')}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="events-actions-cell">
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              onClick={() => handleEditEvent(idx)}
+                              title={t('logs.edit_event')}
+                              disabled={editingEventIndex !== null && editingEventIndex !== idx}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-icon danger"
+                              onClick={() => handleDeleteEvent(idx)}
+                              title={t('logs.delete_event')}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -2260,9 +2262,8 @@ export default function LogEntryEditor({
                   {!readOnly && (
                     <button
                       type="button"
-                      className="btn secondary"
+                      className="btn danger btn-sm btn-inline-icon"
                       onClick={handleDeleteTrack}
-                      style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
                       title={t('logs.gps_track_delete')}
                     >
                       <Trash2 size={14} />
@@ -2295,7 +2296,11 @@ export default function LogEntryEditor({
                   <button type="button" className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: '13px' }} onClick={() => downloadNmeaArchive(nmeaArchive)}>
                     <Download size={14} />
                   </button>
-                  <button type="button" className="btn secondary" style={{ width: 'auto', padding: '4px 10px', fontSize: '13px' }} onClick={handleDeleteNmeaArchive}>
+                  <button
+                    type="button"
+                    className="btn danger btn-sm btn-inline-icon"
+                    onClick={handleDeleteNmeaArchive}
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>

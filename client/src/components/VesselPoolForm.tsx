@@ -193,7 +193,7 @@ export default function VesselPoolForm() {
                   </button>
                   <button
                     type="button"
-                    className="btn-icon logout"
+                    className="btn-icon danger"
                     onClick={() => void handleDelete(v.payloadId)}
                   >
                     <Trash2 size={14} />

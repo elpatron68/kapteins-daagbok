@@ -429,7 +429,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
                       <td>
                         <button
                           type="button"
-                          className="btn-icon logout"
+                          className="btn-icon danger"
                           onClick={() => handleRevoke(c.id, c.username)}
                           title="Revoke access"
                         >

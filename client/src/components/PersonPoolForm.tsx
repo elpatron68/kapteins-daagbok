@@ -147,7 +147,7 @@ export default function PersonPoolForm() {
           </button>
           <button
             type="button"
-            className="btn-icon logout"
+            className="btn-icon danger"
             onClick={() => void handleDelete(person.payloadId)}
             title="Delete"
           >
