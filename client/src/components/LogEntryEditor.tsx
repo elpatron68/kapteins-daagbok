@@ -67,6 +67,14 @@ import {
 } from '../services/nmeaArchive.js'
 import { computeTrackStats, formatTrackStats } from '../utils/trackStats.js'
 import { computeFuelPerMotorHour, formatFuelPerMotorHour } from '../utils/fuelStats.js'
+import GpsSignalHint from './GpsSignalHint.tsx'
+import {
+  geolocationErrorI18nKey,
+  getCurrentPosition,
+  getGeolocationErrorReason,
+  queryGeolocationPermission,
+  type GpsSignalQuality
+} from '../utils/geolocation.js'
 import { useRegisterUnsavedChanges } from '../context/UnsavedChangesContext.tsx'
 import TankLiterInput from './TankLiterInput.tsx'
 import MetricRangeInput from './MetricRangeInput.tsx'
@@ -263,6 +271,10 @@ export default function LogEntryEditor({
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [gpsSignal, setGpsSignal] = useState<{
+    quality: GpsSignalQuality
+    accuracyM: number | null
+  } | null>(null)
   const [savedFingerprint, setSavedFingerprint] = useState<string | null>(null)
 
   // Track file upload
@@ -1006,12 +1018,16 @@ export default function LogEntryEditor({
     }
   }
 
-  const handleGetGps = () => {
+  const clearGpsSignal = () => setGpsSignal(null)
+
+  const handleGetGps = async () => {
     if (readOnly) return
+
     const lookupFallback = async () => {
+      clearGpsSignal()
       const locationQuery = evLocationName.trim() || departure.trim() || destination.trim()
       if (!locationQuery) {
-        showAlert('GPS capturing failed, and no location name is entered in "Ort / Hafen" or "Start-Hafen" to look up coordinates.')
+        showAlert(t('logs.gps_fallback_no_location'))
         return
       }
       if (!isOnline) {
@@ -1028,7 +1044,9 @@ export default function LogEntryEditor({
         if (coord?.lat !== undefined && coord?.lon !== undefined) {
           setEvGpsLat(Number(coord.lat).toFixed(6))
           setEvGpsLng(Number(coord.lon).toFixed(6))
-          showAlert(`Coordinates loaded for "${locationQuery}" via OpenWeatherMap.`)
+          showAlert(t('logs.gps_fallback_success', { location: locationQuery }))
+        } else {
+          showAlert(t('logs.gps_fallback_failed'))
         }
       } catch (e) {
         if (e instanceof WeatherApiError && e.code === 'OFFLINE') {
@@ -1039,25 +1057,37 @@ export default function LogEntryEditor({
           showAlert(t('settings.no_key'))
           return
         }
-        showAlert('Failed to retrieve GPS location or look up coordinates by location name.')
+        showAlert(t('logs.gps_fallback_failed'))
       }
     }
 
-    if (!navigator.geolocation) {
-      lookupFallback()
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setEvGpsLat(pos.coords.latitude.toFixed(6))
-        setEvGpsLng(pos.coords.longitude.toFixed(6))
-      },
-      (err) => {
-        console.warn('GPS capturing failed, trying fallback:', err)
-        lookupFallback()
+    try {
+      const permission = await queryGeolocationPermission()
+      if (permission === 'denied' || permission === 'unsupported') {
+        const reason = permission === 'denied' ? 'permission_denied' : 'unavailable'
+        showAlert(
+          `${t(geolocationErrorI18nKey(reason))}\n\n${t('logs.live_position_manual_hint')}`
+        )
+        await lookupFallback()
+        return
       }
-    )
+
+      const coords = await getCurrentPosition({
+        timeoutMs: 15_000,
+        enableHighAccuracy: false,
+        maximumAge: 60_000
+      })
+      setEvGpsLat(coords.lat)
+      setEvGpsLng(coords.lng)
+      setGpsSignal({ quality: coords.signalQuality, accuracyM: coords.accuracyM })
+    } catch (err) {
+      console.warn('GPS capture failed:', err)
+      const reason = getGeolocationErrorReason(err)
+      showAlert(
+        `${t(geolocationErrorI18nKey(reason))}\n\n${t('logs.live_position_manual_hint')}`
+      )
+      await lookupFallback()
+    }
   }
 
   const handleFetchWeather = async () => {
@@ -1938,7 +1968,7 @@ export default function LogEntryEditor({
                     placeholder="Lat"
                     className="input-text"
                     value={evGpsLat}
-                    onChange={(e) => setEvGpsLat(e.target.value)}
+                    onChange={(e) => { clearGpsSignal(); setEvGpsLat(e.target.value) }}
                     disabled={saving}
                   />
                   <input
@@ -1946,13 +1976,13 @@ export default function LogEntryEditor({
                     placeholder="Lng"
                     className="input-text"
                     value={evGpsLng}
-                    onChange={(e) => setEvGpsLng(e.target.value)}
+                    onChange={(e) => { clearGpsSignal(); setEvGpsLng(e.target.value) }}
                     disabled={saving}
                   />
                   <button
                     type="button"
                     className="btn secondary"
-                    onClick={handleGetGps}
+                    onClick={() => void handleGetGps()}
                     title={t('logs.gps_btn')}
                     style={{ width: 'auto', padding: '12px' }}
                     disabled={saving}
@@ -1975,6 +2005,13 @@ export default function LogEntryEditor({
                     <CloudSun size={16} />
                   </button>
                 </div>
+                {gpsSignal && (
+                  <GpsSignalHint
+                    quality={gpsSignal.quality}
+                    accuracyM={gpsSignal.accuracyM}
+                    className="gps-signal-hint-editor"
+                  />
+                )}
               </div>
             </div>
 

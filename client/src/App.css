@@ -3492,6 +3492,84 @@ html.theme-cupertino .events-scroll-container {
   color: var(--app-text, inherit);
 }
 
+.live-log-gps-error-modal {
+  color: var(--app-warning-text, #b45309);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.gps-signal-hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gps-signal-hint-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.gps-signal-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gps-signal-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.gps-signal-bar {
+  width: 4px;
+  border-radius: 1px;
+  background: var(--app-border, rgba(148, 163, 184, 0.45));
+}
+
+.gps-signal-bar:nth-child(1) { height: 4px; }
+.gps-signal-bar:nth-child(2) { height: 7px; }
+.gps-signal-bar:nth-child(3) { height: 10px; }
+.gps-signal-bar:nth-child(4) { height: 14px; }
+
+.gps-signal-bar.is-active {
+  background: var(--app-accent-light, #22c55e);
+}
+
+.gps-signal-excellent .gps-signal-bar.is-active {
+  background: #22c55e;
+}
+
+.gps-signal-good .gps-signal-bar.is-active {
+  background: #84cc16;
+}
+
+.gps-signal-fair .gps-signal-bar.is-active,
+.gps-signal-unknown .gps-signal-bar.is-active {
+  background: #eab308;
+}
+
+.gps-signal-poor .gps-signal-bar.is-active {
+  background: #f97316;
+}
+
+.gps-signal-poor,
+.gps-signal-fair {
+  color: var(--app-warning-text, #b45309);
+}
+
+.gps-signal-hint-editor {
+  margin-top: 6px;
+}
+
+.gps-signal-hint-modal {
+  margin: 0 0 10px;
+}
+
 .live-log-layout {
   display: grid;
   grid-template-columns: minmax(148px, 200px) 1fr;

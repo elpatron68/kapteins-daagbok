@@ -53,9 +53,15 @@ import {
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
 import {
+  geolocationErrorI18nKey,
   getCurrentPosition,
+  getGeolocationErrorReason,
+  hasSeenGeolocationLiveIntro,
+  markGeolocationLiveIntroSeen,
   normalizeGpsCoordinates,
-  queryGeolocationPermission
+  queryGeolocationPermission,
+  type GeolocationErrorReason,
+  type GpsSignalQuality
 } from '../utils/geolocation.js'
 import { sortLogEventsByTime, type LogEventPayload } from '../utils/logEntryPayload.js'
 import {
@@ -66,6 +72,7 @@ import {
 } from '../utils/sailSelection.js'
 import { useDialog } from './ModalDialog.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
+import GpsSignalHint from './GpsSignalHint.tsx'
 import LiveCameraCapture from './LiveCameraCapture.tsx'
 import LiveVoiceCapture from './LiveVoiceCapture.tsx'
 import VoiceMemoPlayer from './VoiceMemoPlayer.tsx'
@@ -142,13 +149,21 @@ function lastWindDirectionFromEvents(events: LogEventPayload[]): string {
   return ''
 }
 
+function gpsFailureAlertBody(
+  t: (key: string) => string,
+  reason: GeolocationErrorReason
+): string {
+  return `${t(geolocationErrorI18nKey(reason))}\n\n${t('logs.live_position_manual_hint')}`
+}
+
 export default function LiveLogView({
   logbookId,
   onOpenEditor,
   onSwitchToList
 }: LiveLogViewProps) {
   const { t, i18n } = useTranslation()
-  const { showAlert } = useDialog()
+  const { showAlert, showConfirm } = useDialog()
+  const [geolocationAccessEpoch, setGeolocationAccessEpoch] = useState(0)
 
   const [entryId, setEntryId] = useState<string | null>(null)
   const [dayOfTravel, setDayOfTravel] = useState('')
@@ -171,6 +186,11 @@ export default function LiveLogView({
   const [positionLng, setPositionLng] = useState('')
   const [positionGpsLoading, setPositionGpsLoading] = useState(false)
   const [positionGpsUnavailable, setPositionGpsUnavailable] = useState(false)
+  const [positionGpsErrorReason, setPositionGpsErrorReason] = useState<GeolocationErrorReason | null>(null)
+  const [positionGpsSignal, setPositionGpsSignal] = useState<{
+    quality: GpsSignalQuality
+    accuracyM: number | null
+  } | null>(null)
   const [photoCaption, setPhotoCaption] = useState('')
   const [photoSaving, setPhotoSaving] = useState(false)
   const [voiceCaption, setVoiceCaption] = useState('')
@@ -311,6 +331,56 @@ export default function LiveLogView({
   }, [loading, entryId])
 
   useEffect(() => {
+    if (loading || !entryId || !navigator.geolocation) return
+
+    let cancelled = false
+
+    void (async () => {
+      const permission = await queryGeolocationPermission()
+      if (cancelled) return
+
+      if (permission === 'granted') {
+        markGeolocationLiveIntroSeen()
+        setGeolocationAccessEpoch((n) => n + 1)
+        return
+      }
+
+      // Only ask when the browser has not granted location yet (state "prompt").
+      if (permission !== 'prompt' || hasSeenGeolocationLiveIntro()) return
+
+      const allow = await showConfirm(
+        t('logs.gps_live_intro_body'),
+        t('logs.gps_live_intro_title'),
+        t('logs.gps_live_intro_allow'),
+        t('logs.gps_live_intro_later')
+      )
+      markGeolocationLiveIntroSeen()
+      if (cancelled || !allow) return
+
+      try {
+        await getCurrentPosition({
+          timeoutMs: 15_000,
+          enableHighAccuracy: false,
+          maximumAge: 0
+        })
+        if (!cancelled) setGeolocationAccessEpoch((n) => n + 1)
+      } catch (err) {
+        const reason = getGeolocationErrorReason(err)
+        if (reason === 'permission_denied') {
+          await showAlert(
+            `${t('logs.gps_permission_denied')}\n\n${t('logs.gps_enable_in_settings_hint')}`,
+            t('logs.live_title')
+          )
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loading, entryId, showAlert, showConfirm, t])
+
+  useEffect(() => {
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [events.length])
 
@@ -377,7 +447,7 @@ export default function LiveLogView({
       if (startTimer !== undefined) window.clearTimeout(startTimer)
       if (intervalRef !== undefined) window.clearInterval(intervalRef)
     }
-  }, [entryId, loading, logbookId, refreshEntry])
+  }, [entryId, loading, logbookId, refreshEntry, geolocationAccessEpoch])
 
   const runQuickAction = async (
     action: () => Promise<boolean | void>,
@@ -453,16 +523,26 @@ export default function LiveLogView({
     }, 'moor')
   }
 
+  const reportPositionGpsFailure = async (reason: GeolocationErrorReason) => {
+    setPositionGpsUnavailable(true)
+    setPositionGpsErrorReason(reason)
+    setPositionGpsSignal(null)
+    await showAlert(gpsFailureAlertBody(t, reason), t('logs.live_position'))
+  }
+
   const openPositionModal = async () => {
     setPositionLat('')
     setPositionLng('')
     setPositionGpsUnavailable(false)
+    setPositionGpsErrorReason(null)
+    setPositionGpsSignal(null)
     setPositionGpsLoading(true)
     setModal('position')
     try {
       const permission = await queryGeolocationPermission()
       if (permission !== 'granted') {
-        setPositionGpsUnavailable(true)
+        const reason = permission === 'denied' ? 'permission_denied' : 'unavailable'
+        await reportPositionGpsFailure(reason)
         return
       }
       const coords = await getCurrentPosition({
@@ -472,8 +552,9 @@ export default function LiveLogView({
       })
       setPositionLat(coords.lat)
       setPositionLng(coords.lng)
-    } catch {
-      setPositionGpsUnavailable(true)
+      setPositionGpsSignal({ quality: coords.signalQuality, accuracyM: coords.accuracyM })
+    } catch (err) {
+      await reportPositionGpsFailure(getGeolocationErrorReason(err))
     } finally {
       setPositionGpsLoading(false)
     }
@@ -482,14 +563,13 @@ export default function LiveLogView({
   const retryPositionGps = async () => {
     setPositionGpsLoading(true)
     setPositionGpsUnavailable(false)
+    setPositionGpsErrorReason(null)
+    setPositionGpsSignal(null)
     try {
       const permission = await queryGeolocationPermission()
       if (permission !== 'granted') {
-        setPositionGpsUnavailable(true)
-        await showAlert(
-          `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
-          t('logs.live_position')
-        )
+        const reason = permission === 'denied' ? 'permission_denied' : 'unavailable'
+        await reportPositionGpsFailure(reason)
         return
       }
       const coords = await getCurrentPosition({
@@ -499,12 +579,10 @@ export default function LiveLogView({
       })
       setPositionLat(coords.lat)
       setPositionLng(coords.lng)
-    } catch {
-      setPositionGpsUnavailable(true)
-      await showAlert(
-        `${t('logs.live_gps_error')}\n\n${t('logs.live_gps_start_hint')}`,
-        t('logs.live_position')
-      )
+      setPositionGpsUnavailable(false)
+      setPositionGpsSignal({ quality: coords.signalQuality, accuracyM: coords.accuracyM })
+    } catch (err) {
+      await reportPositionGpsFailure(getGeolocationErrorReason(err))
     } finally {
       setPositionGpsLoading(false)
     }
@@ -1170,7 +1248,11 @@ export default function LiveLogView({
             <h3>{t('logs.live_position')}</h3>
             {positionGpsUnavailable && (
               <>
-                <p className="live-log-modal-hint live-log-gps-hint-modal">{t('logs.live_gps_start_hint')}</p>
+                {positionGpsErrorReason && (
+                  <p className="live-log-modal-hint live-log-gps-error-modal" role="alert">
+                    {t(geolocationErrorI18nKey(positionGpsErrorReason))}
+                  </p>
+                )}
                 <p className="live-log-modal-hint">{t('logs.live_position_manual_hint')}</p>
               </>
             )}
@@ -1185,7 +1267,7 @@ export default function LiveLogView({
                     className="input-text"
                     placeholder="54.123456"
                     value={positionLat}
-                    onChange={(e) => setPositionLat(e.target.value)}
+                    onChange={(e) => { setPositionGpsSignal(null); setPositionLat(e.target.value) }}
                     autoFocus
                   />
                 </label>
@@ -1197,11 +1279,18 @@ export default function LiveLogView({
                     className="input-text"
                     placeholder="10.654321"
                     value={positionLng}
-                    onChange={(e) => setPositionLng(e.target.value)}
+                    onChange={(e) => { setPositionGpsSignal(null); setPositionLng(e.target.value) }}
                     onKeyDown={(e) => { if (e.key === 'Enter') confirmPosition() }}
                   />
                 </label>
               </div>
+              {positionGpsSignal && (
+                <GpsSignalHint
+                  quality={positionGpsSignal.quality}
+                  accuracyM={positionGpsSignal.accuracyM}
+                  className="gps-signal-hint-modal"
+                />
+              )}
               <div className="live-log-position-gps-row">
                 <button
                   type="button"
