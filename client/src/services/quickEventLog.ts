@@ -154,7 +154,7 @@ export async function loadEntry(logbookId: string, entryId: string): Promise<Loa
 
 function scoreTodayEntry(data: Record<string, unknown>): number {
   const events = (data.events as unknown[] | undefined)?.length ?? 0
-  const signed = data.signSkipper || data.signCrew ? 1 : 0
+  const signed = (data.signSkipper || data.signCrew) ? 1 : 0
   const destination = String(data.destination || '').trim() ? 1 : 0
   return events * 10 + signed + destination
 }
