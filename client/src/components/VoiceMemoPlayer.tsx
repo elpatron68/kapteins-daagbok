@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
@@ -29,6 +29,29 @@ export default function VoiceMemoPlayer({
   const { t } = useTranslation()
   const [src, setSrc] = useState<string | null>(preloaded?.audio ?? null)
   const [error, setError] = useState(false)
+
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    const el = audioRef.current
+    if (!el) return
+
+    const handleLoadedMetadata = () => {
+      if (el.duration === Infinity || isNaN(el.duration) || el.duration === 0) {
+        el.currentTime = 1e10
+        const onTimeUpdate = () => {
+          el.currentTime = 0
+          el.removeEventListener('timeupdate', onTimeUpdate)
+        }
+        el.addEventListener('timeupdate', onTimeUpdate)
+      }
+    }
+
+    el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    return () => {
+      el.removeEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+  }, [src])
 
   useEffect(() => {
     if (preloaded?.audio) {
@@ -75,7 +98,7 @@ export default function VoiceMemoPlayer({
 
   return (
     <div className="voice-memo-player-shell">
-      <audio className={playerClass} controls preload="none" src={src} />
+      <audio ref={audioRef} className={playerClass} controls preload="none" src={src} />
     </div>
   )
 }

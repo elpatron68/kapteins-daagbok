@@ -44,6 +44,29 @@ export default function LiveVoiceCapture({
   const [previewDurationSec, setPreviewDurationSec] = useState(0)
   const [saving, setSaving] = useState(false)
 
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    const el = previewAudioRef.current
+    if (!el) return
+
+    const handleLoadedMetadata = () => {
+      if (el.duration === Infinity || isNaN(el.duration) || el.duration === 0) {
+        el.currentTime = 1e10
+        const onTimeUpdate = () => {
+          el.currentTime = 0
+          el.removeEventListener('timeupdate', onTimeUpdate)
+        }
+        el.addEventListener('timeupdate', onTimeUpdate)
+      }
+    }
+
+    el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    return () => {
+      el.removeEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+  }, [previewUrl])
+
   const stopStream = useCallback(() => {
     for (const track of streamRef.current?.getTracks() ?? []) {
       track.stop()
@@ -241,7 +264,7 @@ export default function LiveVoiceCapture({
 
         {phase === 'preview' && previewUrl && (
           <>
-            <audio className="voice-memo-player" controls src={previewUrl} preload="auto" />
+            <audio ref={previewAudioRef} className="voice-memo-player" controls src={previewUrl} preload="auto" />
             {onCaptionChange && (
               <label className="live-voice-caption-field">
                 <span>{t('logs.live_voice_caption_label')}</span>
