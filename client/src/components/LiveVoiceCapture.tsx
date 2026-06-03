@@ -61,7 +61,12 @@ export default function LiveVoiceCapture({
       }
     }
 
-    el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    if (el.readyState >= 1) {
+      handleLoadedMetadata()
+    } else {
+      el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+
     return () => {
       el.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
@@ -161,16 +166,18 @@ export default function LiveVoiceCapture({
           VOICE_MEMO_MAX_DURATION_SEC,
           Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
         )
-        const blob = new Blob(chunksRef.current, { type: resolvedMime })
-        chunksRef.current = []
-        stopStream()
-        try {
-          assertVoiceMemoBlobSize(blob)
-          finishRecording(blob, resolvedMime, durationSec)
-        } catch {
-          setMicError(t('logs.live_voice_too_large'))
-          setPhase('idle')
-        }
+        setTimeout(() => {
+          const blob = new Blob(chunksRef.current, { type: resolvedMime })
+          chunksRef.current = []
+          stopStream()
+          try {
+            assertVoiceMemoBlobSize(blob)
+            finishRecording(blob, resolvedMime, durationSec)
+          } catch {
+            setMicError(t('logs.live_voice_too_large'))
+            setPhase('idle')
+          }
+        }, 50)
       }
 
       recorder.onerror = () => {
@@ -179,7 +186,7 @@ export default function LiveVoiceCapture({
       }
 
       startedAtRef.current = Date.now()
-      recorder.start(200)
+      recorder.start()
       setPhase('recording')
       setElapsedSec(0)
       timerRef.current = window.setInterval(() => {

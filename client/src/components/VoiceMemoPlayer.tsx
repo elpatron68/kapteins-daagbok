@@ -47,7 +47,12 @@ export default function VoiceMemoPlayer({
       }
     }
 
-    el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    if (el.readyState >= 1) {
+      handleLoadedMetadata()
+    } else {
+      el.addEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+
     return () => {
       el.removeEventListener('loadedmetadata', handleLoadedMetadata)
     }
