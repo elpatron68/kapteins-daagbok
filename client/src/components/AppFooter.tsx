@@ -1,4 +1,4 @@
-import { Coffee, Mail } from 'lucide-react'
+import { Coffee, Mail, Compass } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
@@ -15,8 +15,21 @@ export default function AppFooter() {
         ·
       </span>
       <span className="app-version-footer__copyright">
-        © 2026 KnorrLabs
+        © 2026
       </span>
+      <span className="app-version-footer__sep" aria-hidden="true">
+        ·
+      </span>
+      <a
+        className="knorrlabs-footer-badge"
+        href="https://dashy.elpatron.me/"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackPlausibleEvent(PlausibleEvents.FOOTER_LINK_CLICKED)}
+      >
+        <Compass size={14} aria-hidden="true" />
+        <span>KnorrLabs</span>
+      </a>
       <span className="app-version-footer__sep" aria-hidden="true">
         ·
       </span>
