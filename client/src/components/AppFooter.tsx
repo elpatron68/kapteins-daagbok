@@ -26,7 +26,7 @@ export default function AppFooter() {
         onClick={() => trackPlausibleEvent(PlausibleEvents.FOOTER_LINK_CLICKED)}
       >
         <Mail size={14} aria-hidden="true" />
-        <span>Markus F.J. Busche</span>
+        <span>moin@kapteins-daagbok.eu</span>
       </a>
       <span className="app-version-footer__sep" aria-hidden="true">
         ·
