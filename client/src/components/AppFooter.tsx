@@ -1,4 +1,4 @@
-import { Coffee } from 'lucide-react'
+import { Coffee, Mail } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
@@ -15,14 +15,19 @@ export default function AppFooter() {
         ·
       </span>
       <span className="app-version-footer__copyright">
-        © 2026 KnorrLabs/
-        <a
-          href="mailto:moin@kapteins-daagbok.eu"
-          onClick={() => trackPlausibleEvent(PlausibleEvents.FOOTER_LINK_CLICKED)}
-        >
-          Markus F.J. Busche
-        </a>
+        © 2026 KnorrLabs
       </span>
+      <span className="app-version-footer__sep" aria-hidden="true">
+        ·
+      </span>
+      <a
+        className="mail-footer-badge"
+        href="mailto:moin@kapteins-daagbok.eu"
+        onClick={() => trackPlausibleEvent(PlausibleEvents.FOOTER_LINK_CLICKED)}
+      >
+        <Mail size={14} aria-hidden="true" />
+        <span>Markus F.J. Busche</span>
+      </a>
       <span className="app-version-footer__sep" aria-hidden="true">
         ·
       </span>
