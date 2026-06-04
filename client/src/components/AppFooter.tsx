@@ -17,7 +17,7 @@ export default function AppFooter() {
       <span className="app-version-footer__copyright">
         © 2026 KnorrLabs/
         <a
-          href="mailto:elpatron+kd@mailbox.org"
+          href="mailto:moin@kapteins-daagbok.eu"
           onClick={() => trackPlausibleEvent(PlausibleEvents.FOOTER_LINK_CLICKED)}
         >
           Markus F.J. Busche
