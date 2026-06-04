@@ -13,6 +13,7 @@
     "generate:flyer:png": "node ../scripts/generate-beta-flyer.mjs --png",
     "generate:flyer:all": "node ../scripts/generate-beta-flyer.mjs --all",
     "generate:flyer:setup": "playwright install chromium",
+    "generate:sharepic": "node ../scripts/generate-sharepic.mjs",
     "translate:locales": "node ../scripts/translate-locales.mjs",
     "translate:flyer": "node ../scripts/translate-flyer.mjs",
     "validate:i18n": "node ../scripts/validate-i18n-keys.mjs"
