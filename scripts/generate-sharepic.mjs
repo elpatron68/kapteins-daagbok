@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates the sharepic PNG from docs/marketing/sharepic.html
+ * Generates the sharepic PNGs (landscape & portrait) from HTML files
  *
  * Usage:
  *   node scripts/generate-sharepic.mjs
@@ -15,8 +15,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
 const clientDir = resolve(repoRoot, 'client')
 const marketingDir = resolve(repoRoot, 'docs/marketing')
-const htmlPath = resolve(marketingDir, 'sharepic.html')
-const pngPath = resolve(marketingDir, 'kapteins-daagbok-sharepic.png')
 
 const require = createRequire(resolve(clientDir, 'package.json'))
 
@@ -50,35 +48,48 @@ function loadPlaywright() {
   }
 }
 
-async function main() {
-  const playwright = loadPlaywright()
-  await ensurePlaywrightChromium(playwright)
+async function renderSharepic(browser, htmlName, pngName, width, height) {
+  const htmlPath = resolve(marketingDir, htmlName)
+  const pngPath = resolve(marketingDir, pngName)
   
-  console.log('Generating sharepic from HTML...')
-  const browser = await playwright.chromium.launch({ headless: true })
+  console.log(`Generating sharepic (${width}x${height}) from ${htmlName}...`)
+  
+  const context = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: 2 // High-DPI for crisp text
+  })
+  const page = await context.newPage()
   
   try {
-    const context = await browser.newContext({
-      viewport: { width: 1200, height: 630 },
-      deviceScaleFactor: 2 // High-DPI for crisp text
-    })
-    const page = await context.newPage()
-    
-    // Wait for fonts/images to load fully
     await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' })
-    
-    // Take a screenshot of the viewport
     await page.screenshot({
       path: pngPath,
       type: 'png'
     })
-    console.log('Sharepic PNG written successfully to:', pngPath)
+    console.log('Successfully wrote:', pngPath)
+  } finally {
+    await page.close()
+  }
+}
+
+async function main() {
+  const playwright = loadPlaywright()
+  await ensurePlaywrightChromium(playwright)
+  
+  const browser = await playwright.chromium.launch({ headless: true })
+  
+  try {
+    // Landscape 1200x630
+    await renderSharepic(browser, 'sharepic.html', 'kapteins-daagbok-sharepic.png', 1200, 630)
+    
+    // Portrait 1080x1920
+    await renderSharepic(browser, 'sharepic-portrait.html', 'kapteins-daagbok-sharepic-portrait.png', 1080, 1920)
   } finally {
     await browser.close()
   }
 }
 
 main().catch((err) => {
-  console.error('Error generating sharepic:', err)
+  console.error('Error generating sharepics:', err)
   process.exit(1)
 })
