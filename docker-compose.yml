@@ -35,6 +35,7 @@ services:
       OpenRouterAPIKey: ${OpenRouterAPIKey:-}
       OpenRouterModel: ${OpenRouterModel:-anthropic/claude-3.5-haiku}
       SESSION_SECRET: ${SESSION_SECRET:-}
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
       NTFY_SERVER: ${NTFY_SERVER:-https://ntfy.sh}
       NTFY_TOPIC: ${NTFY_TOPIC:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
