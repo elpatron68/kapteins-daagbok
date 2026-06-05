@@ -5,6 +5,7 @@
 #
 # Usage:
 #   ./scripts/backup.sh
+#   ./scripts/backup.sh -dest stage              # Staging-Container (daagbox-staging-db)
 #   ./scripts/backup.sh --reason cron
 #   ./scripts/backup.sh --reason pre-deploy --tag v0.1.1.20
 #   ./scripts/backup.sh --dry-run
@@ -14,18 +15,40 @@
 set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/kapteins-daagbok}"
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
-DB_CONTAINER="${DB_CONTAINER:-daagbox-prod-db}"
 ENV_FILE="${ENV_FILE:-.env}"
 RETENTION="${RETENTION:-5}"
+DEST="prod"
 REASON="manual"
 EXPLICIT_TAG=""
 DRY_RUN=0
+COMPOSE_FILE=""
+DB_CONTAINER=""
+
+apply_dest_config() {
+  local dest="$1"
+  local force="${2:-0}"
+  if [[ "$dest" == "stage" ]]; then
+    if [[ "$force" == "1" || -z "${COMPOSE_FILE}" ]]; then
+      COMPOSE_FILE="docker-compose.staging.yml"
+    fi
+    if [[ "$force" == "1" || -z "${DB_CONTAINER}" ]]; then
+      DB_CONTAINER="daagbox-staging-db"
+    fi
+  else
+    if [[ "$force" == "1" || -z "${COMPOSE_FILE}" ]]; then
+      COMPOSE_FILE="docker-compose.yml"
+    fi
+    if [[ "$force" == "1" || -z "${DB_CONTAINER}" ]]; then
+      DB_CONTAINER="daagbox-prod-db"
+    fi
+  fi
+}
 
 usage() {
   sed -n '2,14p' "$0"
   echo ""
   echo "Options:"
+  echo "  -dest prod|stage                  Target environment (default: prod)"
   echo "  --reason cron|pre-deploy|manual   Backup trigger (default: manual)"
   echo "  --tag TAG                         Git tag label (e.g. v0.1.1.20 for pre-deploy)"
   echo "  --dry-run                         Show actions without writing backup"
@@ -34,6 +57,14 @@ usage() {
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    -dest)
+      DEST="${2:?-dest requires an argument}"
+      shift 2
+      ;;
+    -dest=*)
+      DEST="${1#*=}"
+      shift
+      ;;
     --reason)
       REASON="${2:?--reason requires an argument}"
       shift 2
@@ -57,6 +88,16 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+case "$DEST" in
+  prod|stage) ;;
+  *)
+    echo "Error: invalid -dest '$DEST' (use prod or stage)" >&2
+    exit 1
+    ;;
+esac
+
+apply_dest_config "$DEST"
 
 case "$REASON" in
   cron|pre-deploy|manual) ;;
@@ -124,8 +165,14 @@ if [ -z "${POSTGRES_PASSWORD:-}" ]; then
 fi
 
 if ! docker inspect "$DB_CONTAINER" >/dev/null 2>&1; then
-  echo "Error: DB container '$DB_CONTAINER' not found" >&2
-  exit 1
+  if [[ "$DEST" == "prod" ]] && docker inspect daagbox-staging-db >/dev/null 2>&1; then
+    echo "Note: $DB_CONTAINER not found — falling back to staging (daagbox-staging-db). Use -dest stage explicitly."
+    apply_dest_config stage 1
+    DEST="stage"
+  else
+    echo "Error: DB container '$DB_CONTAINER' not found" >&2
+    exit 1
+  fi
 fi
 
 if [ "$(docker inspect -f '{{.State.Running}}' "$DB_CONTAINER")" != "true" ]; then
@@ -173,6 +220,7 @@ from datetime import datetime, timezone
 manifest = {
     "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "local_timestamp": "${TIMESTAMP}",
+    "destination": "${DEST}",
     "reason": "${REASON}",
     "git_tag": "${GIT_TAG}",
     "git_sha": "${GIT_SHA}",

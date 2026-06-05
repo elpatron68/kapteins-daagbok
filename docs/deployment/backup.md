@@ -2,7 +2,7 @@
 
 Automatische und manuelle Sicherung von PostgreSQL, `.env`, `docker-compose.yml` und App-Code (Git-Archiv) auf der Prod-VM.
 
-**Staging:** Kein automatisches Backup — Daten sind bewusst wegwerfbar. Deploy via `update-remotes.sh -dest stage` legt kein Backup an.
+**Staging:** Kein automatisches Backup — Daten sind bewusst wegwerfbar. Deploy via `update-remotes.sh -dest stage` legt kein Backup an. Zum manuellen Testen auf Staging: `-dest stage` (oder Auto-Fallback, wenn nur `daagbox-staging-db` läuft).
 
 ## Was wird gesichert?
 
@@ -34,6 +34,15 @@ chmod +x scripts/backup.sh scripts/restore-backup.sh
 cd /opt/kapteins-daagbok
 ./scripts/backup.sh
 ./scripts/backup.sh --reason manual --dry-run   # Vorschau ohne Schreiben
+```
+
+### Staging (manueller Test)
+
+```bash
+cd /opt/kapteins-daagbok-staging
+./scripts/backup.sh -dest stage --reason manual
+# oder: Auto-Fallback, wenn nur daagbox-staging-db läuft
+./scripts/backup.sh --reason manual
 ```
 
 ## Crontab (unbeaufsichtigt)
@@ -94,9 +103,9 @@ Vor [`rotate-postgres-password.sh`](../../scripts/rotate-postgres-password.sh) e
 
 ## Umgebungsvariablen
 
-| Variable | Default (Prod) |
-|----------|----------------|
-| `BACKUP_DIR` | `/var/backups/kapteins-daagbok` |
-| `COMPOSE_FILE` | `docker-compose.yml` |
-| `DB_CONTAINER` | `daagbox-prod-db` |
-| `RETENTION` | `5` |
+| Variable | Prod (default) | Staging (`-dest stage`) |
+|----------|----------------|-------------------------|
+| `COMPOSE_FILE` | `docker-compose.yml` | `docker-compose.staging.yml` |
+| `DB_CONTAINER` | `daagbox-prod-db` | `daagbox-staging-db` |
+| `BACKUP_DIR` | `/var/backups/kapteins-daagbok` | gleich |
+| `RETENTION` | `5` | `5` |
