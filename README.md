@@ -251,7 +251,7 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen). Führ
 
 
 ```bash
-./scripts/update-prod.sh -dest prod
+./scripts/update-remotes.sh -dest prod
 ```
 
 Standard-Ziel Prod: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
@@ -265,7 +265,7 @@ Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deploymen
 Testumgebung unter [staging.kapteins-daagbok.eu](https://staging.kapteins-daagbok.eu) — Deploy ohne Release-Tag:
 
 ```bash
-./scripts/update-prod.sh -dest stage
+./scripts/update-remotes.sh -dest stage
 ```
 
 Standard-Ziel Staging: `root@10.0.0.27:/opt/kapteins-daagbok-staging` — per `REMOTE_HOST`, `REMOTE_DIR`, `DEPLOY_BRANCH` überschreibbar. Details: [docs/deployment/staging.md](docs/deployment/staging.md).

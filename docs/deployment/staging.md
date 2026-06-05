@@ -9,7 +9,7 @@ Staging läuft auf **VM3** (`10.0.0.27`) unter **https://staging.kapteins-daagbo
 | Host | `10.0.0.27` | `10.0.0.25` |
 | Verzeichnis | `/opt/kapteins-daagbok-staging` | `/opt/kapteins-daagbok` |
 | Compose | `docker-compose.staging.yml` | `docker-compose.yml` |
-| Deploy-Skript | `./scripts/update-prod.sh -dest stage` | `./scripts/update-prod.sh -dest prod` |
+| Deploy-Skript | `./scripts/update-remotes.sh -dest stage` | `./scripts/update-remotes.sh -dest prod` |
 | Release-Tag | nein | ja (`v*`) |
 | Datenbank-Volume | `daagbox-staging-pgdata` | `daagbox-prod-pgdata` |
 
@@ -60,7 +60,7 @@ Optional: `VAPID_*`, `OpenWeatherMapAPIKey`, `OpenRouterAPIKey`, `ADMIN_USER_IDS
 Führt `npm run check` aus, dann SSH-Deploy ohne Release-Tag:
 
 ```bash
-./scripts/update-prod.sh -dest stage
+./scripts/update-remotes.sh -dest stage
 ```
 
 Konfiguration via Umgebungsvariablen:
@@ -69,10 +69,10 @@ Konfiguration via Umgebungsvariablen:
 REMOTE_HOST=10.0.0.27 \
 REMOTE_DIR=/opt/kapteins-daagbok-staging \
 DEPLOY_BRANCH=master \
-./scripts/update-prod.sh -dest stage
+./scripts/update-remotes.sh -dest stage
 ```
 
-Notfall ohne Checks: `SKIP_PREDEPLOY_CHECK=1 ./scripts/update-prod.sh -dest stage`
+Notfall ohne Checks: `SKIP_PREDEPLOY_CHECK=1 ./scripts/update-remotes.sh -dest stage`
 
 ## NPM (VM1)
 

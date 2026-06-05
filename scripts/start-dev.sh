@@ -81,7 +81,7 @@ require_node_toolchain() {
   echo ""
   echo "On the production host, prefer updating the running stack:"
   echo "  docker compose -f docker-compose.yml up -d --build"
-  echo "  # or from your workstation: ./scripts/update-prod.sh"
+  echo "  # or from your workstation: ./scripts/update-remotes.sh -dest prod"
   exit 1
 }
 
