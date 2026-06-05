@@ -40,6 +40,12 @@ services:
       NTFY_TOPIC: ${NTFY_TOPIC:-}
       NTFY_TOKEN: ${NTFY_TOKEN:-}
     command: sh -c "npx prisma db push && node dist/index.js"
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 15s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
     depends_on:
       db:
         condition: service_healthy

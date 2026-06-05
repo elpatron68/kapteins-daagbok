@@ -65,7 +65,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERSION_FILE="$REPO_ROOT/VERSION"
 DEFAULT_VERSION="0.1.0.0"
-MAX_WAIT=35
+MAX_WAIT=90
 
 REMOTE_USER="${REMOTE_USER:-root}"
 
@@ -304,9 +304,15 @@ COUNTER=0
 IS_READY=false
 
 while [ $COUNTER -lt $MAX_WAIT ]; do
-  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$BACKEND_CONTAINER" 2>/dev/null)
+  STATUS=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$BACKEND_CONTAINER" 2>/dev/null || true)
 
   if [ "$STATUS" = "healthy" ]; then
+    IS_READY=true
+    break
+  fi
+
+  # End-to-end fallback via frontend nginx (covers missing/stale container health state)
+  if curl -sf "http://127.0.0.1/api/health" | grep -q '"status":"ok"'; then
     IS_READY=true
     break
   fi
