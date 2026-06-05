@@ -91,7 +91,15 @@
       "use_localhost_link": "Skift til localhost",
       "error_passkey_cancelled": "Passkey-login blev annulleret eller udløb. Prøv igen.",
       "error_invalid_rp_id": "Passkey-domæne matcher ikke (RP ID). Brug http://localhost:5173 med RP_ID=localhost i .env til lokal udvikling.",
-      "error_session_incomplete": "Login ufuldstændig. Log ind med passkey igen."
+      "error_session_incomplete": "Login ufuldstændig. Log ind med passkey igen.",
+      "restore_checking": "Tjekker session…",
+      "restore_title": "Gendan session",
+      "restore_subtitle": "Du er stadig logget ind. Lås din logbog op med passkey eller PIN.",
+      "restore_unlocking": "Låser op…",
+      "restore_with_passkey": "Lås op med passkey ({{name}})",
+      "restore_with_pin": "Lås op med PIN",
+      "restore_pin_warning": "Indtast din lokale PIN for at låse logbogen op efter genindlæsning.",
+      "restore_other_account": "Log ind med en anden konto"
     },
     "pwa": {
       "title": "Installer app",

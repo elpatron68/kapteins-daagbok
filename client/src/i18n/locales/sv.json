@@ -91,7 +91,15 @@
       "use_localhost_link": "Byt till localhost",
       "error_passkey_cancelled": "Passkey-inloggning avbröts eller gick ut. Försök igen.",
       "error_invalid_rp_id": "Passkey-domänen matchar inte (RP ID). Använd http://localhost:5173 med RP_ID=localhost i .env för lokal utveckling.",
-      "error_session_incomplete": "Inloggning ofullständig. Logga in med passkey igen."
+      "error_session_incomplete": "Inloggning ofullständig. Logga in med passkey igen.",
+      "restore_checking": "Kontrollerar session…",
+      "restore_title": "Återställ session",
+      "restore_subtitle": "Du är fortfarande inloggad. Lås upp din loggbok med passkey eller PIN.",
+      "restore_unlocking": "Låser upp…",
+      "restore_with_passkey": "Lås upp med passkey ({{name}})",
+      "restore_with_pin": "Lås upp med PIN",
+      "restore_pin_warning": "Ange din lokala PIN för att låsa upp loggboken efter omladdning.",
+      "restore_other_account": "Logga in med ett annat konto"
     },
     "pwa": {
       "title": "Installera app",

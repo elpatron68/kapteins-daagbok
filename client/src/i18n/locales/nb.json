@@ -91,7 +91,15 @@
       "use_localhost_link": "Bytt til localhost",
       "error_passkey_cancelled": "Passkey-innlogging ble avbrutt eller utløp. Prøv igjen.",
       "error_invalid_rp_id": "Passkey-domene stemmer ikke (RP ID). Bruk http://localhost:5173 med RP_ID=localhost i .env for lokal utvikling.",
-      "error_session_incomplete": "Innlogging ufullstendig. Logg inn med passkey igjen."
+      "error_session_incomplete": "Innlogging ufullstendig. Logg inn med passkey igjen.",
+      "restore_checking": "Sjekker økt…",
+      "restore_title": "Gjenopprett økt",
+      "restore_subtitle": "Du er fortsatt innlogget. Lås opp loggboken med passkey eller PIN.",
+      "restore_unlocking": "Låser opp…",
+      "restore_with_passkey": "Lås opp med passkey ({{name}})",
+      "restore_with_pin": "Lås opp med PIN",
+      "restore_pin_warning": "Skriv inn din lokale PIN for å låse opp loggboken etter omlasting.",
+      "restore_other_account": "Logg inn med en annen konto"
     },
     "pwa": {
       "title": "Installer app",

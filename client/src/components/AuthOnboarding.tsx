@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
 import {
@@ -12,7 +12,8 @@ import {
   getKnownUsernames,
   forgetUsername,
   hasUnlockedLocalSession,
-  logoutUser
+  logoutUser,
+  resolveRestoreUsername
 } from '../services/auth.js'
 import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
 import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
@@ -27,9 +28,15 @@ import {
 interface AuthOnboardingProps {
   onAuthenticated: () => void
   onOpenDemo?: () => void
+  /** Server session cookie is valid but the in-memory master key was lost (e.g. after reload). */
+  restoreSession?: boolean
 }
 
-export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnboardingProps) {
+export default function AuthOnboarding({
+  onAuthenticated,
+  onOpenDemo,
+  restoreSession = false
+}: AuthOnboardingProps) {
   const { t, i18n } = useTranslation()
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
@@ -60,7 +67,10 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
   const [isNewRegistration, setIsNewRegistration] = useState(false)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showStandardLogin, setShowStandardLogin] = useState(false)
+  const autoUnlockAttempted = useRef(false)
 
+  const isRestoreFlow = restoreSession && !showStandardLogin
   const passkeyHostOk = isPasskeyCompatibleLocation()
   const passkeyCompatibleUrl = passkeyHostOk ? null : toPasskeyCompatibleUrl(window.location.href)
 
@@ -143,6 +153,23 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!isRestoreFlow || autoUnlockAttempted.current) return
+
+    const user = resolveRestoreUsername()
+    if (user && hasLocalPin(user)) {
+      autoUnlockAttempted.current = true
+      setUsername(user)
+      setShowPinLogin(true)
+      return
+    }
+
+    if (user && passkeyHostOk) {
+      autoUnlockAttempted.current = true
+      void handleLogin(user)
+    }
+  }, [isRestoreFlow, passkeyHostOk])
 
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -347,10 +374,10 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
       <div className="auth-card glass">
         <div className="auth-header">
           <KeyRound className="auth-icon accent" size={48} />
-          <h2>{t('auth.enter_pin_title')}</h2>
+          <h2>{isRestoreFlow ? t('auth.restore_title') : t('auth.enter_pin_title')}</h2>
         </div>
         <p className="recovery-warning">
-          {t('auth.enter_pin_warning')}
+          {isRestoreFlow ? t('auth.restore_pin_warning') : t('auth.enter_pin_warning')}
         </p>
 
         <form onSubmit={handlePinLoginSubmit} className="auth-form">
@@ -397,6 +424,12 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
               type="button"
               className="btn secondary"
               onClick={() => {
+                if (isRestoreFlow) {
+                  setShowPinLogin(false)
+                  setPinLoginInput('')
+                  setError(null)
+                  return
+                }
                 void (async () => {
                   setShowPinLogin(false)
                   setPinLoginInput('')
@@ -476,6 +509,101 @@ export default function AuthOnboarding({ onAuthenticated, onOpenDemo }: AuthOnbo
             </button>
           </div>
         </form>
+      </div>
+    )
+  }
+
+  // Render: Session restore (active server cookie, master key lost after reload)
+  if (isRestoreFlow) {
+    const restoreUser = resolveRestoreUsername()
+    const restoreKnownUsers = getKnownUsernames()
+
+    return (
+      <div className="auth-card glass">
+        <div className="auth-header">
+          <KeyRound className="auth-icon accent" size={48} />
+          <h2>{t('auth.restore_title')}</h2>
+        </div>
+        <p className="recovery-warning">{t('auth.restore_subtitle')}</p>
+
+        {loading && (
+          <p className="dashboard-status-msg" style={{ marginTop: '12px' }}>
+            {t('auth.restore_unlocking')}
+          </p>
+        )}
+
+        {error && <div className="auth-error">{error}</div>}
+
+        {!loading && (
+          <div className="auth-actions" style={{ flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
+            {restoreUser && passkeyHostOk && (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => handleLogin(restoreUser)}
+                style={{ width: '100%' }}
+              >
+                {t('auth.restore_with_passkey', { name: restoreUser })}
+              </button>
+            )}
+
+            {restoreUser && hasLocalPin(restoreUser) && (
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => {
+                  setUsername(restoreUser)
+                  setShowPinLogin(true)
+                }}
+                style={{ width: '100%' }}
+              >
+                {t('auth.restore_with_pin')}
+              </button>
+            )}
+
+            {restoreKnownUsers.length > 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase' }}>
+                  {t('auth.quick_login')}
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', width: '100%' }}>
+                  {restoreKnownUsers.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        if (hasLocalPin(name)) {
+                          setUsername(name)
+                          setShowPinLogin(true)
+                        } else {
+                          void handleLogin(name)
+                        }
+                      }}
+                      disabled={loading}
+                      className="btn secondary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <UserRound size={16} />
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => {
+                setShowStandardLogin(true)
+                setError(null)
+              }}
+              style={{ width: '100%' }}
+            >
+              {t('auth.restore_other_account')}
+            </button>
+          </div>
+        )}
       </div>
     )
   }

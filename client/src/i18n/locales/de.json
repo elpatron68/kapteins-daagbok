@@ -91,7 +91,15 @@
       "use_localhost_link": "Zu localhost wechseln",
       "error_passkey_cancelled": "Passkey-Anmeldung abgebrochen oder abgelaufen. Bitte erneut versuchen.",
       "error_invalid_rp_id": "Passkey-Domain passt nicht (RP ID). Lokal nur http://localhost:5173 mit RP_ID=localhost in .env verwenden.",
-      "error_session_incomplete": "Anmeldung unvollständig. Bitte erneut mit Passkey anmelden."
+      "error_session_incomplete": "Anmeldung unvollständig. Bitte erneut mit Passkey anmelden.",
+      "restore_checking": "Session wird geprüft…",
+      "restore_title": "Session wiederherstellen",
+      "restore_subtitle": "Deine Anmeldung ist noch aktiv. Entsperre dein Logbuch mit Passkey oder PIN.",
+      "restore_unlocking": "Wird entsperrt…",
+      "restore_with_passkey": "Mit Passkey entsperren ({{name}})",
+      "restore_with_pin": "Mit PIN entsperren",
+      "restore_pin_warning": "Gib deine lokale PIN ein, um dein Logbuch nach dem Neuladen zu entsperren.",
+      "restore_other_account": "Anderer Account anmelden"
     },
     "pwa": {
       "title": "App installieren",

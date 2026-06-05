@@ -64,6 +64,15 @@ export function persistSessionUserId(userId: string | undefined): void {
   }
 }
 
+/** Username to use when re-unlocking after reload (active account or sole remembered user). */
+export function resolveRestoreUsername(): string | null {
+  const stored = localStorage.getItem('active_username')
+  if (stored) return stored
+  const known = getKnownUsernames()
+  if (known.length === 1) return known[0]
+  return null
+}
+
 export async function reauthWithPasskey(): Promise<boolean> {
   const options = await apiJson<any>(`${API_BASE}/reauth-options`, {
     method: 'POST'

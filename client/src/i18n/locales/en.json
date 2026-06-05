@@ -91,7 +91,15 @@
       "use_localhost_link": "Switch to localhost",
       "error_passkey_cancelled": "Passkey sign-in was cancelled or timed out. Please try again.",
       "error_invalid_rp_id": "Passkey domain mismatch (RP ID). For local dev use http://localhost:5173 with RP_ID=localhost in .env.",
-      "error_session_incomplete": "Sign-in incomplete. Please sign in with your passkey again."
+      "error_session_incomplete": "Sign-in incomplete. Please sign in with your passkey again.",
+      "restore_checking": "Checking session…",
+      "restore_title": "Restore session",
+      "restore_subtitle": "You are still signed in. Unlock your logbook with passkey or PIN.",
+      "restore_unlocking": "Unlocking…",
+      "restore_with_passkey": "Unlock with passkey ({{name}})",
+      "restore_with_pin": "Unlock with PIN",
+      "restore_pin_warning": "Enter your local PIN to unlock your logbook after reload.",
+      "restore_other_account": "Sign in with another account"
     },
     "pwa": {
       "title": "Install app",

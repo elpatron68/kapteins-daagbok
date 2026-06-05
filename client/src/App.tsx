@@ -97,6 +97,8 @@ function App() {
   const [isDemoMode, setIsDemoMode] = useState(() => window.location.pathname === '/demo')
   const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname.startsWith('/admin'))
   const [isAdminUser, setIsAdminUser] = useState(false)
+  const [sessionChecked, setSessionChecked] = useState(false)
+  const [serverSessionActive, setServerSessionActive] = useState(false)
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -316,6 +318,8 @@ function App() {
         const session = await checkServerSession()
         if (cancelled) return
 
+        setServerSessionActive(session.authenticated)
+
         if (session.authenticated) {
           persistSessionUserId(session.userId)
         }
@@ -334,6 +338,10 @@ function App() {
       } catch (err) {
         if (!cancelled) {
           console.warn('Session restore failed:', err)
+        }
+      } finally {
+        if (!cancelled) {
+          setSessionChecked(true)
         }
       }
     })()
@@ -618,7 +626,17 @@ function App() {
   if (!isAuthenticated) {
     return (
       <div className="auth-screen">
-        <AuthOnboarding onAuthenticated={handleAuthenticated} onOpenDemo={openDemo} />
+        {!sessionChecked ? (
+          <div className="auth-card glass">
+            <p className="dashboard-status-msg">{t('auth.restore_checking')}</p>
+          </div>
+        ) : (
+          <AuthOnboarding
+            restoreSession={serverSessionActive}
+            onAuthenticated={handleAuthenticated}
+            onOpenDemo={openDemo}
+          />
+        )}
       </div>
     )
   }
