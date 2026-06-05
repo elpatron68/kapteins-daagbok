@@ -1,14 +1,14 @@
 # Deployment: Nginx Proxy Manager & Security (Sprint 1)
 
-Kapteins Daagbok läuft öffentlich unter **https://kapteins-daagbok.eu/** hinter **Nginx Proxy Manager** (NPM, z. B. `172.16.10.10`) mit Upstream auf den App-Stack (`172.16.10.110`).
+Kapteins Daagbok läuft öffentlich unter **https://kapteins-daagbok.eu/** (Produktion) und **https://staging.kapteins-daagbok.eu/** (Staging) hinter **Nginx Proxy Manager** (NPM, z. B. `172.16.10.10`) mit Upstream auf die App-VMs (`10.0.0.25` Prod, `10.0.0.27` Staging).
 
 ## NPM Proxy Host
 
 | Einstellung | Wert |
 |-------------|------|
-| Domain | `kapteins-daagbok.eu` |
+| Domain | `kapteins-daagbok.eu` / `staging.kapteins-daagbok.eu` |
 | Scheme | `https` |
-| Forward Hostname / IP | `172.16.10.110` (oder Container-Port auf dem Host) |
+| Forward Hostname / IP | `10.0.0.25` (Prod) / `10.0.0.27` (Staging) |
 | Forward Port | `80` (Frontend-Nginx) |
 | Websockets | an, falls genutzt |
 | Block Common Exploits | an |

@@ -2,28 +2,102 @@
 
 set -euo pipefail
 
-# Remote deployment configuration
-# Override any of these via environment variables if needed, e.g.:
-#   REMOTE_HOST=192.168.1.10 ./scripts/update-prod.sh
-REMOTE_USER="${REMOTE_USER:-root}"
-REMOTE_HOST="${REMOTE_HOST:-10.0.0.25}"
-REMOTE_DIR="${REMOTE_DIR:-/opt/kapteins-daagbok}"
-REMOTE_TARGET="${REMOTE_USER}@${REMOTE_HOST}"
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [-dest prod|stage]
 
-# Configuration
-COMPOSE_FILE="docker-compose.yml"
-BACKEND_CONTAINER="daagbox-prod-backend"
-MAX_WAIT=35
+Deploy Kapteins Daagbok to production or staging.
+
+  -dest prod   Production (default): release tag, bump VERSION, deploy to 10.0.0.25
+  -dest stage  Staging: no release tag, deploy branch to 10.0.0.27
+
+Environment overrides (optional):
+  REMOTE_HOST, REMOTE_USER, REMOTE_DIR, COMPOSE_FILE, BACKEND_CONTAINER
+  DEPLOY_BRANCH (stage only, default: master)
+  SKIP_PREDEPLOY_CHECK=1
+
+Examples:
+  $(basename "$0") -dest prod
+  $(basename "$0") -dest stage
+  DEPLOY_BRANCH=feature/foo $(basename "$0") -dest stage
+EOF
+}
+
+DEST="prod"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -dest)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: -dest requires an argument (prod or stage)." >&2
+        usage
+        exit 1
+      fi
+      DEST="$2"
+      shift 2
+      ;;
+    -dest=*)
+      DEST="${1#*=}"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Error: Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+case "$DEST" in
+  prod|stage) ;;
+  *)
+    echo "Error: Invalid -dest '$DEST' (use prod or stage)." >&2
+    usage
+    exit 1
+    ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERSION_FILE="$REPO_ROOT/VERSION"
 DEFAULT_VERSION="0.1.0.0"
+MAX_WAIT=35
+
+REMOTE_USER="${REMOTE_USER:-root}"
+
+if [[ "$DEST" == "stage" ]]; then
+  REMOTE_HOST="${REMOTE_HOST:-10.0.0.27}"
+  REMOTE_DIR="${REMOTE_DIR:-/opt/kapteins-daagbok-staging}"
+  COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.staging.yml}"
+  BACKEND_CONTAINER="${BACKEND_CONTAINER:-daagbox-staging-backend}"
+  APP_URL="${APP_URL:-https://staging.kapteins-daagbok.eu}"
+  DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+  ENV_LABEL="Staging"
+else
+  REMOTE_HOST="${REMOTE_HOST:-10.0.0.25}"
+  REMOTE_DIR="${REMOTE_DIR:-/opt/kapteins-daagbok}"
+  COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+  BACKEND_CONTAINER="${BACKEND_CONTAINER:-daagbox-prod-backend}"
+  APP_URL="${APP_URL:-https://kapteins-daagbok.eu}"
+  DEPLOY_BRANCH=""
+  ENV_LABEL="Production"
+fi
+
+REMOTE_TARGET="${REMOTE_USER}@${REMOTE_HOST}"
 
 echo "=================================================="
-echo "    Kapteins Daagbok Prod Environment Update     "
+echo "    Kapteins Daagbok ${ENV_LABEL} Update"
 echo "=================================================="
-echo "Target: ${REMOTE_TARGET}:${REMOTE_DIR}"
+echo "Destination: ${DEST}"
+echo "Target:      ${REMOTE_TARGET}:${REMOTE_DIR}"
+if [[ "$DEST" == "stage" ]]; then
+  echo "Branch:      ${DEPLOY_BRANCH}"
+fi
+echo "URL:         ${APP_URL}"
 echo "=================================================="
 
 cd "$REPO_ROOT"
@@ -123,7 +197,11 @@ prepare_release() {
   export APP_VERSION="$release_version"
 }
 
-prepare_release
+if [[ "$DEST" == "prod" ]]; then
+  prepare_release
+else
+  APP_VERSION="$(read_current_version)"
+fi
 
 if [[ "${SKIP_PREDEPLOY_CHECK:-}" == "1" ]]; then
   echo "Skipping pre-deploy checks (SKIP_PREDEPLOY_CHECK=1)."
@@ -135,56 +213,77 @@ else
 fi
 
 echo "=================================================="
-echo "Deploying ${APP_VERSION} to ${REMOTE_TARGET}:${REMOTE_DIR}"
+echo "Deploying v${APP_VERSION} to ${REMOTE_TARGET}:${REMOTE_DIR}"
 echo "=================================================="
 
-# Run the whole update procedure remotely over SSH.
 ssh -o ConnectTimeout=10 "$REMOTE_TARGET" 'bash -s' -- \
-  "$REMOTE_DIR" "$COMPOSE_FILE" "$BACKEND_CONTAINER" "$MAX_WAIT" "$REMOTE_HOST" "$APP_VERSION" <<'REMOTE_SCRIPT'
+  "$REMOTE_DIR" "$COMPOSE_FILE" "$BACKEND_CONTAINER" "$MAX_WAIT" "$APP_URL" "$APP_VERSION" "$DEST" "$DEPLOY_BRANCH" <<'REMOTE_SCRIPT'
 set -uo pipefail
 
 REMOTE_DIR="$1"
 COMPOSE_FILE="$2"
 BACKEND_CONTAINER="$3"
 MAX_WAIT="$4"
-REMOTE_HOST="$5"
+APP_URL="$5"
 APP_VERSION="$6"
+DEST="$7"
+DEPLOY_BRANCH="$8"
 
 cd "$REMOTE_DIR" || { echo "Error: Remote directory '$REMOTE_DIR' not found."; exit 1; }
-
-echo "Syncing repository from origin..."
-CURRENT_BRANCH="$(git branch --show-current)"
-if [ -z "$CURRENT_BRANCH" ]; then
-  echo "Error: Could not determine current Git branch."
-  exit 1
-fi
 
 if ! git diff-index --quiet HEAD -- || [ -n "$(git status --porcelain)" ]; then
   echo "Warning: Local changes on deployment host will be discarded."
 fi
 
-git fetch --tags origin
-if [ $? -ne 0 ]; then
-  echo "Error: Git fetch failed."
-  exit 1
-fi
+if [[ "$DEST" == "stage" ]]; then
+  echo "Syncing repository from origin/${DEPLOY_BRANCH}..."
+  git fetch origin
+  if [ $? -ne 0 ]; then
+    echo "Error: Git fetch failed."
+    exit 1
+  fi
+  git checkout "$DEPLOY_BRANCH" 2>/dev/null || git checkout -b "$DEPLOY_BRANCH" "origin/${DEPLOY_BRANCH}"
+  git reset --hard "origin/${DEPLOY_BRANCH}"
+  if [ $? -ne 0 ]; then
+    echo "Error: Git reset to origin/${DEPLOY_BRANCH} failed."
+    exit 1
+  fi
+else
+  echo "Syncing repository from origin..."
+  CURRENT_BRANCH="$(git branch --show-current)"
+  if [ -z "$CURRENT_BRANCH" ]; then
+    echo "Error: Could not determine current Git branch."
+    exit 1
+  fi
 
-git reset --hard "origin/${CURRENT_BRANCH}"
-if [ $? -ne 0 ]; then
-  echo "Error: Git reset to origin/${CURRENT_BRANCH} failed."
-  exit 1
-fi
+  git fetch --tags origin
+  if [ $? -ne 0 ]; then
+    echo "Error: Git fetch failed."
+    exit 1
+  fi
 
-REMOTE_VERSION="$(tr -d '[:space:]' < VERSION)"
-if [ "$REMOTE_VERSION" != "$APP_VERSION" ]; then
-  echo "Note: Remote VERSION file already points to next release (v${REMOTE_VERSION})."
-  echo "      Building deployed release v${APP_VERSION}."
+  git reset --hard "origin/${CURRENT_BRANCH}"
+  if [ $? -ne 0 ]; then
+    echo "Error: Git reset to origin/${CURRENT_BRANCH} failed."
+    exit 1
+  fi
+
+  REMOTE_VERSION="$(tr -d '[:space:]' < VERSION)"
+  if [ "$REMOTE_VERSION" != "$APP_VERSION" ]; then
+    echo "Note: Remote VERSION file already points to next release (v${REMOTE_VERSION})."
+    echo "      Building deployed release v${APP_VERSION}."
+  fi
 fi
 
 export APP_VERSION="$APP_VERSION"
 
-echo "Rebuilding Docker images without cache (APP_VERSION=${APP_VERSION})..."
-docker compose -f "$COMPOSE_FILE" build --no-cache
+if [[ "$DEST" == "prod" ]]; then
+  echo "Rebuilding Docker images without cache (APP_VERSION=${APP_VERSION})..."
+  docker compose -f "$COMPOSE_FILE" build --no-cache
+else
+  echo "Rebuilding Docker images (APP_VERSION=${APP_VERSION})..."
+  docker compose -f "$COMPOSE_FILE" build
+fi
 if [ $? -ne 0 ]; then
   echo "Error: Docker compose build failed."
   exit 1
@@ -198,10 +297,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Cleaning up old/unused Docker resources..."
-docker system prune -f
-if [ $? -ne 0 ]; then
-  echo "Warning: Docker system prune failed to run completely."
-fi
+docker system prune -f || echo "Warning: Docker system prune failed."
 
 echo "Waiting for services to become healthy..."
 COUNTER=0
@@ -227,15 +323,15 @@ docker compose -f "$COMPOSE_FILE" ps
 echo "=================================================="
 
 if [ "$IS_READY" = true ]; then
-  echo "SUCCESS: Production environment updated and healthy!"
-  echo " -> Version:               v${APP_VERSION}"
-  echo " -> App Frontend (Nginx):  http://${REMOTE_HOST}"
-  echo " -> Backend API Health:    http://${REMOTE_HOST}/api/health"
+  echo "SUCCESS: ${DEST} environment updated and healthy!"
+  echo " -> Version:            v${APP_VERSION}"
+  echo " -> App Frontend:       ${APP_URL}"
+  echo " -> Backend API Health: ${APP_URL}/api/health"
   echo "=================================================="
 else
   echo "WARNING: Backend did not transition to healthy in time."
-  echo "Check backend container logs for details:"
-  echo " -> docker compose logs backend"
+  echo "Check backend container logs:"
+  echo " -> docker compose -f ${COMPOSE_FILE} logs backend"
   echo "=================================================="
   exit 3
 fi
@@ -244,11 +340,11 @@ REMOTE_SCRIPT
 REMOTE_EXIT=$?
 echo "=================================================="
 if [ $REMOTE_EXIT -eq 0 ]; then
-  echo "Remote update completed successfully on ${REMOTE_TARGET} (v${APP_VERSION})."
+  echo "${ENV_LABEL} update completed successfully on ${REMOTE_TARGET} (v${APP_VERSION})."
 elif [ $REMOTE_EXIT -eq 3 ]; then
-  echo "Remote update finished, but the backend was not healthy in time on ${REMOTE_TARGET}."
+  echo "${ENV_LABEL} update finished, but the backend was not healthy in time on ${REMOTE_TARGET}."
 else
-  echo "Remote update FAILED on ${REMOTE_TARGET} (exit code: ${REMOTE_EXIT})."
+  echo "${ENV_LABEL} update FAILED on ${REMOTE_TARGET} (exit code: ${REMOTE_EXIT})."
 fi
 echo "=================================================="
 exit $REMOTE_EXIT

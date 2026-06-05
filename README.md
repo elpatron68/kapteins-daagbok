@@ -251,14 +251,24 @@ Produktions-Update auf den Server (konfigurierbar via Umgebungsvariablen). Führ
 
 
 ```bash
-./scripts/update-prod.sh
+./scripts/update-prod.sh -dest prod
 ```
 
-Standard-Ziel: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
+Standard-Ziel Prod: `root@10.0.0.25:/opt/kapteins-daagbok` — per `REMOTE_HOST`, `REMOTE_USER`, `REMOTE_DIR` überschreibbar.
 
 Auf dem Server müssen `.env` u. a. `POSTGRES_PASSWORD`, `RP_ID`, `ORIGIN` (`https://kapteins-daagbok.eu`), `SESSION_SECRET` (≥ 32 Zeichen), `TRUST_PROXY` (NPM, z. B. `172.16.10.10` oder `1`) und bei Push `VAPID_*` enthalten. Optional `NTFY_*` für Feedback. Nach Schema-Änderungen: `npx prisma db push` im Backend-Container.
 
 Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deployment/npm-security.md).
+
+### Staging
+
+Testumgebung unter [staging.kapteins-daagbok.eu](https://staging.kapteins-daagbok.eu) — Deploy ohne Release-Tag:
+
+```bash
+./scripts/update-prod.sh -dest stage
+```
+
+Standard-Ziel Staging: `root@10.0.0.27:/opt/kapteins-daagbok-staging` — per `REMOTE_HOST`, `REMOTE_DIR`, `DEPLOY_BRANCH` überschreibbar. Details: [docs/deployment/staging.md](docs/deployment/staging.md).
 
 ## Dokumentation
 
@@ -267,6 +277,7 @@ Hinter **Nginx Proxy Manager**: [docs/deployment/npm-security.md](docs/deploymen
 | [docs/deployment/npm-security.md](docs/deployment/npm-security.md) | NPM, TLS, `trust proxy`, Security-Header |
 | [docs/deployment/predeploy.md](docs/deployment/predeploy.md) | Pre-Deploy-Checks ohne CI |
 | [docs/deployment/postgres-password.md](docs/deployment/postgres-password.md) | PostgreSQL-Passwort rotieren / App-Rolle |
+| [docs/deployment/staging.md](docs/deployment/staging.md) | Staging-VM, Deploy, `.env` |
 | [docs/plausible-events.md](docs/plausible-events.md) | Custom Events für Plausible Analytics |
 | [docs/push-notifications-plan.md](docs/push-notifications-plan.md) | Web Push: Architektur, API, Testplan |
 | [docs/plan-compass-course-dial.md](docs/plan-compass-course-dial.md) | Kompass-Dial: UX- und Implementierungsplan |
