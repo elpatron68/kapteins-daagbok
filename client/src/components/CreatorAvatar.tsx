@@ -45,11 +45,38 @@ export default function CreatorAvatar({
   let photo: string | null = null
   let role = ''
 
-  if (creatorId && crewSnapshotsById && crewSnapshotsById[creatorId]) {
-    const snap = crewSnapshotsById[creatorId]
-    name = snap.name || ''
-    photo = snap.photo || null
-    role = snap.role || ''
+  if (creatorId && crewSnapshotsById) {
+    let snap: PersonSnapshot | undefined = crewSnapshotsById[creatorId]
+
+    // Fallback: If not found directly by key, search by role or name or active user
+    if (!snap) {
+      if (creatorId === 'skipper') {
+        snap = Object.values(crewSnapshotsById).find((s) => s.role === 'skipper')
+      } else {
+        // Try to match name case-insensitively
+        snap = Object.values(crewSnapshotsById).find(
+          (s) => (s.name || '').trim().toLowerCase() === creatorId.trim().toLowerCase()
+        )
+
+        // Try to match active username/userid to the skipper snapshot
+        if (!snap) {
+          const activeUsername = localStorage.getItem('active_username')
+          const activeUserId = localStorage.getItem('active_userid')
+          if (
+            (activeUsername && creatorId.toLowerCase() === activeUsername.toLowerCase()) ||
+            (activeUserId && creatorId === activeUserId)
+          ) {
+            snap = Object.values(crewSnapshotsById).find((s) => s.role === 'skipper')
+          }
+        }
+      }
+    }
+
+    if (snap) {
+      name = snap.name || ''
+      photo = snap.photo || null
+      role = snap.role || ''
+    }
   }
 
   // Fallback to active username if owner or no crew pool matches
