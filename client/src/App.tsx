@@ -534,10 +534,16 @@ function App() {
     syncRouteFromLocation()
   }
 
+  const handleBackFromAdmin = () => {
+    window.history.replaceState({}, document.title, '/')
+    setIsAdminRoute(false)
+    syncRouteFromLocation()
+  }
+
   if (isAdminRoute) {
     return (
       <div style={{ display: 'contents' }}>
-        <AdminDashboard />
+        <AdminDashboard onBack={handleBackFromAdmin} />
       </div>
     )
   }

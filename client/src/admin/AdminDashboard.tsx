@@ -85,7 +85,11 @@ function TimeSeriesChart({
   )
 }
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  onBack: () => void
+}
+
+export default function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<AdminSummary | null>(null)
@@ -143,7 +147,7 @@ export default function AdminDashboard() {
     return (
       <div className="admin-page">
         <header className="admin-header">
-          <button type="button" className="btn-back" onClick={() => { window.location.href = '/' }}>
+          <button type="button" className="btn-back" onClick={onBack}>
             <ChevronLeft size={16} />
             Zur App
           </button>
@@ -165,7 +169,7 @@ export default function AdminDashboard() {
     <div className="admin-page">
       <header className="admin-header">
         <div className="admin-header-left">
-          <button type="button" className="btn-back" onClick={() => { window.location.href = '/' }}>
+          <button type="button" className="btn-back" onClick={onBack}>
             <ChevronLeft size={16} />
             Zur App
           </button>
