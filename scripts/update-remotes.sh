@@ -291,7 +291,7 @@ MAX_WAIT="$4"
 APP_URL="$5"
 APP_VERSION="$6"
 DEST="$7"
-DEPLOY_BRANCH="$8"
+DEPLOY_BRANCH="${8:-}"
 
 cd "$REMOTE_DIR" || { echo "Error: Remote directory '$REMOTE_DIR' not found."; exit 1; }
 
