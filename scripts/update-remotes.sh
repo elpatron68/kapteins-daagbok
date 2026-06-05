@@ -299,6 +299,18 @@ if ! git diff-index --quiet HEAD -- || [ -n "$(git status --porcelain)" ]; then
   echo "Warning: Local changes on deployment host will be discarded."
 fi
 
+if [[ "$DEST" == "prod" ]]; then
+  echo "Creating pre-deploy backup..."
+  if [ -x "./scripts/backup.sh" ]; then
+    if ! ./scripts/backup.sh --reason pre-deploy --tag "v${APP_VERSION}"; then
+      echo "Error: Pre-deploy backup failed. Aborting update."
+      exit 1
+    fi
+  else
+    echo "Warning: scripts/backup.sh not found or not executable — skipping backup."
+  fi
+fi
+
 if [[ "$DEST" == "stage" ]]; then
   echo "Syncing repository from origin/${DEPLOY_BRANCH}..."
   git fetch origin

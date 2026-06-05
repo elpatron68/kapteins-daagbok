@@ -8,7 +8,7 @@
 
 ## Empfohlene Schritte
 
-1. **Backup/Snapshot** (hast du laut Vorgabe).
+1. **Backup/Snapshot** — auf dem Server: `./scripts/backup.sh --reason manual` (Details: [backup.md](backup.md)).
 2. Auf dem Server im Repo:
    ```bash
    cd /opt/kapteins-daagbok

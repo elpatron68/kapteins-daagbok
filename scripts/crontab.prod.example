@@ -1,0 +1,11 @@
+# Kapteins Daagbok — Production backup cron (install on 10.0.0.25)
+#
+# Install:
+#   crontab -e
+#   (paste the line below)
+#
+# Ensure log directory exists:
+#   touch /var/log/kapteins-backup.log && chmod 600 /var/log/kapteins-backup.log
+
+# Daily backup at 03:00 UTC — keeps last 5 in /var/backups/kapteins-daagbok/
+0 3 * * * cd /opt/kapteins-daagbok && ./scripts/backup.sh --reason cron >> /var/log/kapteins-backup.log 2>&1
