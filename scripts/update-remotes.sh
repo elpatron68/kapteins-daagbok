@@ -16,6 +16,8 @@ Environment overrides (optional):
   DEPLOY_BRANCH (stage only, default: master)
   SKIP_PREDEPLOY_CHECK=1
 
+Local repo must be clean and match origin before deploy (git fetch + compare HEAD).
+
 Examples:
   $(basename "$0") -dest prod
   $(basename "$0") -dest stage
@@ -158,6 +160,66 @@ ensure_clean_git_tree() {
   git commit -m "$commit_message"
 }
 
+ensure_local_sync_with_origin() {
+  local branch="$1"
+  local local_sha origin_sha current_branch
+
+  if [ -z "$branch" ]; then
+    echo "Error: deploy branch is not set." >&2
+    exit 1
+  fi
+
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "Error: Working tree is not clean. Commit or stash changes before deploying." >&2
+    git status --short
+    exit 1
+  fi
+
+  current_branch="$(git branch --show-current)"
+  if [ -z "$current_branch" ]; then
+    echo "Error: Detached HEAD — checkout branch '$branch' before deploying." >&2
+    exit 1
+  fi
+
+  if [ "$current_branch" != "$branch" ]; then
+    echo "Error: On branch '$current_branch', expected '$branch'." >&2
+    exit 1
+  fi
+
+  echo "Syncing with origin..."
+  git fetch --tags origin
+  if [ $? -ne 0 ]; then
+    echo "Error: git fetch origin failed." >&2
+    exit 1
+  fi
+
+  if ! git rev-parse --verify "origin/${branch}" >/dev/null 2>&1; then
+    echo "Error: origin/${branch} does not exist." >&2
+    exit 1
+  fi
+
+  local_sha="$(git rev-parse HEAD)"
+  origin_sha="$(git rev-parse "origin/${branch}")"
+
+  if [ "$local_sha" = "$origin_sha" ]; then
+    echo "Local branch '$branch' matches origin/${branch} ($(git rev-parse --short HEAD))."
+    return 0
+  fi
+
+  echo "Error: Local '$branch' is not in sync with origin/${branch}." >&2
+  echo "  local:  $(git rev-parse --short HEAD) $(git log -1 --format='%s' HEAD)" >&2
+  echo "  origin: $(git rev-parse --short "origin/${branch}") $(git log -1 --format='%s' "origin/${branch}")" >&2
+
+  if git merge-base --is-ancestor "$local_sha" "origin/${branch}" 2>/dev/null; then
+    echo "Hint: run 'git pull' to fast-forward." >&2
+  elif git merge-base --is-ancestor "origin/${branch}" "$local_sha" 2>/dev/null; then
+    echo "Hint: run 'git push origin ${branch}' before deploying." >&2
+  else
+    echo "Hint: branches have diverged — reconcile manually before deploying." >&2
+  fi
+  exit 1
+}
+
 prepare_release() {
   local current_version release_version next_version tag_name
 
@@ -199,7 +261,9 @@ prepare_release() {
 
 if [[ "$DEST" == "prod" ]]; then
   prepare_release
+  ensure_local_sync_with_origin "$(git branch --show-current)"
 else
+  ensure_local_sync_with_origin "$DEPLOY_BRANCH"
   APP_VERSION="$(read_current_version)"
 fi
 
