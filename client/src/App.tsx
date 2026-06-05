@@ -563,6 +563,14 @@ function App() {
   }
 
   if (isAdminRoute) {
+    if (!isAuthenticated) {
+      return (
+        <div className="auth-screen">
+          <AuthOnboarding onAuthenticated={handleAuthenticated} onOpenDemo={openDemo} />
+        </div>
+      )
+    }
+
     return (
       <div style={{ display: 'contents' }}>
         <AdminDashboard onBack={handleBackFromAdmin} />
