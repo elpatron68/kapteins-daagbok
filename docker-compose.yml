@@ -58,6 +58,9 @@ services:
         APP_VERSION: ${APP_VERSION:-0.1.0.0-dev}
     container_name: daagbox-prod-frontend
     restart: always
+    environment:
+      PLAUSIBLE_ENABLED: ${PLAUSIBLE_ENABLED:-true}
+      PLAUSIBLE_HOST: ${PLAUSIBLE_HOST:-https://plausible.elpatron.me}
     ports:
       - "80:80"
     depends_on:

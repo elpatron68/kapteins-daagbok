@@ -1,12 +1,21 @@
 # Plausible Custom Events
 
-Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Script `script.tagged-events.js` auf der Domain `kapteins-daagbok.eu`. Custom Events werden über `window.plausible()` ausgelöst (siehe `client/src/services/analytics.ts`).
+Kapteins Daagbok nutzt [Plausible Analytics](https://plausible.io/) mit dem Script `script.tagged-events.js`. Custom Events werden über `window.plausible()` ausgelöst (siehe `client/src/services/analytics.ts`).
+
+**Konfiguration** (`.env`, Frontend-Container / Vite-Dev):
+
+```env
+PLAUSIBLE_ENABLED=true   # Staging: false
+PLAUSIBLE_HOST=https://plausible.elpatron.me
+```
+
+Das Script wird über `plausible-bootstrap.js` geladen; `data-domain` ist der aktuelle Hostname. CSP in Nginx enthält `PLAUSIBLE_HOST` nur wenn aktiviert.
 
 **Datenschutz:** Es werden keine personenbezogenen Daten in Event-Properties übermittelt (keine Nutzernamen, Hafennamen, Koordinaten o.ä.).
 
 ## Setup
 
-1. Script in `client/index.html` (bereits eingebunden)
+1. `PLAUSIBLE_*` in `.env` setzen (Prod: enabled, Staging: disabled empfohlen)
 2. Nach Deploy: Goals im Plausible-Dashboard anlegen — **Namen müssen exakt mit der Event-Spalte „Event name“ übereinstimmen** (Title Case, Leerzeichen)
 
 ## Event-Übersicht

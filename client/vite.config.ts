@@ -33,8 +33,36 @@ function versionJsonPlugin(version: string): Plugin {
   }
 }
 
+function readPlausibleConfig(): { plausibleEnabled: boolean; plausibleHost: string } {
+  const host = (process.env.PLAUSIBLE_HOST || 'https://plausible.elpatron.me').replace(/\/$/, '')
+  const flag = (process.env.PLAUSIBLE_ENABLED ?? 'true').trim().toLowerCase()
+  const plausibleEnabled = !['false', '0', 'no'].includes(flag)
+  return { plausibleEnabled, plausibleHost: host }
+}
+
+function runtimeConfigPlugin(): Plugin {
+  return {
+    name: 'runtime-config',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== '/runtime-config.json') return next()
+        res.setHeader('Content-Type', 'application/json')
+        res.end(`${JSON.stringify(readPlausibleConfig())}\n`)
+      })
+    },
+    writeBundle(options) {
+      const outDir = options.dir ?? resolve(__dirname, 'dist')
+      writeFileSync(
+        resolve(outDir, 'runtime-config.json'),
+        `${JSON.stringify(readPlausibleConfig(), null, 2)}\n`
+      )
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
+  envDir: resolve(__dirname, '..'),
   test: {
     environment: 'happy-dom',
     include: ['src/**/*.test.ts']
@@ -59,6 +87,7 @@ export default defineConfig({
   plugins: [
     react(),
     versionJsonPlugin(readAppVersion()),
+    runtimeConfigPlugin(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

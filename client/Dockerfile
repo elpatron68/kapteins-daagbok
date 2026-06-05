@@ -18,15 +18,18 @@ RUN npm run build
 FROM nginx:1.25-alpine
 WORKDIR /usr/share/nginx/html
 
-# Copy custom Nginx configuration
-COPY client/nginx.conf /etc/nginx/conf.d/default.conf
+RUN apk add --no-cache gettext
+
+COPY client/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY client/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy built assets from builder
 COPY --from=builder /app/dist .
 
-# Expose HTTP port
 EXPOSE 80
 
-# Health check to verify Nginx is actively running
 HEALTHCHECK --interval=30s --timeout=5s --start-period=3s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:80/ || exit 1
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

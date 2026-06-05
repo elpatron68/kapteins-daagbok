@@ -40,13 +40,20 @@ TRUST_PROXY=1
 ## Security-Header
 
 - **HSTS, CSP (optional restriktiver):** können in NPM unter „Custom Headers“ oder im Advanced-Block gesetzt werden.
-- **Basis-Header** für statische Dateien setzt [`client/nginx.conf`](../../client/nginx.conf) (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP inkl. Plausible).
+- **Basis-Header** für statische Dateien setzt [`client/nginx.conf.template`](../../client/nginx.conf.template) via Container-Entrypoint (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, CSP optional inkl. Plausible).
 
 ### Plausible Analytics
 
-Script-Host: `https://plausible.elpatron.me` — in CSP als `script-src` und `connect-src` erlaubt. Gemessene Site: `data-domain="kapteins-daagbok.eu"`.
+Konfiguration über `.env` (Frontend-Container):
 
-Optional später: `analytics.kapteins-daagbok.eu` als Alias auf dieselbe Plausible-Instanz.
+```env
+PLAUSIBLE_ENABLED=true
+PLAUSIBLE_HOST=https://plausible.elpatron.me
+```
+
+Staging-Default: `PLAUSIBLE_ENABLED=false` in [`docker-compose.staging.yml`](../../docker-compose.staging.yml).
+
+Script-Host wird in CSP (`script-src`, `connect-src`) nur bei `PLAUSIBLE_ENABLED=true` freigegeben. `data-domain` ist immer der aktuelle Hostname (Prod vs. Staging getrennt, wenn Staging aktiviert wird).
 
 ## Nach Deploy prüfen
 

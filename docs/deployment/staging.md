@@ -47,6 +47,10 @@ SESSION_SECRET=<generiert>
 
 NTFY_SERVER=https://ntfy.sh
 NTFY_TOPIC=kapteins-daagbok-staging-feedback
+
+# Analytics aus (Staging soll Prod-Statistik nicht verfälschen)
+PLAUSIBLE_ENABLED=false
+PLAUSIBLE_HOST=https://plausible.elpatron.me
 ```
 
 Optional: `VAPID_*`, `OpenWeatherMapAPIKey`, `OpenRouterAPIKey`, `ADMIN_USER_IDS`, `NTFY_TOKEN`.
