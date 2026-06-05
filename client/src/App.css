@@ -6042,6 +6042,7 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background: rgba(2, 6, 23, 0.62);
   pointer-events: auto;
 }
@@ -6059,7 +6060,7 @@ html.theme-cupertino .events-scroll-container {
     0 0 32px rgba(56, 189, 248, 0.5),
     0 12px 40px rgba(0, 0, 0, 0.35);
   pointer-events: none;
-  z-index: 10001;
+  z-index: 2;
 }
 
 body.app-tour-active .app-tour-target-active {
@@ -6070,7 +6071,8 @@ body.app-tour-active .app-tour-target-active {
 
 .app-tour-tooltip {
   position: fixed;
-  z-index: 10002;
+  /* Layer above backdrop/spotlight inside .app-tour-root (not vs. root's 10010) */
+  z-index: 3;
   box-sizing: border-box;
   width: min(420px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
