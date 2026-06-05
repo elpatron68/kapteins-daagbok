@@ -7,9 +7,12 @@ import {
 } from './analytics.js'
 
 export class WeatherApiError extends Error {
-  code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED'
+  code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED' | 'UNAUTHORIZED' | 'NOT_FOUND' | 'BAD_REQUEST'
 
-  constructor(message: string, code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED' = 'REQUEST_FAILED') {
+  constructor(
+    message: string,
+    code: 'NO_KEY' | 'OFFLINE' | 'REQUEST_FAILED' | 'UNAUTHORIZED' | 'NOT_FOUND' | 'BAD_REQUEST' = 'REQUEST_FAILED'
+  ) {
     super(message)
     this.name = 'WeatherApiError'
     this.code = code
@@ -38,7 +41,7 @@ export async function fetchOpenWeatherCurrent(
   } else if (params.q?.trim()) {
     searchParams.set('q', params.q.trim())
   } else {
-    throw new WeatherApiError('lat/lon or location query required')
+    throw new WeatherApiError('lat/lon or location query required', 'BAD_REQUEST')
   }
 
   const userKey = getOwmApiKeyForActiveUser().trim()
@@ -64,6 +67,15 @@ export async function fetchOpenWeatherCurrent(
 
   if (res.status === 503) {
     throw new WeatherApiError('No OpenWeatherMap API key configured', 'NO_KEY')
+  }
+  if (res.status === 401) {
+    throw new WeatherApiError('Invalid OpenWeatherMap API key', 'UNAUTHORIZED')
+  }
+  if (res.status === 404) {
+    throw new WeatherApiError('Location or coordinates not found', 'NOT_FOUND')
+  }
+  if (res.status === 400) {
+    throw new WeatherApiError('Invalid or missing location parameters', 'BAD_REQUEST')
   }
 
   const data = await res.json()

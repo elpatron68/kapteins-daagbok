@@ -69,4 +69,51 @@ describe('fetchOpenWeatherCurrent', () => {
 
     expect(trackPlausibleEvent).not.toHaveBeenCalled()
   })
+
+  it('throws UNAUTHORIZED when status is 401', async () => {
+    apiFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'Unauthorized' })
+    })
+
+    const { fetchOpenWeatherCurrent, WeatherApiError } = await import('./weather.js')
+    const err = await fetchOpenWeatherCurrent({ lat: '54', lon: '10' }).catch((e) => e)
+    expect(err).toBeInstanceOf(WeatherApiError)
+    expect((err as any).code).toBe('UNAUTHORIZED')
+  })
+
+  it('throws NOT_FOUND when status is 404', async () => {
+    apiFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Not Found' })
+    })
+
+    const { fetchOpenWeatherCurrent, WeatherApiError } = await import('./weather.js')
+    const err = await fetchOpenWeatherCurrent({ lat: '54', lon: '10' }).catch((e) => e)
+    expect(err).toBeInstanceOf(WeatherApiError)
+    expect((err as any).code).toBe('NOT_FOUND')
+  })
+
+  it('throws BAD_REQUEST when status is 400', async () => {
+    apiFetch.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: 'Bad Request' })
+    })
+
+    const { fetchOpenWeatherCurrent, WeatherApiError } = await import('./weather.js')
+    const err = await fetchOpenWeatherCurrent({ lat: '54', lon: '10' }).catch((e) => e)
+    expect(err).toBeInstanceOf(WeatherApiError)
+    expect((err as any).code).toBe('BAD_REQUEST')
+  })
+
+  it('throws BAD_REQUEST when coordinates or query are missing', async () => {
+    const { fetchOpenWeatherCurrent, WeatherApiError } = await import('./weather.js')
+    const err = await fetchOpenWeatherCurrent({}).catch((e) => e)
+    expect(err).toBeInstanceOf(WeatherApiError)
+    expect((err as any).code).toBe('BAD_REQUEST')
+    expect(apiFetch).not.toHaveBeenCalled()
+  })
 })

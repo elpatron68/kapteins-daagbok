@@ -713,13 +713,27 @@ export default function LiveLogView({
             { analyticsSource: 'live_log' }
           )
         } catch (err) {
-          if (err instanceof WeatherApiError && err.code === 'OFFLINE') {
-            void showAlert(t('logs.weather_offline'), t('logs.live_weather_owm_btn'))
-            return
-          }
-          if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
-            void showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
-            return
+          if (err instanceof WeatherApiError) {
+            if (err.code === 'OFFLINE') {
+              void showAlert(t('logs.weather_offline'), t('logs.live_weather_owm_btn'))
+              return
+            }
+            if (err.code === 'NO_KEY') {
+              void showAlert(t('settings.no_key'), t('logs.live_weather_owm_btn'))
+              return
+            }
+            if (err.code === 'UNAUTHORIZED') {
+              void showAlert(t('settings.weather_unauthorized'), t('logs.live_weather_owm_btn'))
+              return
+            }
+            if (err.code === 'NOT_FOUND') {
+              void showAlert(t('settings.weather_not_found'), t('logs.live_weather_owm_btn'))
+              return
+            }
+            if (err.code === 'BAD_REQUEST') {
+              void showAlert(t('settings.weather_bad_request'), t('logs.live_weather_owm_btn'))
+              return
+            }
           }
           console.error('Live log OWM weather failed:', err)
           void showAlert(t('settings.weather_error'), t('logs.live_weather_owm_btn'))

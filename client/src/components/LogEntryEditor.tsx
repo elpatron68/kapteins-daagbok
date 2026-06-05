@@ -1178,13 +1178,27 @@ export default function LogEntryEditor({
 
       showAlert(t('settings.weather_success'))
     } catch (err) {
-      if (err instanceof WeatherApiError && err.code === 'OFFLINE') {
-        showAlert(t('logs.weather_offline'))
-        return
-      }
-      if (err instanceof WeatherApiError && err.code === 'NO_KEY') {
-        showAlert(t('settings.no_key'))
-        return
+      if (err instanceof WeatherApiError) {
+        if (err.code === 'OFFLINE') {
+          showAlert(t('logs.weather_offline'))
+          return
+        }
+        if (err.code === 'NO_KEY') {
+          showAlert(t('settings.no_key'))
+          return
+        }
+        if (err.code === 'UNAUTHORIZED') {
+          showAlert(t('settings.weather_unauthorized'))
+          return
+        }
+        if (err.code === 'NOT_FOUND') {
+          showAlert(t('settings.weather_not_found'))
+          return
+        }
+        if (err.code === 'BAD_REQUEST') {
+          showAlert(t('settings.weather_bad_request'))
+          return
+        }
       }
       console.error('Weather prefilling failed:', err)
       showAlert(t('settings.weather_error'))
