@@ -5025,16 +5025,68 @@ html.theme-cupertino .events-scroll-container {
 
 @media (max-width: 640px) {
   .admin-page {
-    padding: 16px;
+    padding: 12px 12px 20px;
+    gap: 16px;
+    min-height: auto;
+  }
+
+  .admin-header {
+    padding-bottom: 12px;
   }
 
   .admin-header-left {
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 2px;
   }
 
-  .admin-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .admin-header-left .btn-back {
+    grid-row: 1 / -1;
+    align-self: center;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .admin-title {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .admin-subtitle {
+    font-size: 11px;
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  .admin-main {
+    gap: 16px;
+  }
+
+  .admin-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .admin-control-buttons {
+    gap: 6px;
+  }
+
+  .admin-control-label {
+    font-size: 11px;
+  }
+
+  .admin-control-buttons .btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .admin-charts-grid {
+    gap: 14px;
   }
 }
 
@@ -5135,6 +5187,36 @@ html.theme-cupertino .events-scroll-container {
 @media (max-width: 640px) {
   .stats-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Admin dashboard: keep 2-column KPI grid on mobile (overrides rule above) */
+  .stats-kpi-grid.admin-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .admin-kpi-grid .stats-kpi-card {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .admin-kpi-grid .stats-kpi-icon {
+    margin-top: 0;
+  }
+
+  .admin-kpi-grid .stats-kpi-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .admin-kpi-grid .stats-kpi-label {
+    font-size: 11px;
+    line-height: 1.25;
+    margin-bottom: 2px;
+  }
+
+  .admin-kpi-grid .stats-kpi-value {
+    font-size: 18px;
   }
 
   .stats-kpi-value {
