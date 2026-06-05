@@ -15,11 +15,13 @@ import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, Wifi, WifiO
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
 import ProfileHeaderButton from './ProfileHeaderButton.tsx'
+import AdminHeaderButton from './AdminHeaderButton.tsx'
 
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
   onLogout: () => void
   onOpenProfile: () => void
+  onOpenAdmin?: () => void
 }
 
 type LogbookSortKey = 'name' | 'date'
@@ -42,7 +44,7 @@ function sortLogbooks(
   return sorted
 }
 
-export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProfile }: LogbookDashboardProps) {
+export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProfile, onOpenAdmin }: LogbookDashboardProps) {
   const { t, i18n } = useTranslation()
   const { showConfirm } = useDialog()
   const [logbooks, setLogbooks] = useState<DecryptedLogbook[]>([])
@@ -387,6 +389,8 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           </div>
 
           <ProfileHeaderButton onClick={onOpenProfile} />
+
+          {onOpenAdmin && <AdminHeaderButton onClick={onOpenAdmin} />}
 
           {/* Lang toggle */}
           <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">

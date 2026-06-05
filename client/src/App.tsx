@@ -50,6 +50,8 @@ import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, La
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
 import ProfileHeaderButton from './components/ProfileHeaderButton.tsx'
+import AdminHeaderButton from './components/AdminHeaderButton.tsx'
+import { checkAdminAccess } from './services/adminApi.js'
 import { useTranslation } from 'react-i18next'
 import { cycleAppLanguage } from './utils/i18nLanguages.js'
 import {
@@ -94,6 +96,7 @@ function App() {
   // Public demo mode (no account required)
   const [isDemoMode, setIsDemoMode] = useState(() => window.location.pathname === '/demo')
   const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname.startsWith('/admin'))
+  const [isAdminUser, setIsAdminUser] = useState(false)
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -162,14 +165,23 @@ function App() {
     })
   }, [])
 
+  const refreshAdminAccess = useCallback(async () => {
+    const isAdmin = await checkAdminAccess()
+    setIsAdminUser(isAdmin)
+  }, [])
+
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated) {
+      setIsAdminUser(false)
+      return
+    }
     const userId = localStorage.getItem('active_userid')
     if (!userId) return
     void syncAppearancePrefs(userId)
     void migrateLegacyCrewToPoolIfNeeded().then(() => syncPersonPool())
     void migrateLegacyYachtsToPoolIfNeeded().then(() => syncVesselPool())
-  }, [isAuthenticated])
+    void refreshAdminAccess()
+  }, [isAuthenticated, refreshAdminAccess])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -249,6 +261,7 @@ function App() {
 
   const clearAuthenticatedAppState = useCallback(() => {
     setIsAuthenticated(false)
+    setIsAdminUser(false)
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
     setShowUserProfile(false)
@@ -339,6 +352,14 @@ function App() {
   const openDemo = useCallback(() => {
     window.history.pushState({}, document.title, '/demo')
     setIsDemoMode(true)
+    setIsViewerMode(false)
+    setIsAcceptingInvite(false)
+  }, [])
+
+  const openAdmin = useCallback(() => {
+    window.history.pushState({}, document.title, '/admin')
+    setIsAdminRoute(true)
+    setIsDemoMode(false)
     setIsViewerMode(false)
     setIsAcceptingInvite(false)
   }, [])
@@ -507,6 +528,7 @@ function App() {
     if (!(await confirmLeave())) return
     void logoutUser()
     setIsAuthenticated(false)
+    setIsAdminUser(false)
     setActiveLogbookId(null)
     setActiveLogbookTitle(null)
     setShowUserProfile(false)
@@ -621,6 +643,7 @@ function App() {
           onSelectLogbook={selectLogbook}
           onLogout={handleLogout}
           onOpenProfile={() => setShowUserProfile(true)}
+          onOpenAdmin={isAdminUser ? openAdmin : undefined}
         />
       </div>
     )
@@ -670,6 +693,8 @@ function App() {
             <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
               <Languages size={18} />
             </button>
+
+            {isAdminUser && <AdminHeaderButton onClick={openAdmin} />}
 
             <ProfileHeaderButton onClick={() => setShowUserProfile(true)} />
 

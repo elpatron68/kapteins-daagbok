@@ -1,4 +1,4 @@
-import { apiJson } from './api.js'
+import { ApiError, apiJson } from './api.js'
 
 const ADMIN_BASE = '/api/admin'
 
@@ -38,6 +38,19 @@ export interface AdminTimeSeriesResponse {
 
 export async function fetchAdminMe(): Promise<AdminMe> {
   return await apiJson<AdminMe>(`${ADMIN_BASE}/me`)
+}
+
+/** Returns true only for users listed in server ADMIN_USER_IDS. */
+export async function checkAdminAccess(): Promise<boolean> {
+  try {
+    await fetchAdminMe()
+    return true
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+      return false
+    }
+    return false
+  }
 }
 
 export async function fetchAdminSummary(): Promise<AdminSummary> {

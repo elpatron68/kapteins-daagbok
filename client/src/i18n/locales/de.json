@@ -43,7 +43,8 @@
       "deviation": "Ablenkungstabelle",
       "logs": "Logbucheinträge",
       "stats": "Statistik",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "admin": "Admin"
     },
     "auth": {
       "welcome": "Willkommen bei Kapteins Daagbok",

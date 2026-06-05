@@ -43,7 +43,8 @@
       "deviation": "Deviation Table",
       "logs": "Logbook Entries",
       "stats": "Statistics",
-      "settings": "Settings"
+      "settings": "Settings",
+      "admin": "Admin"
     },
     "auth": {
       "welcome": "Welcome to Kapteins Daagbok",

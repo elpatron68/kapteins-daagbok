@@ -43,7 +43,8 @@
       "deviation": "Tabel over distraktioner",
       "logs": "Indlæg i logbogen",
       "stats": "Statistik",
-      "settings": "Indstillinger"
+      "settings": "Indstillinger",
+      "admin": "Admin"
     },
     "auth": {
       "welcome": "Velkommen til Kapteins Daagbok.",
