@@ -36,6 +36,7 @@ import { syncAppearancePrefs } from './services/appearancePrefs.js'
 import { startBackgroundSync, stopBackgroundSync, syncAllLogbooks, subscribeToSyncState } from './services/sync.js'
 import ReadOnlyViewer from './components/ReadOnlyViewer.tsx'
 import DemoViewer from './components/DemoViewer.tsx'
+import AdminDashboard from './admin/AdminDashboard.tsx'
 import PwaInstallPrompt from './components/PwaInstallPrompt.tsx'
 import PwaUpdatePrompt from './components/PwaUpdatePrompt.tsx'
 import AppFooter from './components/AppFooter.tsx'
@@ -92,6 +93,7 @@ function App() {
 
   // Public demo mode (no account required)
   const [isDemoMode, setIsDemoMode] = useState(() => window.location.pathname === '/demo')
+  const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname.startsWith('/admin'))
 
   const syncQueueCount = useLiveQuery(
     () => activeLogbookId ? db.syncQueue.where({ logbookId: activeLogbookId }).count() : db.syncQueue.count(),
@@ -199,6 +201,13 @@ function App() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
     const path = window.location.pathname
 
+    if (path.startsWith('/admin')) {
+      setIsAdminRoute(true)
+      return
+    }
+
+    setIsAdminRoute(false)
+
     if (path === '/demo') {
       setIsDemoMode(true)
       setIsViewerMode(false)
@@ -249,7 +258,7 @@ function App() {
 
   /** After PWA/bfcache resume, React state may still say "logged in" while the master key is gone. */
   const enforceUnlockedSession = useCallback(() => {
-    if (isViewerMode || isDemoMode || isAcceptingInvite) return
+    if (isViewerMode || isDemoMode || isAcceptingInvite || isAdminRoute) return
     // Require full local session (incl. userId) so API calls are not left headless.
     if (isAuthenticated && !hasUnlockedLocalSession()) {
       clearAuthenticatedAppState()
@@ -259,6 +268,7 @@ function App() {
     isViewerMode,
     isDemoMode,
     isAcceptingInvite,
+    isAdminRoute,
     clearAuthenticatedAppState
   ])
 
@@ -522,6 +532,14 @@ function App() {
   const handleExitDemo = () => {
     window.history.replaceState({}, document.title, '/')
     syncRouteFromLocation()
+  }
+
+  if (isAdminRoute) {
+    return (
+      <div style={{ display: 'contents' }}>
+        <AdminDashboard />
+      </div>
+    )
   }
 
   if (isDemoMode) {

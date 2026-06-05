@@ -12,6 +12,7 @@ import pushRouter from './routes/push.js'
 import weatherRouter from './routes/weather.js'
 import aiRouter from './routes/ai.js'
 import feedbackRouter from './routes/feedback.js'
+import adminRouter from './routes/admin.js'
 import { prisma } from './db.js'
 import { buildCorsOptions } from './cors.js'
 
@@ -121,6 +122,7 @@ export function createApp(): express.Express {
   app.use('/api/weather', weatherRouter)
   app.use('/api/ai', aiRouter)
   app.use('/api/feedback', feedbackRouter)
+  app.use('/api/admin', adminRouter)
 
   app.get('/api/health', async (_req, res) => {
     try {
