@@ -6034,7 +6034,8 @@ html.theme-cupertino .events-scroll-container {
 .app-tour-root {
   position: fixed;
   inset: 0;
-  z-index: 10000;
+  /* Above .app-tour-target-active (10001) so tooltip/backdrop stay topmost */
+  z-index: 10010;
   pointer-events: none;
 }
 
