@@ -1732,49 +1732,384 @@ export default function LogEntryEditor({
           </div>
         </div>
 
-        {(aiSummary.trim() || canSignSkipper) && (
+        {/* Section 4: Add New Event Form Card */}
+        {!readOnly && (
           <div className="form-card">
-            <div className="form-header">
-              <Sparkles size={20} className="form-icon" />
-              <h3>{t('logs.ai_summary_title')}</h3>
+            <div
+              className="form-header accordion-header"
+              onClick={() => setAddEventFormCollapsed(!addEventFormCollapsed)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setAddEventFormCollapsed(!addEventFormCollapsed)
+                }
+              }}
+              role="button"
+              aria-expanded={!addEventFormCollapsed}
+              tabIndex={0}
+            >
+              <div className="accordion-header-title">
+                <Plus size={20} className="form-icon" style={{ color: '#fbbf24' }} />
+                <h3 style={{ margin: 0, color: '#fbbf24' }}>
+                  {editingEventIndex !== null ? t('logs.edit_event') : t('logs.add_event')}
+                </h3>
+              </div>
+              {addEventFormCollapsed ? (
+                <ChevronDown size={20} style={{ color: '#fbbf24' }} className="accordion-chevron" />
+              ) : (
+                <ChevronUp size={20} style={{ color: '#fbbf24' }} className="accordion-chevron" />
+              )}
             </div>
-            {aiSummary.trim() && !canSignSkipper && (
-              <p style={{ margin: '0 0 12px', fontSize: '0.9rem', opacity: 0.8 }}>
-                {t('logs.ai_summary_read_only')}
-              </p>
-            )}
-            {aiSummary.trim() ? (
-              <p style={{ whiteSpace: 'pre-wrap', margin: '0 0 16px', lineHeight: 1.5 }}>{aiSummary}</p>
-            ) : (
-              <p style={{ margin: '0 0 16px', opacity: 0.75 }}>{t('logs.ai_summary_empty')}</p>
-            )}
-            {canSignSkipper && !readOnly && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void handleGenerateAiSummary()}
-                  disabled={saving || aiSummaryLoading || aiSummaryRemaining === 0}
-                  style={{ width: 'auto' }}
-                >
-                  <Sparkles size={16} />
-                  {aiSummaryLoading
-                    ? t('logs.ai_summary_generating')
-                    : aiSummary.trim()
-                      ? t('logs.ai_summary_regenerate')
-                      : t('logs.ai_summary_generate')}
-                </button>
-                {aiSummaryRemaining !== null && (
-                  <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                    {t('logs.ai_summary_attempts_remaining', {
-                      remaining: aiSummaryRemaining,
-                      max: aiSummaryMaxAttempts
-                    })}
-                  </span>
-                )}
+
+            {!addEventFormCollapsed && (
+              <div style={{ marginTop: '20px' }}>
+                <div className="form-grid mb-4">
+                  <div className="input-group">
+                    <label>
+                      <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      {t('logs.event_time')} *
+                    </label>
+                    <EventTimeInput24h
+                      value={evTime}
+                      onChange={setEvTime}
+                      disabled={saving}
+                      aria-label={t('logs.event_time')}
+                    />
+                  </div>
+
+                  <div className="input-group course-dial-section">
+                    <label>
+                      <Compass size={12} style={{ display: 'inline', marginRight: 4 }} />
+                      {t('logs.event_course_section')}
+                    </label>
+                    <div className="course-dial-tabs" role="tablist" aria-label={t('logs.event_course_section')}>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeCourseTab === 'mgk'}
+                        className={`course-dial-tab${activeCourseTab === 'mgk' ? ' is-active' : ''}`}
+                        onClick={() => setActiveCourseTab('mgk')}
+                        disabled={saving}
+                      >
+                        {t('logs.course_tab_mgk')}
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeCourseTab === 'rwk'}
+                        className={`course-dial-tab${activeCourseTab === 'rwk' ? ' is-active' : ''}`}
+                        onClick={() => setActiveCourseTab('rwk')}
+                        disabled={saving}
+                      >
+                        {t('logs.course_tab_rwk')}
+                      </button>
+                    </div>
+                    <CourseDialInput
+                      value={activeCourseTab === 'mgk' ? evMgk : evRwk}
+                      onChange={activeCourseTab === 'mgk' ? setEvMgk : setEvRwk}
+                      disabled={saving}
+                      aria-label={activeCourseTab === 'mgk' ? t('logs.event_mgk') : t('logs.event_rwk')}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>{t('logs.event_log')}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 124.5"
+                      className="input-text"
+                      value={evLogReading}
+                      onChange={(e) => setEvLogReading(e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-grid mb-4">
+                  <div className="input-group">
+                    <label>{t('logs.event_location')}</label>
+                    <input
+                      type="text"
+                      placeholder={t('logs.event_location_placeholder')}
+                      className="input-text"
+                      value={evLocationName}
+                      onChange={(e) => setEvLocationName(e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>{t('logs.event_gps')} (Lat, Lng)</label>
+                    <div className="gps-input-row">
+                      <input
+                        type="text"
+                        placeholder="Lat"
+                        className="input-text"
+                        value={evGpsLat}
+                        onChange={(e) => { clearGpsSignal(); setEvGpsLat(e.target.value) }}
+                        disabled={saving}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Lng"
+                        className="input-text"
+                        value={evGpsLng}
+                        onChange={(e) => { clearGpsSignal(); setEvGpsLng(e.target.value) }}
+                        disabled={saving}
+                      />
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => void handleGetGps()}
+                        title={t('logs.gps_btn')}
+                        style={{ width: 'auto', padding: '12px' }}
+                        disabled={saving}
+                      >
+                        <MapPin size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={handleFetchWeather}
+                        title={t('logs.weather_btn')}
+                        style={{ width: 'auto', padding: '12px' }}
+                        disabled={
+                          saving ||
+                          weatherLoading ||
+                          (!evGpsLat && !evLocationName.trim() && !departure.trim() && !destination.trim()) ||
+                          (!!evGpsLat && !evGpsLng)
+                        }
+                      >
+                        <CloudSun size={16} />
+                      </button>
+                    </div>
+                    {gpsSignal && (
+                      <GpsSignalHint
+                        quality={gpsSignal.quality}
+                        accuracyM={gpsSignal.accuracyM}
+                        className="gps-signal-hint-editor"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-grid weather-metrics-grid mb-4">
+                  <div className="input-group course-dial-section weather-metrics-span-2">
+                    <label>{t('logs.event_wind_direction')}</label>
+                    <CourseDialInput
+                      value={evWindDirection}
+                      onChange={setEvWindDirection}
+                      disabled={saving || weatherLoading}
+                      allowCardinal
+                      displayMode="auto"
+                      aria-label={t('logs.event_wind_direction')}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>{t('logs.event_wind_strength')}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 4 Bft"
+                      className="input-text"
+                      value={evWindStrength}
+                      onChange={(e) => setEvWindStrength(e.target.value)}
+                      disabled={saving || weatherLoading}
+                    />
+                  </div>
+
+                  <MetricRangeInput
+                    label={t('logs.event_wind_pressure')}
+                    value={evWindPressure}
+                    onChange={setEvWindPressure}
+                    disabled={saving || weatherLoading}
+                    min={PRESSURE_MIN_HPA}
+                    max={PRESSURE_MAX_HPA}
+                    step={1}
+                    defaultNumeric={PRESSURE_DEFAULT_HPA}
+                    parse={parsePressureHpa}
+                    format={formatPressureHpa}
+                    formatDisplay={(hpa) =>
+                      t('logs.weather_slider_pressure', { value: hpa, defaultValue: `${hpa} hPa` })}
+                    numberMin={PRESSURE_MIN_HPA}
+                    numberMax={PRESSURE_MAX_HPA}
+                    numberStep={1}
+                    numberPlaceholder="1013"
+                  />
+
+                  <MetricRangeInput
+                    label={t('logs.event_sea_state')}
+                    value={evSeaState}
+                    onChange={setEvSeaState}
+                    disabled={saving}
+                    min={SEA_STATE_MIN}
+                    max={SEA_STATE_MAX}
+                    step={1}
+                    defaultNumeric={0}
+                    parse={parseSeaState}
+                    format={formatSeaState}
+                    formatDisplay={(level) =>
+                      t('logs.weather_slider_sea_state', { value: level, defaultValue: `${level}` })}
+                    numberMin={SEA_STATE_MIN}
+                    numberMax={SEA_STATE_MAX}
+                    numberStep={1}
+                    numberPlaceholder="3"
+                    allowLegacyText
+                  />
+
+                  <MetricRangeInput
+                    label={t('logs.event_visibility')}
+                    value={evVisibility}
+                    onChange={setEvVisibility}
+                    disabled={saving || weatherLoading}
+                    discreteValues={VISIBILITY_STEPS_M}
+                    defaultNumeric={10000}
+                    parse={parseVisibilityMeters}
+                    format={formatVisibilityMeters}
+                    formatDisplay={(m) => formatVisibilityMeters(m)}
+                    hideNumberInput
+                  />
+
+                  <MetricRangeInput
+                    label={t('logs.event_heel')}
+                    value={evHeel}
+                    onChange={setEvHeel}
+                    disabled={saving}
+                    min={HEEL_MIN_DEG}
+                    max={HEEL_MAX_DEG}
+                    step={1}
+                    defaultNumeric={0}
+                    parse={parseHeelDeg}
+                    format={formatHeelDeg}
+                    formatDisplay={(deg) =>
+                      t('logs.weather_slider_heel', { value: deg, defaultValue: `${deg}°` })}
+                    numberMin={HEEL_MIN_DEG}
+                    numberMax={HEEL_MAX_DEG}
+                    numberStep={1}
+                    numberPlaceholder="5"
+                  />
+                </div>
+
+                <div className="form-grid mb-4">
+                  <div className="input-group">
+                    <label>{t('logs.event_sails')}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mainsail + Jib"
+                      className="input-text"
+                      value={evSailsOrMotor}
+                      onChange={(e) => setEvSailsOrMotor(e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>{t('logs.event_distance')}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 12 nm"
+                      className="input-text"
+                      value={evDistance}
+                      onChange={(e) => setEvDistance(e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  <div
+                    className={[
+                      'sails-picker-container grid-span-2',
+                      showSailsPickerToggle ? 'is-collapsible' : '',
+                      showSailsPickerToggle && !sailsPickerExpanded ? 'is-collapsed' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <div className="sails-picker-pills">
+                      {isMotorActive && (
+                        <span
+                          className={`sail-pill motor-pill active`}
+                          onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
+                        >
+                          {motorPropulsionLabel}
+                        </span>
+                      )}
+                      {sortedEventSailOptions.map((sail) => (
+                        <span
+                          key={sail}
+                          className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
+                          onClick={() => toggleSailOrMotor(sail)}
+                        >
+                          {sail}
+                        </span>
+                      ))}
+                      {!isMotorActive && (
+                        <span
+                          className="sail-pill motor-pill"
+                          onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
+                        >
+                          {motorPropulsionLabel}
+                        </span>
+                      )}
+                    </div>
+                    {showSailsPickerToggle && (
+                      <button
+                        type="button"
+                        className="sails-picker-toggle"
+                        onClick={() => setSailsPickerExpanded((prev) => !prev)}
+                        aria-expanded={sailsPickerExpanded}
+                      >
+                        {sailsPickerExpanded ? (
+                          <>
+                            <ChevronUp size={14} aria-hidden="true" />
+                            {t('logs.sails_picker_show_less')}
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={14} aria-hidden="true" />
+                            {t('logs.sails_picker_show_more')}
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="input-group grid-span-2">
+                    <label>{t('logs.event_remarks')}</label>
+                    <input
+                      type="text"
+                      placeholder="Remarks"
+                      className="input-text"
+                      value={evRemarks}
+                      onChange={(e) => setEvRemarks(e.target.value)}
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                  {editingEventIndex !== null && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={handleCancelEventEdit}
+                      disabled={saving}
+                      style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
+                    >
+                      <X size={16} />
+                      {t('logs.cancel_event_edit')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={handleSaveEvent}
+                    disabled={saving || !isValidTimeHHMM(evTime)}
+                    style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
+                  >
+                    {editingEventIndex !== null ? <Save size={16} /> : <Plus size={16} />}
+                    {editingEventIndex !== null ? t('logs.save_event_btn') : t('logs.add_event_btn')}
+                  </button>
+                </div>
               </div>
             )}
-            {aiSummaryError && <div className="auth-error" style={{ marginTop: '12px' }}>{aiSummaryError}</div>}
           </div>
         )}
 
@@ -2313,386 +2648,14 @@ export default function LogEntryEditor({
 
         </div>
 
-        {/* Section 4: Add New Event Form Card */}
-        {!readOnly && (
-          <div className="form-card">
-            <div
-              className="form-header accordion-header"
-              onClick={() => setAddEventFormCollapsed(!addEventFormCollapsed)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setAddEventFormCollapsed(!addEventFormCollapsed)
-                }
-              }}
-              role="button"
-              aria-expanded={!addEventFormCollapsed}
-              tabIndex={0}
-            >
-              <div className="accordion-header-title">
-                <Plus size={20} className="form-icon" style={{ color: '#fbbf24' }} />
-                <h3 style={{ margin: 0, color: '#fbbf24' }}>
-                  {editingEventIndex !== null ? t('logs.edit_event') : t('logs.add_event')}
-                </h3>
-              </div>
-              {addEventFormCollapsed ? (
-                <ChevronDown size={20} style={{ color: '#fbbf24' }} className="accordion-chevron" />
-              ) : (
-                <ChevronUp size={20} style={{ color: '#fbbf24' }} className="accordion-chevron" />
-              )}
-            </div>
+        <PhotoCapture entryId={entryId} logbookId={logbookId} readOnly={readOnly} preloadedPhotos={preloadedPhotos} />
 
-            {!addEventFormCollapsed && (
-              <div style={{ marginTop: '20px' }}>
-                <div className="form-grid mb-4">
-                  <div className="input-group">
-                    <label>
-                      <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
-                      {t('logs.event_time')} *
-                    </label>
-                    <EventTimeInput24h
-                      value={evTime}
-                      onChange={setEvTime}
-                      disabled={saving}
-                      aria-label={t('logs.event_time')}
-                    />
-                  </div>
-
-                  <div className="input-group course-dial-section">
-                    <label>
-                      <Compass size={12} style={{ display: 'inline', marginRight: 4 }} />
-                      {t('logs.event_course_section')}
-                    </label>
-                    <div className="course-dial-tabs" role="tablist" aria-label={t('logs.event_course_section')}>
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={activeCourseTab === 'mgk'}
-                        className={`course-dial-tab${activeCourseTab === 'mgk' ? ' is-active' : ''}`}
-                        onClick={() => setActiveCourseTab('mgk')}
-                        disabled={saving}
-                      >
-                        {t('logs.course_tab_mgk')}
-                      </button>
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={activeCourseTab === 'rwk'}
-                        className={`course-dial-tab${activeCourseTab === 'rwk' ? ' is-active' : ''}`}
-                        onClick={() => setActiveCourseTab('rwk')}
-                        disabled={saving}
-                      >
-                        {t('logs.course_tab_rwk')}
-                      </button>
-                    </div>
-                    <CourseDialInput
-                      value={activeCourseTab === 'mgk' ? evMgk : evRwk}
-                      onChange={activeCourseTab === 'mgk' ? setEvMgk : setEvRwk}
-                      disabled={saving}
-                      aria-label={activeCourseTab === 'mgk' ? t('logs.event_mgk') : t('logs.event_rwk')}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label>{t('logs.event_log')}</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 124.5"
-                      className="input-text"
-                      value={evLogReading}
-                      onChange={(e) => setEvLogReading(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid mb-4">
-                  <div className="input-group">
-                    <label>{t('logs.event_location')}</label>
-                    <input
-                      type="text"
-                      placeholder={t('logs.event_location_placeholder')}
-                      className="input-text"
-                      value={evLocationName}
-                      onChange={(e) => setEvLocationName(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label>{t('logs.event_gps')} (Lat, Lng)</label>
-                    <div className="gps-input-row">
-                      <input
-                        type="text"
-                        placeholder="Lat"
-                        className="input-text"
-                        value={evGpsLat}
-                        onChange={(e) => { clearGpsSignal(); setEvGpsLat(e.target.value) }}
-                        disabled={saving}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Lng"
-                        className="input-text"
-                        value={evGpsLng}
-                        onChange={(e) => { clearGpsSignal(); setEvGpsLng(e.target.value) }}
-                        disabled={saving}
-                      />
-                      <button
-                        type="button"
-                        className="btn secondary"
-                        onClick={() => void handleGetGps()}
-                        title={t('logs.gps_btn')}
-                        style={{ width: 'auto', padding: '12px' }}
-                        disabled={saving}
-                      >
-                        <MapPin size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn secondary"
-                        onClick={handleFetchWeather}
-                        title={t('logs.weather_btn')}
-                        style={{ width: 'auto', padding: '12px' }}
-                        disabled={
-                          saving ||
-                          weatherLoading ||
-                          (!evGpsLat && !evLocationName.trim() && !departure.trim() && !destination.trim()) ||
-                          (!!evGpsLat && !evGpsLng)
-                        }
-                      >
-                        <CloudSun size={16} />
-                      </button>
-                    </div>
-                    {gpsSignal && (
-                      <GpsSignalHint
-                        quality={gpsSignal.quality}
-                        accuracyM={gpsSignal.accuracyM}
-                        className="gps-signal-hint-editor"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="form-grid weather-metrics-grid mb-4">
-                  <div className="input-group course-dial-section weather-metrics-span-2">
-                    <label>{t('logs.event_wind_direction')}</label>
-                    <CourseDialInput
-                      value={evWindDirection}
-                      onChange={setEvWindDirection}
-                      disabled={saving || weatherLoading}
-                      allowCardinal
-                      displayMode="auto"
-                      aria-label={t('logs.event_wind_direction')}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label>{t('logs.event_wind_strength')}</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 4 Bft"
-                      className="input-text"
-                      value={evWindStrength}
-                      onChange={(e) => setEvWindStrength(e.target.value)}
-                      disabled={saving || weatherLoading}
-                    />
-                  </div>
-
-                  <MetricRangeInput
-                    label={t('logs.event_wind_pressure')}
-                    value={evWindPressure}
-                    onChange={setEvWindPressure}
-                    disabled={saving || weatherLoading}
-                    min={PRESSURE_MIN_HPA}
-                    max={PRESSURE_MAX_HPA}
-                    step={1}
-                    defaultNumeric={PRESSURE_DEFAULT_HPA}
-                    parse={parsePressureHpa}
-                    format={formatPressureHpa}
-                    formatDisplay={(hpa) =>
-                      t('logs.weather_slider_pressure', { value: hpa, defaultValue: `${hpa} hPa` })}
-                    numberMin={PRESSURE_MIN_HPA}
-                    numberMax={PRESSURE_MAX_HPA}
-                    numberStep={1}
-                    numberPlaceholder="1013"
-                  />
-
-                  <MetricRangeInput
-                    label={t('logs.event_sea_state')}
-                    value={evSeaState}
-                    onChange={setEvSeaState}
-                    disabled={saving}
-                    min={SEA_STATE_MIN}
-                    max={SEA_STATE_MAX}
-                    step={1}
-                    defaultNumeric={0}
-                    parse={parseSeaState}
-                    format={formatSeaState}
-                    formatDisplay={(level) =>
-                      t('logs.weather_slider_sea_state', { value: level, defaultValue: `${level}` })}
-                    numberMin={SEA_STATE_MIN}
-                    numberMax={SEA_STATE_MAX}
-                    numberStep={1}
-                    numberPlaceholder="3"
-                    allowLegacyText
-                  />
-
-                  <MetricRangeInput
-                    label={t('logs.event_visibility')}
-                    value={evVisibility}
-                    onChange={setEvVisibility}
-                    disabled={saving || weatherLoading}
-                    discreteValues={VISIBILITY_STEPS_M}
-                    defaultNumeric={10000}
-                    parse={parseVisibilityMeters}
-                    format={formatVisibilityMeters}
-                    formatDisplay={(m) => formatVisibilityMeters(m)}
-                    hideNumberInput
-                  />
-
-                  <MetricRangeInput
-                    label={t('logs.event_heel')}
-                    value={evHeel}
-                    onChange={setEvHeel}
-                    disabled={saving}
-                    min={HEEL_MIN_DEG}
-                    max={HEEL_MAX_DEG}
-                    step={1}
-                    defaultNumeric={0}
-                    parse={parseHeelDeg}
-                    format={formatHeelDeg}
-                    formatDisplay={(deg) =>
-                      t('logs.weather_slider_heel', { value: deg, defaultValue: `${deg}°` })}
-                    numberMin={HEEL_MIN_DEG}
-                    numberMax={HEEL_MAX_DEG}
-                    numberStep={1}
-                    numberPlaceholder="5"
-                  />
-                </div>
-
-                <div className="form-grid mb-4">
-                  <div className="input-group">
-                    <label>{t('logs.event_sails')}</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Mainsail + Jib"
-                      className="input-text"
-                      value={evSailsOrMotor}
-                      onChange={(e) => setEvSailsOrMotor(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div className="input-group">
-                    <label>{t('logs.event_distance')}</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 12 nm"
-                      className="input-text"
-                      value={evDistance}
-                      onChange={(e) => setEvDistance(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div
-                    className={[
-                      'sails-picker-container grid-span-2',
-                      showSailsPickerToggle ? 'is-collapsible' : '',
-                      showSailsPickerToggle && !sailsPickerExpanded ? 'is-collapsed' : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    <div className="sails-picker-pills">
-                      {isMotorActive && (
-                        <span
-                          className={`sail-pill motor-pill active`}
-                          onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
-                        >
-                          {motorPropulsionLabel}
-                        </span>
-                      )}
-                      {sortedEventSailOptions.map((sail) => (
-                        <span
-                          key={sail}
-                          className={`sail-pill ${isItemActive(sail) ? 'active' : ''}`}
-                          onClick={() => toggleSailOrMotor(sail)}
-                        >
-                          {sail}
-                        </span>
-                      ))}
-                      {!isMotorActive && (
-                        <span
-                          className="sail-pill motor-pill"
-                          onClick={() => toggleSailOrMotor(motorPropulsionLabel)}
-                        >
-                          {motorPropulsionLabel}
-                        </span>
-                      )}
-                    </div>
-                    {showSailsPickerToggle && (
-                      <button
-                        type="button"
-                        className="sails-picker-toggle"
-                        onClick={() => setSailsPickerExpanded((prev) => !prev)}
-                        aria-expanded={sailsPickerExpanded}
-                      >
-                        {sailsPickerExpanded ? (
-                          <>
-                            <ChevronUp size={14} aria-hidden="true" />
-                            {t('logs.sails_picker_show_less')}
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown size={14} aria-hidden="true" />
-                            {t('logs.sails_picker_show_more')}
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="input-group grid-span-2">
-                    <label>{t('logs.event_remarks')}</label>
-                    <input
-                      type="text"
-                      placeholder="Remarks"
-                      className="input-text"
-                      value={evRemarks}
-                      onChange={(e) => setEvRemarks(e.target.value)}
-                      disabled={saving}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-                  {editingEventIndex !== null && (
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      onClick={handleCancelEventEdit}
-                      disabled={saving}
-                      style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
-                    >
-                      <X size={16} />
-                      {t('logs.cancel_event_edit')}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={handleSaveEvent}
-                    disabled={saving || !isValidTimeHHMM(evTime)}
-                    style={{ width: 'auto', padding: '10px 20px', display: 'flex' }}
-                  >
-                    {editingEventIndex !== null ? <Save size={16} /> : <Plus size={16} />}
-                    {editingEventIndex !== null ? t('logs.save_event_btn') : t('logs.add_event_btn')}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <EntryCrewSection
+          logbookId={logbookId}
+          readOnly={readOnly}
+          value={entryCrew}
+          onChange={setEntryCrew}
+        />
 
         {/* Track file upload */}
         <div className="form-card" data-tour="entry-track">
@@ -2847,14 +2810,51 @@ export default function LogEntryEditor({
           )}
         </div>
 
-        <PhotoCapture entryId={entryId} logbookId={logbookId} readOnly={readOnly} preloadedPhotos={preloadedPhotos} />
-
-        <EntryCrewSection
-          logbookId={logbookId}
-          readOnly={readOnly}
-          value={entryCrew}
-          onChange={setEntryCrew}
-        />
+        {(aiSummary.trim() || canSignSkipper) && (
+          <div className="form-card">
+            <div className="form-header">
+              <Sparkles size={20} className="form-icon" />
+              <h3>{t('logs.ai_summary_title')}</h3>
+            </div>
+            {aiSummary.trim() && !canSignSkipper && (
+              <p style={{ margin: '0 0 12px', fontSize: '0.9rem', opacity: 0.8 }}>
+                {t('logs.ai_summary_read_only')}
+              </p>
+            )}
+            {aiSummary.trim() ? (
+              <p style={{ whiteSpace: 'pre-wrap', margin: '0 0 16px', lineHeight: 1.5 }}>{aiSummary}</p>
+            ) : (
+              <p style={{ margin: '0 0 16px', opacity: 0.75 }}>{t('logs.ai_summary_empty')}</p>
+            )}
+            {canSignSkipper && !readOnly && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void handleGenerateAiSummary()}
+                  disabled={saving || aiSummaryLoading || aiSummaryRemaining === 0}
+                  style={{ width: 'auto' }}
+                >
+                  <Sparkles size={16} />
+                  {aiSummaryLoading
+                    ? t('logs.ai_summary_generating')
+                    : aiSummary.trim()
+                      ? t('logs.ai_summary_regenerate')
+                      : t('logs.ai_summary_generate')}
+                </button>
+                {aiSummaryRemaining !== null && (
+                  <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>
+                    {t('logs.ai_summary_attempts_remaining', {
+                      remaining: aiSummaryRemaining,
+                      max: aiSummaryMaxAttempts
+                    })}
+                  </span>
+                )}
+              </div>
+            )}
+            {aiSummaryError && <div className="auth-error" style={{ marginTop: '12px' }}>{aiSummaryError}</div>}
+          </div>
+        )}
 
         <SignatureSection
           readOnly={readOnly}
