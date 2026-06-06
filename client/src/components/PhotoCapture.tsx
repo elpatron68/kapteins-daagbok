@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
 import { getActiveMasterKey } from '../services/auth.js'
@@ -294,7 +295,7 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
         </div>
       )}
 
-      {maximizedPhoto && (
+      {maximizedPhoto && createPortal(
         <div
           className="photo-maximized-overlay"
           onClick={() => setMaximizedPhoto(null)}
@@ -319,7 +320,8 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
