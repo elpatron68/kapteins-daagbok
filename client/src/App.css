@@ -3184,6 +3184,7 @@ html.theme-cupertino .events-scroll-container {
   aspect-ratio: 16 / 9;
   background: #0b0c10;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .photo-container img {
@@ -3228,6 +3229,78 @@ html.theme-cupertino .events-scroll-container {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* Photo Maximized Overlay */
+.photo-maximized-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 12, 16, 0.9);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11000;
+}
+
+.photo-maximized-container {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.photo-maximized-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.photo-maximized-close {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.photo-maximized-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #ffffff;
+  transform: scale(1.08);
+}
+
+.photo-maximized-caption {
+  font-size: 15px;
+  color: #f1f5f9;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 8px 16px;
+  border-radius: 20px;
+  max-width: 80%;
+  text-align: center;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  word-break: break-word;
 }
 
 /* Custom Dialog Modals Styling */
@@ -4364,6 +4437,7 @@ html.theme-cupertino .events-scroll-container {
 .consumption-grid .input-group .input-text {
   flex-shrink: 0;
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .consumption-grid .input-text::-webkit-outer-spin-button,

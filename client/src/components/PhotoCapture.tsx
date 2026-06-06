@@ -8,7 +8,7 @@ import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.j
 import { fileToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
-import { Camera, Image, Trash2 } from 'lucide-react'
+import { Camera, Image, Trash2, X } from 'lucide-react'
 import { probeCameraAvailability } from '../utils/cameraAvailability.js'
 
 interface PhotoCaptureProps {
@@ -33,9 +33,25 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
   const [error, setError] = useState<string | null>(null)
   const [decryptedPhotos, setDecryptedPhotos] = useState<DecryptedPhoto[]>([])
   const [hasCamera, setHasCamera] = useState(false)
+  const [maximizedPhoto, setMaximizedPhoto] = useState<DecryptedPhoto | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!maximizedPhoto) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMaximizedPhoto(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [maximizedPhoto])
 
   useEffect(() => {
     let cancelled = false
@@ -246,14 +262,22 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
       ) : (
         <div className="photo-attachments-grid">
           {decryptedPhotos.map((photo) => (
-            <div key={photo.payloadId} className="photo-card glass">
+            <div
+              key={photo.payloadId}
+              className="photo-card glass"
+              onClick={() => setMaximizedPhoto(photo)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="photo-container">
                 <img src={photo.image} alt={photo.caption || 'Attachment'} loading="lazy" />
                 {!readOnly && (
                   <button
                     type="button"
                     className="photo-btn-delete"
-                    onClick={() => handleDelete(photo.payloadId)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(photo.payloadId)
+                    }}
                     title="Remove photo"
                   >
                     <Trash2 size={16} />
@@ -267,6 +291,34 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {maximizedPhoto && (
+        <div
+          className="photo-maximized-overlay"
+          onClick={() => setMaximizedPhoto(null)}
+        >
+          <div className="photo-maximized-container" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="photo-maximized-close"
+              onClick={() => setMaximizedPhoto(null)}
+              aria-label={t('common.close') || 'Close'}
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={maximizedPhoto.image}
+              alt={maximizedPhoto.caption || 'Maximized Attachment'}
+              className="photo-maximized-img"
+            />
+            {maximizedPhoto.caption && (
+              <div className="photo-maximized-caption">
+                {maximizedPhoto.caption}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
