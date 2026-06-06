@@ -8,7 +8,7 @@ import { syncLogbook } from '../services/sync.js'
 import { saveEntryDraft, clearEntryDraft } from '../services/entryDraft.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles, Sliders } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import EventRemarksCell from './EventRemarksCell.tsx'
 import CreatorAvatar from './CreatorAvatar.tsx'
@@ -299,6 +299,65 @@ export default function LogEntryEditor({
   const [eventsCollapsed, setEventsCollapsed] = useState(true)
   const [addEventFormCollapsed, setAddEventFormCollapsed] = useState(false)
   const [tanksCollapsed, setTanksCollapsed] = useState(true)
+
+  const [columnSelectorOpen, setColumnSelectorOpen] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('logbook_visible_columns')
+      if (saved) {
+        return {
+          mgk: true,
+          rwk: true,
+          windDirection: true,
+          windStrength: true,
+          seaState: true,
+          weather: true,
+          logReading: true,
+          gps: true,
+          ...JSON.parse(saved)
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing visible columns from localStorage', e)
+    }
+    return {
+      mgk: true,
+      rwk: true,
+      windDirection: true,
+      windStrength: true,
+      seaState: true,
+      weather: true,
+      logReading: true,
+      gps: true,
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem('logbook_visible_columns', JSON.stringify(visibleColumns))
+  }, [visibleColumns])
+
+  const columnSelectorRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!columnSelectorOpen) return
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (columnSelectorRef.current && !columnSelectorRef.current.contains(event.target as Node)) {
+        setColumnSelectorOpen(false)
+      }
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setColumnSelectorOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [columnSelectorOpen])
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -1902,6 +1961,99 @@ export default function LogEntryEditor({
             <div className="accordion-header-title">
               <Compass size={20} className="form-icon" />
               <h3>{t('logs.event_title')}</h3>
+              {!eventsCollapsed && (
+                <div
+                  ref={columnSelectorRef}
+                  className="column-selector-wrapper"
+                  style={{ position: 'relative', display: 'inline-block' }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setColumnSelectorOpen(!columnSelectorOpen)
+                    }}
+                    title={t('logs.customize_columns')}
+                    style={{ marginLeft: '8px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Sliders size={16} />
+                  </button>
+                  {columnSelectorOpen && (
+                    <div className="column-selector-popover" onClick={(e) => e.stopPropagation()}>
+                      <h4 className="column-selector-title">{t('logs.column_selector_title')}</h4>
+                      <div className="column-selector-list">
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.mgk}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, mgk: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_mgk')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.rwk}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, rwk: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_rwk')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.windDirection}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, windDirection: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_wind_direction')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.windStrength}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, windStrength: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_wind_strength')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.seaState}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, seaState: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_sea_state')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.weather}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, weather: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_weather')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.logReading}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, logReading: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_log')}</span>
+                        </label>
+                        <label className="column-selector-item">
+                          <input
+                            type="checkbox"
+                            checked={visibleColumns.gps}
+                            onChange={(e) => setVisibleColumns(prev => ({ ...prev, gps: e.target.checked }))}
+                          />
+                          <span>{t('logs.event_gps')}</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {eventsCollapsed ? (
               <ChevronDown size={20} className="accordion-chevron" />
@@ -1923,14 +2075,14 @@ export default function LogEntryEditor({
                       <tr>
                         <th>{t('logs.event_time')}</th>
                         <th>{t('logs.event_creator')}</th>
-                        <th>{t('logs.event_mgk')}</th>
-                        <th>{t('logs.event_rwk')}</th>
-                        <th>{t('logs.event_wind_direction')}</th>
-                        <th>{t('logs.event_wind_strength')}</th>
-                        <th>{t('logs.event_sea_state')}</th>
-                        <th>{t('logs.event_weather')}</th>
-                        <th>{t('logs.event_log')}</th>
-                        <th>{t('logs.event_gps')}</th>
+                        {visibleColumns.mgk && <th>{t('logs.event_mgk')}</th>}
+                        {visibleColumns.rwk && <th>{t('logs.event_rwk')}</th>}
+                        {visibleColumns.windDirection && <th>{t('logs.event_wind_direction')}</th>}
+                        {visibleColumns.windStrength && <th>{t('logs.event_wind_strength')}</th>}
+                        {visibleColumns.seaState && <th>{t('logs.event_sea_state')}</th>}
+                        {visibleColumns.weather && <th>{t('logs.event_weather')}</th>}
+                        {visibleColumns.logReading && <th>{t('logs.event_log')}</th>}
+                        {visibleColumns.gps && <th>{t('logs.event_gps')}</th>}
                         <th>{t('logs.event_remarks')}</th>
                         {!readOnly && <th></th>}
                       </tr>
@@ -1946,27 +2098,31 @@ export default function LogEntryEditor({
                               size={24}
                             />
                           </td>
-                          <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
-                          <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
-                          <td>{ev.windDirection || '—'}</td>
-                          <td>{ev.windStrength || '—'}</td>
-                          <td>{ev.seaState || '—'}</td>
-                          <td>
-                            {ev.weatherIcon ? (
-                              <img
-                                src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
-                                alt="Weather"
-                                title="Weather Icon"
-                                className="table-weather-img"
-                              />
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
-                          <td className="font-mono text-sm">
-                            {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
-                          </td>
+                          {visibleColumns.mgk && <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>}
+                          {visibleColumns.rwk && <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>}
+                          {visibleColumns.windDirection && <td>{ev.windDirection || '—'}</td>}
+                          {visibleColumns.windStrength && <td>{ev.windStrength || '—'}</td>}
+                          {visibleColumns.seaState && <td>{ev.seaState || '—'}</td>}
+                          {visibleColumns.weather && (
+                            <td>
+                              {ev.weatherIcon ? (
+                                <img
+                                  src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                                  alt="Weather"
+                                  title="Weather Icon"
+                                  className="table-weather-img"
+                                />
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          )}
+                          {visibleColumns.logReading && <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>}
+                          {visibleColumns.gps && (
+                            <td className="font-mono text-sm">
+                              {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
+                            </td>
+                          )}
                           <td className="remarks-td">
                             <EventRemarksCell
                               event={ev}
@@ -2007,12 +2163,20 @@ export default function LogEntryEditor({
                 {/* Mobile view */}
                 <div className="events-mobile-only mb-6">
                   {events.map((ev, idx) => {
-                    const hasCourse = ev.mgk || ev.rwk;
-                    const hasWind = ev.windDirection || ev.windStrength || ev.windPressure;
-                    const hasSeaState = ev.seaState;
-                    const hasWeather = ev.weatherIcon;
-                    const hasLog = ev.logReading;
-                    const hasGps = ev.gpsLat && ev.gpsLng;
+                    const displayMgk = visibleColumns.mgk && ev.mgk;
+                    const displayRwk = visibleColumns.rwk && ev.rwk;
+                    const hasCourse = displayMgk || displayRwk;
+
+                    const displayWindDirection = visibleColumns.windDirection && ev.windDirection;
+                    const displayWindStrength = visibleColumns.windStrength && ev.windStrength;
+                    const displayWindPressure = ev.windPressure;
+                    const hasWind = displayWindDirection || displayWindStrength || displayWindPressure;
+
+                    const displaySeaState = visibleColumns.seaState && ev.seaState;
+                    const displayWeather = visibleColumns.weather && ev.weatherIcon;
+                    const displayLog = visibleColumns.logReading && ev.logReading;
+                    const displayGps = visibleColumns.gps && ev.gpsLat && ev.gpsLng;
+
                     const hasVisibility = ev.visibility;
                     const hasHeel = ev.heel;
                     const hasSailsOrMotor = ev.sailsOrMotor;
@@ -2061,9 +2225,9 @@ export default function LogEntryEditor({
                             <span className="event-card-chip" title={t('logs.event_course_section')}>
                               <Compass size={12} />
                               <span>
-                                {ev.mgk ? `MgK: ${ev.mgk}°` : ''}
-                                {ev.mgk && ev.rwk ? ' / ' : ''}
-                                {ev.rwk ? `rwK: ${ev.rwk}°` : ''}
+                                {displayMgk ? `MgK: ${ev.mgk}°` : ''}
+                                {displayMgk && displayRwk ? ' / ' : ''}
+                                {displayRwk ? `rwK: ${ev.rwk}°` : ''}
                               </span>
                             </span>
                           )}
@@ -2073,9 +2237,9 @@ export default function LogEntryEditor({
                               <span>
                                 Wind:{' '}
                                 {[
-                                  ev.windDirection,
-                                  ev.windStrength ? `${ev.windStrength} Bft` : '',
-                                  ev.windPressure ? `${ev.windPressure} hPa` : ''
+                                  displayWindDirection ? ev.windDirection : '',
+                                  displayWindStrength ? `${ev.windStrength} Bft` : '',
+                                  displayWindPressure ? `${ev.windPressure} hPa` : ''
                                 ]
                                   .filter(Boolean)
                                   .join(' / ')}
@@ -2083,13 +2247,13 @@ export default function LogEntryEditor({
                             </span>
                           )}
 
-                          {hasSeaState && (
+                          {displaySeaState && (
                             <span className="event-card-chip" title={t('logs.event_sea_state')}>
                               <span>{t('logs.event_sea_state')}: {ev.seaState}</span>
                             </span>
                           )}
 
-                          {hasWeather && (
+                          {displayWeather && (
                             <span className="event-card-chip" title={t('logs.event_weather')}>
                               <img
                                 src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
@@ -2099,13 +2263,13 @@ export default function LogEntryEditor({
                             </span>
                           )}
 
-                          {hasLog && (
+                          {displayLog && (
                             <span className="event-card-chip" title={t('logs.event_log')}>
                               <span>Log: {ev.logReading} nm</span>
                             </span>
                           )}
 
-                          {hasGps && (
+                          {displayGps && (
                             <span className="event-card-chip" title={t('logs.event_gps')}>
                               <MapPin size={12} />
                               <span className="font-mono text-xs">{ev.gpsLat}, {ev.gpsLng}</span>

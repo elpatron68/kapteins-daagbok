@@ -187,6 +187,8 @@
       "destination": "Destination Port (nach)",
       "route": "Route / Journey",
       "tanks": "Tanks",
+      "customize_columns": "Customize columns",
+      "column_selector_title": "Columns to Show",
       "freshwater": "Freshwater (Liters)",
       "fuel": "Fuel (Liters)",
       "greywater": "Greywater (Liters)",

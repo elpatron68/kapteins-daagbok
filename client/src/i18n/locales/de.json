@@ -187,6 +187,8 @@
       "destination": "Ziel-Hafen (nach)",
       "route": "Reise von/nach",
       "tanks": "Tanks",
+      "customize_columns": "Spalten anpassen",
+      "column_selector_title": "Anzuzeigende Spalten",
       "freshwater": "Frischwasser (Liter)",
       "fuel": "Treibstoff / Fuel (Liter)",
       "greywater": "Grauwasser (Liter)",

@@ -187,6 +187,8 @@
       "destination": "Destinasjonsport (til)",
       "route": "Reise fra/til",
       "tanks": "Tanker",
+      "customize_columns": "Tilpass kolonner",
+      "column_selector_title": "Kolonner å vise",
       "freshwater": "Ferskvann (liter)",
       "fuel": "Drivstoff / Drivstoff (liter)",
       "greywater": "Gråvann (liter)",
