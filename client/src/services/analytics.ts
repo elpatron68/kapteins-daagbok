@@ -42,6 +42,7 @@ export const PlausibleEvents = {
   LIVE_LOG_OPENED: 'Live Log Opened',
   LIVE_LOG_EVENT_LOGGED: 'Live Log Event Logged',
   VOICE_MEMO_UPLOADED: 'Voice Memo Uploaded',
+  VOICE_MEMO_TRANSCRIBED: 'Voice Memo Transcribed',
   OWM_WEATHER_FETCHED: 'OWM Weather Fetched',
   AI_SUMMARY_GENERATED: 'AI Summary Generated',
   PWA_BOOT_WATCHDOG_SOFT: 'PWA Boot Watchdog Soft',

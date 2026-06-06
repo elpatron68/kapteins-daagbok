@@ -47,6 +47,7 @@ Das Script wird über `plausible-bootstrap.js` geladen; `data-domain` ist der ak
 | CSV Shared | CSV über Web Share API geteilt (`LogEntriesList.tsx`) | — |
 | Photo Uploaded | Foto hochgeladen (`photoAttachments.ts`, `PhotoCapture.tsx`, `CrewForm.tsx`) | `context`: `logbook` \| `live_log` \| `crew`, bei Crew zusätzlich `role`: `skipper` \| `crew` |
 | Voice Memo Uploaded | Sprachnotiz gespeichert (`voiceAttachments.ts`) | `context`: `logbook` \| `live_log` |
+| Voice Memo Transcribed | Sprachmemo transkribiert (`LiveLogView.tsx`, `EventRemarksCell.tsx`) | `status`: `success` \| `failed`, `mode`: `auto` (beim Speichern) \| `manual` (nachträglich) |
 | OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
 | AI Summary Generated | Erfolgreiche KI-Zusammenfassung eines Reisetags (`aiSummary.ts`) | — |
 | Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes` (Anzahlen/Größe, keine Inhalte) |
@@ -161,6 +162,7 @@ trackPlausibleEvent(PlausibleEvents.LANGUAGE_CHANGED, { from: 'de', to: 'da' })
 trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'course' })
 trackPlausibleEvent(PlausibleEvents.PHOTO_UPLOADED, { context: 'live_log' })
 trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_UPLOADED, { context: 'live_log' })
+trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, { status: 'success', mode: 'auto' })
 trackPlausibleEvent(PlausibleEvents.OWM_WEATHER_FETCHED, { source: 'live_log' })
 trackPlausibleEvent(PlausibleEvents.NMEA_UPLOADED, { lines: 1200, candidates: 8, duplicate: false, has_position: true })
 trackPlausibleEvent(PlausibleEvents.NMEA_IMPORTED, { mode: 'both', events: 6, track: true })

@@ -7,6 +7,7 @@ import { formatEventSummary } from '../utils/formatEventSummary.js'
 import VoiceMemoPlayer, { type PreloadedVoiceMemo } from './VoiceMemoPlayer.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { updateVoiceMemoTranscript } from '../services/voiceAttachments.js'
+import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 
 interface EventRemarksCellProps {
   event: LogEventPayload
@@ -66,9 +67,17 @@ export default function EventRemarksCell({
         throw new Error('Transcription returned empty text')
       }
       await updateVoiceMemoTranscript(logbookId, voiceId, text)
+      trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, {
+        status: 'success',
+        mode: 'manual'
+      })
     } catch (err) {
       clearTimeout(timeoutId)
       console.error('[EventRemarksCell] Transcription failed:', err)
+      trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, {
+        status: 'failed',
+        mode: 'manual'
+      })
       void showAlert(t('logs.live_voice_transcribe_failed'), t('logs.live_voice_btn'))
     } finally {
       setTranscribing(false)

@@ -885,9 +885,17 @@ export default function LiveLogView({
         setVoiceCaption('')
         showUndo('voice')
         trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'voice' })
-
         if (transcriptionError) {
+          trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, {
+            status: 'failed',
+            mode: 'auto'
+          })
           void showAlert(t('logs.live_voice_transcribe_failed'), t('logs.live_voice_btn'))
+        } else {
+          trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, {
+            status: 'success',
+            mode: 'auto'
+          })
         }
       } catch (err: unknown) {
         console.error('Live log voice save failed:', err)
