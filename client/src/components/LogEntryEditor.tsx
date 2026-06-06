@@ -1909,6 +1909,7 @@ export default function LogEntryEditor({
                           event={ev}
                           logbookId={logbookId}
                           voiceMemoLookup={voiceMemoLookup}
+                          readOnly={readOnly}
                         />
                       </td>
                       {!readOnly && (

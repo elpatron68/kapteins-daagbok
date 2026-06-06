@@ -31,7 +31,6 @@ import {
   removeLastEvent
 } from '../services/quickEventLog.js'
 import CreatorAvatar from './CreatorAvatar.tsx'
-import { formatEventSummary } from '../utils/formatEventSummary.js'
 import {
   getLastAutoPositionMs,
   getLastLoggedPositionWithin,
@@ -43,7 +42,6 @@ import {
   liveFuelRemark,
   livePhotoRemark,
   liveVoiceRemark,
-  parseLiveVoiceRemark,
   livePrecipRemark,
   liveSailsRemark,
   liveSogRemark,
@@ -80,7 +78,7 @@ import CourseDialInput from './CourseDialInput.tsx'
 import GpsSignalHint from './GpsSignalHint.tsx'
 import LiveCameraCapture from './LiveCameraCapture.tsx'
 import LiveVoiceCapture from './LiveVoiceCapture.tsx'
-import VoiceMemoPlayer from './VoiceMemoPlayer.tsx'
+import EventRemarksCell from './EventRemarksCell.tsx'
 import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.js'
 import { saveEntryVoiceMemo, deleteEntryVoiceMemo } from '../services/voiceAttachments.js'
 import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
@@ -836,13 +834,46 @@ export default function LiveLogView({
     void (async () => {
       try {
         const audioDataUrl = await blobToAudioDataUrl(blob)
+        
+        let transcriptionText = ''
+        let transcribed = true
+        let transcriptionError = false
+
+        try {
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 4000)
+
+          const res = await fetch('/api/ai/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audioDataUrl }),
+            signal: controller.signal
+          })
+          clearTimeout(timeoutId)
+          if (!res.ok) throw new Error(`Status ${res.status}`)
+          const data = await res.json()
+          transcriptionText = (data.text || '').trim()
+        } catch (err) {
+          console.warn('[LiveLogView] Automatic transcription failed or timed out:', err)
+          transcriptionError = true
+          transcribed = false
+        }
+
+        let finalCaption = caption
+        if (transcriptionText) {
+          finalCaption = caption
+            ? `${caption}\n(Transkript: ${transcriptionText})`
+            : transcriptionText
+        }
+
         const voiceId = await saveEntryVoiceMemo({
           logbookId,
           entryId,
           audioDataUrl,
           mimeType,
           durationSec,
-          caption,
+          caption: finalCaption,
+          transcribed,
           analyticsContext: 'live_log'
         })
         await appendQuickEvent(logbookId, entryId, {
@@ -854,6 +885,10 @@ export default function LiveLogView({
         setVoiceCaption('')
         showUndo('voice')
         trackPlausibleEvent(PlausibleEvents.LIVE_LOG_EVENT_LOGGED, { action: 'voice' })
+
+        if (transcriptionError) {
+          void showAlert(t('logs.live_voice_transcribe_failed'), t('logs.live_voice_btn'))
+        }
       } catch (err: unknown) {
         console.error('Live log voice save failed:', err)
         const msg = err instanceof Error && err.message === 'VOICE_MEMO_TOO_LARGE'
@@ -1225,12 +1260,6 @@ export default function LiveLogView({
           ) : (
             <ol className="live-log-stream">
               {events.map((event, index) => {
-                const voiceId = parseLiveVoiceRemark(event.remarks.trim())
-                const voicePreloaded = voiceId ? voiceMemoLookup.get(voiceId) : undefined
-                let summary = formatEventSummary(event, t)
-                if (voiceId && voicePreloaded?.caption) {
-                  summary = t('logs.live_voice_entry', { caption: voicePreloaded.caption })
-                }
                 return (
                   <li key={`${event.time}-${index}`} className="live-log-entry">
                     <time className="live-log-time">{event.time}</time>
@@ -1240,15 +1269,12 @@ export default function LiveLogView({
                       size={24}
                     />
                     <div className="live-log-summary-block">
-                      <span className="live-log-summary">{summary}</span>
-                      {voiceId && (
-                        <VoiceMemoPlayer
-                          audioId={voiceId}
-                          logbookId={logbookId}
-                          preloaded={voicePreloaded}
-                          compact
-                        />
-                      )}
+                      <EventRemarksCell
+                        event={event}
+                        logbookId={logbookId}
+                        voiceMemoLookup={voiceMemoLookup}
+                        readOnly={false}
+                      />
                     </div>
                   </li>
                 )

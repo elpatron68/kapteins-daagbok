@@ -48,7 +48,8 @@ export function useEntryVoiceMemos(
             audio: String(decrypted.audio),
             mimeType: decrypted.mimeType ? String(decrypted.mimeType) : undefined,
             durationSec: typeof decrypted.durationSec === 'number' ? decrypted.durationSec : undefined,
-            caption: decrypted.caption ? String(decrypted.caption) : ''
+            caption: decrypted.caption ? String(decrypted.caption) : '',
+            transcribed: decrypted.transcribed !== false
           })
         } catch {
           // skip corrupt memo

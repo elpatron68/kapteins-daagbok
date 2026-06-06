@@ -4,6 +4,7 @@ import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
 
+const PARAKEET_URL = process.env.PARAKEET_URL || 'http://localhost:5092/v1/audio/transcriptions'
 const MAX_ATTEMPTS_PER_ENTRY = 3
 const DEFAULT_MODEL = 'anthropic/claude-3.5-haiku'
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -227,6 +228,70 @@ router.post('/summary', async (req: any, res) => {
   } catch (error: unknown) {
     console.error('AI summary generation failed:', error)
     return res.status(500).json({ error: 'Failed to generate AI summary' })
+  }
+})
+
+router.post('/transcribe', async (req: any, res) => {
+  try {
+    const { audioDataUrl } = req.body ?? {}
+    if (!audioDataUrl || typeof audioDataUrl !== 'string') {
+      return res.status(400).json({ error: 'audioDataUrl is required' })
+    }
+
+    const match = audioDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+    if (!match) {
+      return res.status(400).json({ error: 'Invalid audio data URL format' })
+    }
+
+    const [, mimeType, base64Data] = match
+    const buffer = Buffer.from(base64Data, 'base64')
+
+    let ext = 'webm'
+    if (mimeType.includes('mp4')) ext = 'mp4'
+    else if (mimeType.includes('ogg')) ext = 'ogg'
+    else if (mimeType.includes('wav')) ext = 'wav'
+
+    const filename = `audio.${ext}`
+    const file = new File([buffer], filename, { type: mimeType })
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    console.log(`[server] Forwarding ASR request to ${PARAKEET_URL} (${filename}, ${buffer.length} bytes)`)
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    try {
+      const parakeetRes = await fetch(PARAKEET_URL, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal
+      })
+
+      if (!parakeetRes.ok) {
+        const errorText = await parakeetRes.text().catch(() => '')
+        console.error(`[server] Parakeet ASR error response (status=${parakeetRes.status}):`, errorText)
+        throw new Error(`Parakeet returned status ${parakeetRes.status}`)
+      }
+
+      const data: any = await parakeetRes.json()
+      const text = (data?.text || '').trim()
+
+      console.log(`[server] ASR completed successfully: "${text}"`)
+      return res.json({ text })
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('[server] Parakeet ASR request timed out')
+        return res.status(504).json({ error: 'Transcription request timed out' })
+      }
+      throw error
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  } catch (error: unknown) {
+    console.error('ASR transcription failed:', error)
+    return res.status(503).json({ error: 'Transcription service unavailable' })
   }
 })
 

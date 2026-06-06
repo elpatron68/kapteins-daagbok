@@ -11,6 +11,7 @@ export interface PreloadedVoiceMemo {
   mimeType?: string
   durationSec?: number
   caption?: string
+  transcribed?: boolean
 }
 
 interface VoiceMemoPlayerProps {

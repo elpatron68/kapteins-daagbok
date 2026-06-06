@@ -59,4 +59,12 @@ describe('API smoke', () => {
     expect(res.status).toBe(401)
     expect(res.body.error).toMatch(/Unauthorized/i)
   })
+
+  it('POST /api/ai/transcribe requires session', async () => {
+    const res = await request(app)
+      .post('/api/ai/transcribe')
+      .send({ audioDataUrl: 'data:audio/webm;base64,abcdef' })
+    expect(res.status).toBe(401)
+    expect(res.body.error).toMatch(/Unauthorized/i)
+  })
 })

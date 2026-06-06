@@ -1,7 +1,7 @@
 import { db } from './db.js'
 import { getActiveMasterKey } from './auth.js'
 import { getLogbookKey } from './logbookKeys.js'
-import { encryptJson } from './crypto.js'
+import { encryptJson, decryptJson } from './crypto.js'
 import { syncLogbook } from './sync.js'
 import { PlausibleEvents, trackPlausibleEvent } from './analytics.js'
 
@@ -18,6 +18,7 @@ export async function saveEntryVoiceMemo(options: {
   mimeType: string
   durationSec: number
   caption?: string
+  transcribed?: boolean
   analyticsContext?: string
 }): Promise<string> {
   const {
@@ -27,6 +28,7 @@ export async function saveEntryVoiceMemo(options: {
     mimeType,
     durationSec,
     caption = '',
+    transcribed = true,
     analyticsContext = 'logbook'
   } = options
   const masterKey = await getEncryptionKey(logbookId)
@@ -35,7 +37,8 @@ export async function saveEntryVoiceMemo(options: {
     audio: audioDataUrl,
     mimeType,
     durationSec,
-    caption: caption.trim()
+    caption: caption.trim(),
+    transcribed: !!transcribed
   }
 
   const encrypted = await encryptJson(voicePayload, masterKey)
@@ -97,4 +100,56 @@ export async function removeLastVoiceMemoForEntry(
   const lastId = memos[0].payloadId
   await deleteEntryVoiceMemo(logbookId, lastId)
   return lastId
+}
+
+/** Updates an existing voice memo payload with a new transcript and sets transcribed: true. */
+export async function updateVoiceMemoTranscript(
+  logbookId: string,
+  voiceId: string,
+  transcript: string
+): Promise<void> {
+  const masterKey = await getEncryptionKey(logbookId)
+  const record = await db.voiceMemos.get(voiceId)
+  if (!record) throw new Error('Voice memo not found')
+
+  const decrypted = await decryptJson(record.encryptedData, record.iv, record.tag, masterKey)
+  if (!decrypted) throw new Error('Failed to decrypt voice memo')
+
+  const manualCaption = decrypted.caption ? String(decrypted.caption).trim() : ''
+  const finalCaption = manualCaption
+    ? `${manualCaption}\n(Transkript: ${transcript.trim()})`
+    : transcript.trim()
+
+  const updatedPayload = {
+    ...decrypted,
+    caption: finalCaption,
+    transcribed: true
+  }
+
+  const encrypted = await encryptJson(updatedPayload, masterKey)
+  const now = new Date().toISOString()
+
+  await db.voiceMemos.put({
+    ...record,
+    encryptedData: encrypted.ciphertext,
+    iv: encrypted.iv,
+    tag: encrypted.tag,
+    updatedAt: now
+  })
+
+  await db.syncQueue.put({
+    action: 'update',
+    type: 'voiceMemo',
+    payloadId: voiceId,
+    logbookId,
+    data: JSON.stringify({
+      encryptedData: encrypted.ciphertext,
+      iv: encrypted.iv,
+      tag: encrypted.tag,
+      entryId: record.entryId
+    }),
+    updatedAt: now
+  })
+
+  syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
 }
