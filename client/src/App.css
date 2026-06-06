@@ -3237,9 +3237,9 @@ html.theme-cupertino .events-scroll-container {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(11, 12, 16, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(11, 12, 16, 0.45);
+  backdrop-filter: var(--app-backdrop);
+  -webkit-backdrop-filter: var(--app-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3247,13 +3247,15 @@ html.theme-cupertino .events-scroll-container {
 }
 
 .custom-dialog-card {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: var(--app-surface-hover, var(--app-surface));
+  backdrop-filter: var(--app-backdrop);
+  -webkit-backdrop-filter: var(--app-backdrop);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: var(--app-radius-card, 16px);
   padding: 28px;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--app-shadow);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -3263,7 +3265,7 @@ html.theme-cupertino .events-scroll-container {
 .custom-dialog-title {
   font-size: 19px;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--app-accent-light);
   margin: 0 0 14px 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3271,7 +3273,7 @@ html.theme-cupertino .events-scroll-container {
 
 .custom-dialog-message {
   font-size: 15px;
-  color: #e2e8f0;
+  color: var(--app-text);
   line-height: 1.5;
   margin: 0 0 24px 0;
   white-space: pre-line;
