@@ -268,7 +268,7 @@ router.post('/transcribe', async (req: any, res) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'openai/whisper-large-v3',
+          model: 'openai/whisper-large-v3-turbo',
           input_audio: {
             data: base64Data,
             format: ext
