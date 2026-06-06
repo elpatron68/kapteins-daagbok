@@ -6310,3 +6310,114 @@ body.app-tour-active .feedback-modal-overlay--tour .disclaimer-modal-panel {
 .crew-selection-item input {
   flex-shrink: 0;
 }
+
+/* Responsive Event Cards */
+.events-desktop-only {
+  display: block;
+}
+
+.events-mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .events-desktop-only {
+    display: none !important;
+  }
+
+  .events-mobile-only {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.event-mobile-card {
+  background: var(--app-surface-alt);
+  border: 1px solid var(--app-border-subtle);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.event-mobile-card:hover {
+  border-color: var(--app-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.event-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.event-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-card-time {
+  color: #fbbf24;
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-card-divider {
+  height: 1px;
+  background: var(--app-border-subtle);
+  margin: 0;
+  border: none;
+  opacity: 0.5;
+}
+
+.event-card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.event-card-chip {
+  background: var(--app-surface-hover, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--app-border-muted);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.event-card-chip svg {
+  color: var(--app-text-muted, #94a3b8);
+}
+
+.event-card-weather-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.event-card-remarks {
+  background: var(--app-surface-inset, rgba(11, 12, 16, 0.2));
+  border-left: 3px solid var(--app-accent, #fbbf24);
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13.5px;
+  color: #e2e8f0;
+  word-break: break-word;
+}

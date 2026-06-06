@@ -1862,67 +1862,124 @@ export default function LogEntryEditor({
           {events.length === 0 ? (
             <div className="dashboard-status-msg mb-6">{t('logs.no_events')}</div>
           ) : (
-            <div className="events-scroll-container mb-6">
-              <table className="events-table">
-                <thead>
-                  <tr>
-                    <th>{t('logs.event_time')}</th>
-                    <th>{t('logs.event_creator')}</th>
-                    <th>{t('logs.event_mgk')}</th>
-                    <th>{t('logs.event_rwk')}</th>
-                    <th>{t('logs.event_wind_direction')}</th>
-                    <th>{t('logs.event_wind_strength')}</th>
-                    <th>{t('logs.event_sea_state')}</th>
-                    <th>{t('logs.event_weather')}</th>
-                    <th>{t('logs.event_log')}</th>
-                    <th>{t('logs.event_gps')}</th>
-                    <th>{t('logs.event_remarks')}</th>
-                    {!readOnly && <th></th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map((ev, idx) => (
-                    <tr key={idx}>
-                      <td className="font-mono">{ev.time}</td>
-                      <td style={{ textAlign: 'center', width: '40px', verticalAlign: 'middle' }}>
-                        <CreatorAvatar
-                          creatorId={ev.creatorId}
-                          crewSnapshotsById={entryCrew.crewSnapshotsById}
-                          size={24}
-                        />
-                      </td>
-                      <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
-                      <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
-                      <td>{ev.windDirection || '—'}</td>
-                      <td>{ev.windStrength || '—'}</td>
-                      <td>{ev.seaState || '—'}</td>
-                      <td>
-                        {ev.weatherIcon ? (
-                          <img
-                            src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
-                            alt="Weather"
-                            title="Weather Icon"
-                            className="table-weather-img"
+            <>
+              {/* Desktop view */}
+              <div className="events-scroll-container mb-6 events-desktop-only">
+                <table className="events-table">
+                  <thead>
+                    <tr>
+                      <th>{t('logs.event_time')}</th>
+                      <th>{t('logs.event_creator')}</th>
+                      <th>{t('logs.event_mgk')}</th>
+                      <th>{t('logs.event_rwk')}</th>
+                      <th>{t('logs.event_wind_direction')}</th>
+                      <th>{t('logs.event_wind_strength')}</th>
+                      <th>{t('logs.event_sea_state')}</th>
+                      <th>{t('logs.event_weather')}</th>
+                      <th>{t('logs.event_log')}</th>
+                      <th>{t('logs.event_gps')}</th>
+                      <th>{t('logs.event_remarks')}</th>
+                      {!readOnly && <th></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.map((ev, idx) => (
+                      <tr key={idx}>
+                        <td className="font-mono">{ev.time}</td>
+                        <td style={{ textAlign: 'center', width: '40px', verticalAlign: 'middle' }}>
+                          <CreatorAvatar
+                            creatorId={ev.creatorId}
+                            crewSnapshotsById={entryCrew.crewSnapshotsById}
+                            size={24}
                           />
-                        ) : (
-                          '—'
+                        </td>
+                        <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
+                        <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
+                        <td>{ev.windDirection || '—'}</td>
+                        <td>{ev.windStrength || '—'}</td>
+                        <td>{ev.seaState || '—'}</td>
+                        <td>
+                          {ev.weatherIcon ? (
+                            <img
+                              src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                              alt="Weather"
+                              title="Weather Icon"
+                              className="table-weather-img"
+                            />
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
+                        <td className="font-mono text-sm">
+                          {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
+                        </td>
+                        <td className="remarks-td">
+                          <EventRemarksCell
+                            event={ev}
+                            logbookId={logbookId}
+                            voiceMemoLookup={voiceMemoLookup}
+                            readOnly={readOnly}
+                          />
+                        </td>
+                        {!readOnly && (
+                          <td className="events-actions-td">
+                            <div className="events-actions-cell">
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                onClick={() => handleEditEvent(idx)}
+                                title={t('logs.edit_event')}
+                                disabled={editingEventIndex !== null && editingEventIndex !== idx}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-icon danger"
+                                onClick={() => handleDeleteEvent(idx)}
+                                title={t('logs.delete_event')}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
                         )}
-                      </td>
-                      <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
-                      <td className="font-mono text-sm">
-                        {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
-                      </td>
-                      <td className="remarks-td">
-                        <EventRemarksCell
-                          event={ev}
-                          logbookId={logbookId}
-                          voiceMemoLookup={voiceMemoLookup}
-                          readOnly={readOnly}
-                        />
-                      </td>
-                      {!readOnly && (
-                        <td className="events-actions-td">
-                          <div className="events-actions-cell">
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile view */}
+              <div className="events-mobile-only mb-6">
+                {events.map((ev, idx) => {
+                  const hasCourse = ev.mgk || ev.rwk;
+                  const hasWind = ev.windDirection || ev.windStrength || ev.windPressure;
+                  const hasSeaState = ev.seaState;
+                  const hasWeather = ev.weatherIcon;
+                  const hasLog = ev.logReading;
+                  const hasGps = ev.gpsLat && ev.gpsLng;
+                  const hasVisibility = ev.visibility;
+                  const hasHeel = ev.heel;
+                  const hasSailsOrMotor = ev.sailsOrMotor;
+
+                  return (
+                    <div className="event-mobile-card" key={idx}>
+                      <div className="event-card-header">
+                        <div className="event-card-meta">
+                          <div className="event-card-time">
+                            <Clock size={14} />
+                            <span>{ev.time}</span>
+                          </div>
+                          <CreatorAvatar
+                            creatorId={ev.creatorId}
+                            crewSnapshotsById={entryCrew.crewSnapshotsById}
+                            size={24}
+                          />
+                        </div>
+                        {!readOnly && (
+                          <div className="event-card-actions">
                             <button
                               type="button"
                               className="btn-icon"
@@ -1941,13 +1998,99 @@ export default function LogEntryEditor({
                               <Trash2 size={14} />
                             </button>
                           </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        )}
+                      </div>
+
+                      <hr className="event-card-divider" />
+
+                      <div className="event-card-grid">
+                        {hasCourse && (
+                          <span className="event-card-chip" title={t('logs.event_course_section')}>
+                            <Compass size={12} />
+                            <span>
+                              {ev.mgk ? `MgK: ${ev.mgk}°` : ''}
+                              {ev.mgk && ev.rwk ? ' / ' : ''}
+                              {ev.rwk ? `rwK: ${ev.rwk}°` : ''}
+                            </span>
+                          </span>
+                        )}
+
+                        {hasWind && (
+                          <span className="event-card-chip" title={t('logs.event_wind_direction')}>
+                            <span>
+                              Wind:{' '}
+                              {[
+                                ev.windDirection,
+                                ev.windStrength ? `${ev.windStrength} Bft` : '',
+                                ev.windPressure ? `${ev.windPressure} hPa` : ''
+                              ]
+                                .filter(Boolean)
+                                .join(' / ')}
+                            </span>
+                          </span>
+                        )}
+
+                        {hasSeaState && (
+                          <span className="event-card-chip" title={t('logs.event_sea_state')}>
+                            <span>{t('logs.event_sea_state')}: {ev.seaState}</span>
+                          </span>
+                        )}
+
+                        {hasWeather && (
+                          <span className="event-card-chip" title={t('logs.event_weather')}>
+                            <img
+                              src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                              alt="Weather"
+                              className="event-card-weather-img"
+                            />
+                          </span>
+                        )}
+
+                        {hasLog && (
+                          <span className="event-card-chip" title={t('logs.event_log')}>
+                            <span>Log: {ev.logReading} nm</span>
+                          </span>
+                        )}
+
+                        {hasGps && (
+                          <span className="event-card-chip" title={t('logs.event_gps')}>
+                            <MapPin size={12} />
+                            <span className="font-mono text-xs">{ev.gpsLat}, {ev.gpsLng}</span>
+                          </span>
+                        )}
+
+                        {hasVisibility && (
+                          <span className="event-card-chip" title={t('logs.event_visibility')}>
+                            <span>{t('logs.event_visibility')}: {ev.visibility}</span>
+                          </span>
+                        )}
+
+                        {hasHeel && (
+                          <span className="event-card-chip" title={t('logs.event_heel')}>
+                            <span>{t('logs.event_heel')}: {ev.heel}°</span>
+                          </span>
+                        )}
+
+                        {hasSailsOrMotor && (
+                          <span className="event-card-chip" title={t('logs.event_sails')}>
+                            <span>{ev.sailsOrMotor}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="event-card-remarks">
+                        <EventRemarksCell
+                          event={ev}
+                          logbookId={logbookId}
+                          voiceMemoLookup={voiceMemoLookup}
+                          readOnly={readOnly}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Add New Event Form Sub-Card */}
