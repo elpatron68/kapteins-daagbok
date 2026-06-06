@@ -442,7 +442,7 @@
       "ai_summary_error_rate_limited": "Maximum number of generations reached for this travel day.",
       "ai_summary_error_forbidden": "Only the skipper may generate AI summaries.",
       "ai_summary_offline": "AI summary generation requires an internet connection. You are currently offline.",
-      "photos_title": "Photo Attachments (E2E Encrypted)",
+      "photos_title": "Photo Attachments",
       "photo_caption_label": "Photo Caption / Label (Optional)",
       "photo_caption_placeholder": "e.g. Setting sails near harbor entrance",
       "photo_btn": "Take Photo / Upload",

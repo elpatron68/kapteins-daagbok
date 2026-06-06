@@ -442,7 +442,7 @@
       "ai_summary_error_rate_limited": "Maksimalt antall genereringer nådd for denne reisedagen.",
       "ai_summary_error_forbidden": "Kun skipperen kan generere AI-sammendrag.",
       "ai_summary_offline": "AI-sammendrag krever internettforbindelse. Du er frakoblet.",
-      "photos_title": "Bildevedlegg (E2E-kryptert)",
+      "photos_title": "Bildevedlegg",
       "photo_caption_label": "Fotobeskrivelse/etikett (valgfritt)",
       "photo_caption_placeholder": "f.eks. å sette seil nær innseilingen til havnen",
       "photo_btn": "Ta bilde / last opp",

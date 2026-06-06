@@ -442,7 +442,7 @@
       "ai_summary_error_rate_limited": "Maksimalt antal genereringer nået for denne rejsedag.",
       "ai_summary_error_forbidden": "Kun skipperen må generere AI-resuméer.",
       "ai_summary_offline": "AI-resumé kræver internetforbindelse. Du er offline lige nu.",
-      "photos_title": "Vedhæftede billeder (E2E-krypteret)",
+      "photos_title": "Vedhæftede billeder",
       "photo_caption_label": "Fotobeskrivelse/etiket (valgfrit)",
       "photo_caption_placeholder": "f.eks. at sætte sejl nær indsejlingen til havnen",
       "photo_btn": "Tag foto / upload",

@@ -442,7 +442,7 @@
       "ai_summary_error_rate_limited": "Maximale Anzahl an Generierungen für diesen Reisetag erreicht.",
       "ai_summary_error_forbidden": "Nur der Skipper darf KI-Zusammenfassungen generieren.",
       "ai_summary_offline": "Die KI-Zusammenfassung erfordert eine Internetverbindung. Du bist derzeit offline.",
-      "photos_title": "Foto-Anhänge (E2E-verschlüsselt)",
+      "photos_title": "Foto-Anhänge",
       "photo_caption_label": "Foto-Beschreibung / Label (Optional)",
       "photo_caption_placeholder": "z.B. Segel setzen nahe Hafeneinfahrt",
       "photo_btn": "Foto aufnehmen / Hochladen",

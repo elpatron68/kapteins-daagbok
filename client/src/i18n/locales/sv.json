@@ -442,7 +442,7 @@
       "ai_summary_error_rate_limited": "Maximalt antal genereringar nått för denna resedag.",
       "ai_summary_error_forbidden": "Endast skepparen får generera AI-sammanfattningar.",
       "ai_summary_offline": "AI-sammanfattning kräver internetanslutning. Du är offline.",
-      "photos_title": "Fotobilagor (E2E-krypterade)",
+      "photos_title": "Fotobilagor",
       "photo_caption_label": "Fotobeskrivning/etikett (valfritt)",
       "photo_caption_placeholder": "t.ex. sätta segel nära hamninloppet",
       "photo_btn": "Ta foto / ladda upp",
