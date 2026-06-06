@@ -6,7 +6,9 @@ import {
   getThemePreference,
   setColorSchemePreference,
   setOwmApiKey,
-  setThemePreference
+  setThemePreference,
+  getAiAuthorized,
+  setAiAuthorized
 } from './userPreferences.js'
 
 const USER_ID = 'test-user-123'
@@ -57,5 +59,14 @@ describe('userPreferences', () => {
     setColorSchemePreference(USER_ID, 'light')
     expect(getThemePreference(USER_ID)).toBe('ocean')
     expect(getColorSchemePreference(USER_ID)).toBe('light')
+  })
+
+  it('stores AI authorization preference per user', () => {
+    localStorage.setItem('active_userid', USER_ID)
+    expect(getAiAuthorized()).toBe(false)
+    setAiAuthorized(USER_ID, true)
+    expect(getAiAuthorized()).toBe(true)
+    expect(getAiAuthorized(USER_ID)).toBe(true)
+    expect(getAiAuthorized('other-user')).toBe(false)
   })
 })

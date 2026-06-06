@@ -8,6 +8,7 @@ import VoiceMemoPlayer, { type PreloadedVoiceMemo } from './VoiceMemoPlayer.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { updateVoiceMemoTranscript } from '../services/voiceAttachments.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { getAiAuthorized } from '../services/userPreferences.js'
 
 interface EventRemarksCellProps {
   event: LogEventPayload
@@ -45,6 +46,13 @@ export default function EventRemarksCell({
     e.preventDefault()
     e.stopPropagation()
     if (transcribing || !preloaded?.audio || !voiceId) return
+    if (!getAiAuthorized()) {
+      void showAlert(
+        t('profile.ai_unauthorized_alert_desc'),
+        t('profile.ai_unauthorized_alert_title')
+      )
+      return
+    }
     setTranscribing(true)
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 15000)

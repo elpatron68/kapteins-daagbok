@@ -89,3 +89,20 @@ export function setOwmApiKey(userId: string, value: string): void {
     localStorage.removeItem(owmKey(userId))
   }
 }
+
+function aiAuthorizedKey(userId: string): string {
+  return `user_pref_ai_authorized_${userId}`
+}
+
+export function getAiAuthorized(userId?: string | null): boolean {
+  const id = resolveUserId(userId)
+  if (id) {
+    return localStorage.getItem(aiAuthorizedKey(id)) === 'true'
+  }
+  return false
+}
+
+export function setAiAuthorized(userId: string, value: boolean): void {
+  localStorage.setItem(aiAuthorizedKey(userId), String(value))
+}
+

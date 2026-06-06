@@ -50,6 +50,7 @@ import {
   TravelDaySummaryApiError
 } from '../services/aiSummary.js'
 import { tryDecryptEntryPayload } from '../services/quickEventLog.js'
+import { getAiAuthorized } from '../services/userPreferences.js'
 import {
   getDecryptedTrack,
   saveUploadedTrack,
@@ -1209,6 +1210,13 @@ export default function LogEntryEditor({
 
   const handleGenerateAiSummary = async () => {
     if (!canSignSkipper || readOnly || aiSummaryLoading) return
+    if (!getAiAuthorized()) {
+      void showAlert(
+        t('profile.ai_unauthorized_alert_desc'),
+        t('profile.ai_unauthorized_alert_title')
+      )
+      return
+    }
     if (!isOnline) {
       setAiSummaryError(t('logs.ai_summary_offline'))
       return

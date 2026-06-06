@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Compass, Palette, Save, Check, Cloud } from 'lucide-react'
+import { Compass, Palette, Save, Check, Cloud, Brain } from 'lucide-react'
 import ThemedSelect from './ThemedSelect.tsx'
 import PushNotificationSettings from './PushNotificationSettings.tsx'
 import PwaInstallPrompt from './PwaInstallPrompt.tsx'
@@ -13,7 +13,9 @@ import {
   getThemePreference,
   setColorSchemePreference,
   setOwmApiKey,
-  setThemePreference
+  setThemePreference,
+  getAiAuthorized,
+  setAiAuthorized
 } from '../services/userPreferences.js'
 
 interface UserProfilePreferencesProps {
@@ -28,6 +30,7 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
   const [colorScheme, setColorScheme] = useState(() => getColorSchemePreference(userId))
   const [savingOwm, setSavingOwm] = useState(false)
   const [owmSaved, setOwmSaved] = useState(false)
+  const [aiAuthorized, setAiAuthorizedState] = useState(() => getAiAuthorized(userId))
 
   const persistAppearance = (nextTheme: string, nextColorScheme: string) => {
     setThemePreference(userId, nextTheme)
@@ -56,6 +59,12 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
     setSavingOwm(false)
     setOwmSaved(true)
     window.setTimeout(() => setOwmSaved(false), 3000)
+  }
+
+  const handleAiToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextVal = e.target.checked
+    setAiAuthorizedState(nextVal)
+    setAiAuthorized(userId, nextVal)
   }
 
   return (
@@ -150,6 +159,42 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="member-editor-card glass">
+        <div className="profile-section-header">
+          <Brain size={20} style={{ color: 'var(--app-accent-light)' }} />
+          <h3 style={{ margin: 0, color: 'var(--app-accent-light)', fontSize: '16px' }}>
+            {t('profile.ai_title')}
+          </h3>
+        </div>
+        <p className="text-muted" style={{ fontSize: '13.5px', lineHeight: '145%', margin: '0 0 12px 0' }}>
+          {t('profile.ai_desc')}
+        </p>
+        <p className="text-muted" style={{ fontSize: '13px', lineHeight: '145%', margin: '0 0 16px 0', whiteSpace: 'pre-line' }}>
+          {t('profile.ai_help')}
+        </p>
+
+        <label
+          className="switch-label"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            color: '#f1f5f9'
+          }}
+        >
+          <input
+            id="profile-ai-authorize"
+            type="checkbox"
+            checked={aiAuthorized}
+            onChange={handleAiToggle}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <span>{t('profile.ai_enable_label')}</span>
+        </label>
       </section>
 
       <PushNotificationSettings />

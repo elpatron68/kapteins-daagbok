@@ -22,6 +22,7 @@ import {
   Zap
 } from 'lucide-react'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
+import { getAiAuthorized } from '../services/userPreferences.js'
 import {
   appendQuickEvent as apiAppendQuickEvent,
   appendQuickEvents as apiAppendQuickEvents,
@@ -834,28 +835,32 @@ export default function LiveLogView({
     void (async () => {
       try {
         const audioDataUrl = await blobToAudioDataUrl(blob)
-        
+        const authorized = getAiAuthorized()
         let transcriptionText = ''
         let transcribed = true
         let transcriptionError = false
 
-        try {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 4000)
+        if (authorized) {
+          try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 4000)
 
-          const res = await fetch('/api/ai/transcribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ audioDataUrl }),
-            signal: controller.signal
-          })
-          clearTimeout(timeoutId)
-          if (!res.ok) throw new Error(`Status ${res.status}`)
-          const data = await res.json()
-          transcriptionText = (data.text || '').trim()
-        } catch (err) {
-          console.warn('[LiveLogView] Automatic transcription failed or timed out:', err)
-          transcriptionError = true
+            const res = await fetch('/api/ai/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioDataUrl }),
+              signal: controller.signal
+            })
+            clearTimeout(timeoutId)
+            if (!res.ok) throw new Error(`Status ${res.status}`)
+            const data = await res.json()
+            transcriptionText = (data.text || '').trim()
+          } catch (err) {
+            console.warn('[LiveLogView] Automatic transcription failed or timed out:', err)
+            transcriptionError = true
+            transcribed = false
+          }
+        } else {
           transcribed = false
         }
 
@@ -891,11 +896,16 @@ export default function LiveLogView({
             mode: 'auto'
           })
           void showAlert(t('logs.live_voice_transcribe_failed'), t('logs.live_voice_btn'))
-        } else {
+        } else if (authorized) {
           trackPlausibleEvent(PlausibleEvents.VOICE_MEMO_TRANSCRIBED, {
             status: 'success',
             mode: 'auto'
           })
+        } else {
+          void showAlert(
+            t('profile.ai_unauthorized_alert_desc'),
+            t('profile.ai_unauthorized_alert_title')
+          )
         }
       } catch (err: unknown) {
         console.error('Live log voice save failed:', err)
