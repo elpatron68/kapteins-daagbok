@@ -443,6 +443,8 @@
       "photo_caption_label": "Fotobeskrivelse/etiket (valgfrit)",
       "photo_caption_placeholder": "f.eks. at sætte sejl nær indsejlingen til havnen",
       "photo_btn": "Tag foto / upload",
+      "photo_camera_btn": "Tag foto",
+      "photo_gallery_btn": "Vælg fra galleri",
       "photo_processing": "Er ved at blive behandlet...",
       "no_photos": "Der er endnu ingen billeder knyttet til denne rejsedag.",
       "photo_delete_confirm": "Er du sikker på, at du vil slette dette foto permanent?",

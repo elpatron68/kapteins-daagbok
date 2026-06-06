@@ -26,6 +26,7 @@ describe('appearancePrefs', () => {
     await expect(fetchAppearancePrefs()).resolves.toEqual({
       theme: 'auto',
       colorScheme: 'auto',
+      aiAuthorized: false,
       persisted: false
     })
     expect(mockedApiJson).not.toHaveBeenCalled()
@@ -36,6 +37,7 @@ describe('appearancePrefs', () => {
     mockedApiJson.mockResolvedValueOnce({
       theme: 'ocean',
       colorScheme: 'dark',
+      aiAuthorized: true,
       persisted: true
     })
 
@@ -46,6 +48,7 @@ describe('appearancePrefs', () => {
 
     expect(localStorage.getItem(`user_pref_theme_${USER_ID}`)).toBe('ocean')
     expect(localStorage.getItem(`user_pref_color_scheme_${USER_ID}`)).toBe('dark')
+    expect(localStorage.getItem(`user_pref_ai_authorized_${USER_ID}`)).toBe('true')
     expect(changed).toHaveBeenCalledTimes(1)
   })
 
@@ -53,20 +56,20 @@ describe('appearancePrefs', () => {
     localStorage.setItem('active_userid', USER_ID)
     setThemePreference(USER_ID, 'material')
     mockedApiJson
-      .mockResolvedValueOnce({ theme: 'auto', colorScheme: 'auto', persisted: false })
-      .mockResolvedValueOnce({ theme: 'material', colorScheme: 'auto', persisted: true })
+      .mockResolvedValueOnce({ theme: 'auto', colorScheme: 'auto', aiAuthorized: false, persisted: false })
+      .mockResolvedValueOnce({ theme: 'material', colorScheme: 'auto', aiAuthorized: false, persisted: true })
 
     await syncAppearancePrefs(USER_ID)
 
     expect(mockedApiJson).toHaveBeenCalledTimes(2)
     expect(mockedApiJson).toHaveBeenLastCalledWith('/api/auth/appearance-prefs', {
       method: 'PUT',
-      body: JSON.stringify({ theme: 'material', colorScheme: 'auto' })
+      body: JSON.stringify({ theme: 'material', colorScheme: 'auto', aiAuthorized: false })
     })
   })
 
   it('saveAppearancePrefsToServer skips when not authenticated', async () => {
-    await saveAppearancePrefsToServer('ocean', 'light')
+    await saveAppearancePrefsToServer('ocean', 'light', true)
     expect(mockedApiJson).not.toHaveBeenCalled()
   })
 
@@ -76,6 +79,7 @@ describe('appearancePrefs', () => {
     mockedApiJson.mockResolvedValue({
       theme: 'material',
       colorScheme: 'dark',
+      aiAuthorized: false,
       persisted: true
     })
 

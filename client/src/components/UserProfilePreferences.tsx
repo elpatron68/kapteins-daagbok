@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Compass, Palette, Save, Check, Cloud, Brain } from 'lucide-react'
 import ThemedSelect from './ThemedSelect.tsx'
@@ -32,11 +32,23 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
   const [owmSaved, setOwmSaved] = useState(false)
   const [aiAuthorized, setAiAuthorizedState] = useState(() => getAiAuthorized(userId))
 
+  useEffect(() => {
+    const handleChanged = () => {
+      setTheme(getThemePreference(userId))
+      setColorScheme(getColorSchemePreference(userId))
+      setAiAuthorizedState(getAiAuthorized(userId))
+    }
+    window.addEventListener('appearance-changed', handleChanged)
+    return () => {
+      window.removeEventListener('appearance-changed', handleChanged)
+    }
+  }, [userId])
+
   const persistAppearance = (nextTheme: string, nextColorScheme: string) => {
     setThemePreference(userId, nextTheme)
     setColorSchemePreference(userId, nextColorScheme)
     notifyAppearanceChanged()
-    void saveAppearancePrefsToServer(nextTheme, nextColorScheme).catch((err) => {
+    void saveAppearancePrefsToServer(nextTheme, nextColorScheme, aiAuthorized, userId).catch((err) => {
       console.warn('Failed to save appearance prefs to server:', err)
     })
   }
@@ -65,6 +77,9 @@ export default function UserProfilePreferences({ userId }: UserProfilePreference
     const nextVal = e.target.checked
     setAiAuthorizedState(nextVal)
     setAiAuthorized(userId, nextVal)
+    void saveAppearancePrefsToServer(theme, colorScheme, nextVal, userId).catch((err) => {
+      console.warn('Failed to save ai preference to server:', err)
+    })
   }
 
   return (

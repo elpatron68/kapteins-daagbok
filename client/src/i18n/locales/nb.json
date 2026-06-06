@@ -443,6 +443,8 @@
       "photo_caption_label": "Fotobeskrivelse/etikett (valgfritt)",
       "photo_caption_placeholder": "f.eks. å sette seil nær innseilingen til havnen",
       "photo_btn": "Ta bilde / last opp",
+      "photo_camera_btn": "Ta bilde",
+      "photo_gallery_btn": "Velg fra galleri",
       "photo_processing": "...blir behandlet...",
       "no_photos": "Ingen bilder knyttet til denne reisedagen ennå.",
       "photo_delete_confirm": "Er du sikker på at du vil slette dette bildet permanent?",

@@ -8,7 +8,8 @@ import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.j
 import { fileToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
-import { Camera, Trash2 } from 'lucide-react'
+import { Camera, Image, Trash2 } from 'lucide-react'
+import { probeCameraAvailability } from '../utils/cameraAvailability.js'
 
 interface PhotoCaptureProps {
   entryId: string
@@ -31,8 +32,22 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [decryptedPhotos, setDecryptedPhotos] = useState<DecryptedPhoto[]>([])
+  const [hasCamera, setHasCamera] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    probeCameraAvailability().then((avail) => {
+      if (!cancelled) {
+        setHasCamera(avail === 'available')
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Reactively query local photos database
   const localPhotos = useLiveQuery(
@@ -119,9 +134,15 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
     }
   }
 
-  const triggerSelect = () => {
+  const triggerGallerySelect = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click()
+    }
+  }
+
+  const triggerCameraSelect = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click()
     }
   }
 
@@ -159,20 +180,62 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
               style={{ display: 'none' }}
             />
 
-            <button
-              type="button"
-              className="btn primary"
-              onClick={triggerSelect}
-              disabled={uploading}
-              style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
-            >
-              {uploading ? (
-                <span className="spin">⏳</span>
-              ) : (
-                <Camera size={16} />
-              )}
-              {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
-            </button>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={cameraInputRef}
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+
+            {hasCamera ? (
+              <>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={triggerCameraSelect}
+                  disabled={uploading}
+                  style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+                >
+                  {uploading ? (
+                    <span className="spin">⏳</span>
+                  ) : (
+                    <Camera size={16} />
+                  )}
+                  {uploading ? t('logs.photo_processing') : t('logs.photo_camera_btn')}
+                </button>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={triggerGallerySelect}
+                  disabled={uploading}
+                  style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+                >
+                  {uploading ? (
+                    <span className="spin">⏳</span>
+                  ) : (
+                    <Image size={16} />
+                  )}
+                  {uploading ? t('logs.photo_processing') : t('logs.photo_gallery_btn')}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={triggerGallerySelect}
+                disabled={uploading}
+                style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
+              >
+                {uploading ? (
+                  <span className="spin">⏳</span>
+                ) : (
+                  <Camera size={16} />
+                )}
+                {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
+              </button>
+            )}
           </div>
         </div>
       )}

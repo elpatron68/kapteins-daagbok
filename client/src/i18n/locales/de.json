@@ -443,6 +443,8 @@
       "photo_caption_label": "Foto-Beschreibung / Label (Optional)",
       "photo_caption_placeholder": "z.B. Segel setzen nahe Hafeneinfahrt",
       "photo_btn": "Foto aufnehmen / Hochladen",
+      "photo_camera_btn": "Foto aufnehmen",
+      "photo_gallery_btn": "Aus Galerie wählen",
       "photo_processing": "Wird verarbeitet...",
       "no_photos": "Noch keine Fotos an diesen Reisetag angehängt.",
       "photo_delete_confirm": "Bist du sicher, dass du dieses Foto unwiderruflich löschen möchtest?",

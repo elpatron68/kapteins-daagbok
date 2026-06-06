@@ -63,6 +63,7 @@ function isMissingAppearancePrefsTable(error: unknown): boolean {
 const DEFAULT_APPEARANCE_PREFS = {
   theme: 'auto',
   colorScheme: 'auto',
+  aiAuthorized: false,
   persisted: false
 } as const
 
@@ -454,6 +455,7 @@ router.get('/appearance-prefs', requireUser, async (req: any, res) => {
     return res.json({
       theme: prefs?.theme ?? 'auto',
       colorScheme: prefs?.colorScheme ?? 'auto',
+      aiAuthorized: prefs?.aiAuthorized ?? false,
       persisted: prefs != null
     })
   } catch (error: unknown) {
@@ -469,6 +471,7 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
   try {
     const theme = parseThemePreference(req.body?.theme)
     const colorScheme = parseColorSchemePreference(req.body?.colorScheme)
+    const aiAuthorized = req.body?.aiAuthorized === true
     if (!theme || !colorScheme) {
       return res.status(400).json({ error: 'Invalid theme or colorScheme' })
     }
@@ -479,11 +482,13 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
         userId: req.userId,
         theme,
         colorScheme,
+        aiAuthorized,
         updatedAt: new Date()
       },
       update: {
         theme,
         colorScheme,
+        aiAuthorized,
         updatedAt: new Date()
       }
     })
@@ -491,6 +496,7 @@ router.put('/appearance-prefs', requireUser, async (req: any, res) => {
     return res.json({
       theme: prefs.theme,
       colorScheme: prefs.colorScheme,
+      aiAuthorized: prefs.aiAuthorized,
       persisted: true
     })
   } catch (error: unknown) {
