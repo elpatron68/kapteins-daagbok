@@ -6421,3 +6421,44 @@ body.app-tour-active .feedback-modal-overlay--tour .disclaimer-modal-panel {
   color: #e2e8f0;
   word-break: break-word;
 }
+
+/* Accordion Styling */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 12px;
+  margin: -8px -12px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.accordion-header:hover {
+  background-color: var(--app-surface-hover, rgba(255, 255, 255, 0.03));
+}
+
+.accordion-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accordion-chevron {
+  color: var(--app-text-muted, #94a3b8);
+  transition: transform 0.2s ease;
+}
+
+/* Specific styling for nested member-editor-card header */
+.member-editor-card .accordion-header {
+  margin: 0 0 16px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.member-editor-card .accordion-header:hover {
+  background: var(--app-surface-hover, rgba(255, 255, 255, 0.03));
+}

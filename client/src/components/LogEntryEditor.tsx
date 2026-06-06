@@ -296,6 +296,9 @@ export default function LogEntryEditor({
   const [evLocationName, setEvLocationName] = useState('')
   const [activeCourseTab, setActiveCourseTab] = useState<'mgk' | 'rwk'>('mgk')
 
+  const [eventsCollapsed, setEventsCollapsed] = useState(true)
+  const [addEventFormCollapsed, setAddEventFormCollapsed] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -1407,6 +1410,7 @@ export default function LogEntryEditor({
     if (!ev) return
     fillEventForm(ev)
     setEditingEventIndex(index)
+    setAddEventFormCollapsed(false)
   }
 
   const handleCancelEventEdit = () => {
@@ -1853,78 +1857,153 @@ export default function LogEntryEditor({
 
         {/* Section 3: Event Journal Entries */}
         <div className="form-card">
-          <div className="form-header mb-4">
-            <Compass size={20} className="form-icon" />
-            <h3>{t('logs.event_title')}</h3>
+          <div
+            className="form-header mb-4 accordion-header"
+            onClick={() => setEventsCollapsed(!eventsCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setEventsCollapsed(!eventsCollapsed)
+              }
+            }}
+            role="button"
+            aria-expanded={!eventsCollapsed}
+            tabIndex={0}
+          >
+            <div className="accordion-header-title">
+              <Compass size={20} className="form-icon" />
+              <h3>{t('logs.event_title')}</h3>
+            </div>
+            {eventsCollapsed ? (
+              <ChevronDown size={20} className="accordion-chevron" />
+            ) : (
+              <ChevronUp size={20} className="accordion-chevron" />
+            )}
           </div>
 
           {/* List existing events */}
-          {events.length === 0 ? (
-            <div className="dashboard-status-msg mb-6">{t('logs.no_events')}</div>
-          ) : (
-            <>
-              {/* Desktop view */}
-              <div className="events-scroll-container mb-6 events-desktop-only">
-                <table className="events-table">
-                  <thead>
-                    <tr>
-                      <th>{t('logs.event_time')}</th>
-                      <th>{t('logs.event_creator')}</th>
-                      <th>{t('logs.event_mgk')}</th>
-                      <th>{t('logs.event_rwk')}</th>
-                      <th>{t('logs.event_wind_direction')}</th>
-                      <th>{t('logs.event_wind_strength')}</th>
-                      <th>{t('logs.event_sea_state')}</th>
-                      <th>{t('logs.event_weather')}</th>
-                      <th>{t('logs.event_log')}</th>
-                      <th>{t('logs.event_gps')}</th>
-                      <th>{t('logs.event_remarks')}</th>
-                      {!readOnly && <th></th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.map((ev, idx) => (
-                      <tr key={idx}>
-                        <td className="font-mono">{ev.time}</td>
-                        <td style={{ textAlign: 'center', width: '40px', verticalAlign: 'middle' }}>
-                          <CreatorAvatar
-                            creatorId={ev.creatorId}
-                            crewSnapshotsById={entryCrew.crewSnapshotsById}
-                            size={24}
-                          />
-                        </td>
-                        <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
-                        <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
-                        <td>{ev.windDirection || '—'}</td>
-                        <td>{ev.windStrength || '—'}</td>
-                        <td>{ev.seaState || '—'}</td>
-                        <td>
-                          {ev.weatherIcon ? (
-                            <img
-                              src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
-                              alt="Weather"
-                              title="Weather Icon"
-                              className="table-weather-img"
+          {!eventsCollapsed && (
+            events.length === 0 ? (
+              <div className="dashboard-status-msg mb-6">{t('logs.no_events')}</div>
+            ) : (
+              <>
+                {/* Desktop view */}
+                <div className="events-scroll-container mb-6 events-desktop-only">
+                  <table className="events-table">
+                    <thead>
+                      <tr>
+                        <th>{t('logs.event_time')}</th>
+                        <th>{t('logs.event_creator')}</th>
+                        <th>{t('logs.event_mgk')}</th>
+                        <th>{t('logs.event_rwk')}</th>
+                        <th>{t('logs.event_wind_direction')}</th>
+                        <th>{t('logs.event_wind_strength')}</th>
+                        <th>{t('logs.event_sea_state')}</th>
+                        <th>{t('logs.event_weather')}</th>
+                        <th>{t('logs.event_log')}</th>
+                        <th>{t('logs.event_gps')}</th>
+                        <th>{t('logs.event_remarks')}</th>
+                        {!readOnly && <th></th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map((ev, idx) => (
+                        <tr key={idx}>
+                          <td className="font-mono">{ev.time}</td>
+                          <td style={{ textAlign: 'center', width: '40px', verticalAlign: 'middle' }}>
+                            <CreatorAvatar
+                              creatorId={ev.creatorId}
+                              crewSnapshotsById={entryCrew.crewSnapshotsById}
+                              size={24}
                             />
-                          ) : (
-                            '—'
+                          </td>
+                          <td>{ev.mgk ? `${ev.mgk}°` : '—'}</td>
+                          <td>{ev.rwk ? `${ev.rwk}°` : '—'}</td>
+                          <td>{ev.windDirection || '—'}</td>
+                          <td>{ev.windStrength || '—'}</td>
+                          <td>{ev.seaState || '—'}</td>
+                          <td>
+                            {ev.weatherIcon ? (
+                              <img
+                                src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                                alt="Weather"
+                                title="Weather Icon"
+                                className="table-weather-img"
+                              />
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                          <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
+                          <td className="font-mono text-sm">
+                            {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
+                          </td>
+                          <td className="remarks-td">
+                            <EventRemarksCell
+                              event={ev}
+                              logbookId={logbookId}
+                              voiceMemoLookup={voiceMemoLookup}
+                              readOnly={readOnly}
+                            />
+                          </td>
+                          {!readOnly && (
+                            <td className="events-actions-td">
+                              <div className="events-actions-cell">
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  onClick={() => handleEditEvent(idx)}
+                                  title={t('logs.edit_event')}
+                                  disabled={editingEventIndex !== null && editingEventIndex !== idx}
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-icon danger"
+                                  onClick={() => handleDeleteEvent(idx)}
+                                  title={t('logs.delete_event')}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
                           )}
-                        </td>
-                        <td>{ev.logReading ? `${ev.logReading} nm` : '—'}</td>
-                        <td className="font-mono text-sm">
-                          {ev.gpsLat && ev.gpsLng ? `${ev.gpsLat}, ${ev.gpsLng}` : '—'}
-                        </td>
-                        <td className="remarks-td">
-                          <EventRemarksCell
-                            event={ev}
-                            logbookId={logbookId}
-                            voiceMemoLookup={voiceMemoLookup}
-                            readOnly={readOnly}
-                          />
-                        </td>
-                        {!readOnly && (
-                          <td className="events-actions-td">
-                            <div className="events-actions-cell">
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile view */}
+                <div className="events-mobile-only mb-6">
+                  {events.map((ev, idx) => {
+                    const hasCourse = ev.mgk || ev.rwk;
+                    const hasWind = ev.windDirection || ev.windStrength || ev.windPressure;
+                    const hasSeaState = ev.seaState;
+                    const hasWeather = ev.weatherIcon;
+                    const hasLog = ev.logReading;
+                    const hasGps = ev.gpsLat && ev.gpsLng;
+                    const hasVisibility = ev.visibility;
+                    const hasHeel = ev.heel;
+                    const hasSailsOrMotor = ev.sailsOrMotor;
+
+                    return (
+                      <div className="event-mobile-card" key={idx}>
+                        <div className="event-card-header">
+                          <div className="event-card-meta">
+                            <div className="event-card-time">
+                              <Clock size={14} />
+                              <span>{ev.time}</span>
+                            </div>
+                            <CreatorAvatar
+                              creatorId={ev.creatorId}
+                              crewSnapshotsById={entryCrew.crewSnapshotsById}
+                              size={24}
+                            />
+                          </div>
+                          {!readOnly && (
+                            <div className="event-card-actions">
                               <button
                                 type="button"
                                 className="btn-icon"
@@ -1943,164 +2022,138 @@ export default function LogEntryEditor({
                                 <Trash2 size={14} />
                               </button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          )}
+                        </div>
 
-              {/* Mobile view */}
-              <div className="events-mobile-only mb-6">
-                {events.map((ev, idx) => {
-                  const hasCourse = ev.mgk || ev.rwk;
-                  const hasWind = ev.windDirection || ev.windStrength || ev.windPressure;
-                  const hasSeaState = ev.seaState;
-                  const hasWeather = ev.weatherIcon;
-                  const hasLog = ev.logReading;
-                  const hasGps = ev.gpsLat && ev.gpsLng;
-                  const hasVisibility = ev.visibility;
-                  const hasHeel = ev.heel;
-                  const hasSailsOrMotor = ev.sailsOrMotor;
+                        <hr className="event-card-divider" />
 
-                  return (
-                    <div className="event-mobile-card" key={idx}>
-                      <div className="event-card-header">
-                        <div className="event-card-meta">
-                          <div className="event-card-time">
-                            <Clock size={14} />
-                            <span>{ev.time}</span>
-                          </div>
-                          <CreatorAvatar
-                            creatorId={ev.creatorId}
-                            crewSnapshotsById={entryCrew.crewSnapshotsById}
-                            size={24}
+                        <div className="event-card-grid">
+                          {hasCourse && (
+                            <span className="event-card-chip" title={t('logs.event_course_section')}>
+                              <Compass size={12} />
+                              <span>
+                                {ev.mgk ? `MgK: ${ev.mgk}°` : ''}
+                                {ev.mgk && ev.rwk ? ' / ' : ''}
+                                {ev.rwk ? `rwK: ${ev.rwk}°` : ''}
+                              </span>
+                            </span>
+                          )}
+
+                          {hasWind && (
+                            <span className="event-card-chip" title={t('logs.event_wind_direction')}>
+                              <span>
+                                Wind:{' '}
+                                {[
+                                  ev.windDirection,
+                                  ev.windStrength ? `${ev.windStrength} Bft` : '',
+                                  ev.windPressure ? `${ev.windPressure} hPa` : ''
+                                ]
+                                  .filter(Boolean)
+                                  .join(' / ')}
+                              </span>
+                            </span>
+                          )}
+
+                          {hasSeaState && (
+                            <span className="event-card-chip" title={t('logs.event_sea_state')}>
+                              <span>{t('logs.event_sea_state')}: {ev.seaState}</span>
+                            </span>
+                          )}
+
+                          {hasWeather && (
+                            <span className="event-card-chip" title={t('logs.event_weather')}>
+                              <img
+                                src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
+                                alt="Weather"
+                                className="event-card-weather-img"
+                              />
+                            </span>
+                          )}
+
+                          {hasLog && (
+                            <span className="event-card-chip" title={t('logs.event_log')}>
+                              <span>Log: {ev.logReading} nm</span>
+                            </span>
+                          )}
+
+                          {hasGps && (
+                            <span className="event-card-chip" title={t('logs.event_gps')}>
+                              <MapPin size={12} />
+                              <span className="font-mono text-xs">{ev.gpsLat}, {ev.gpsLng}</span>
+                            </span>
+                          )}
+
+                          {hasVisibility && (
+                            <span className="event-card-chip" title={t('logs.event_visibility')}>
+                              <span>{t('logs.event_visibility')}: {ev.visibility}</span>
+                            </span>
+                          )}
+
+                          {hasHeel && (
+                            <span className="event-card-chip" title={t('logs.event_heel')}>
+                              <span>{t('logs.event_heel')}: {ev.heel}°</span>
+                            </span>
+                          )}
+
+                          {hasSailsOrMotor && (
+                            <span className="event-card-chip" title={t('logs.event_sails')}>
+                              <span>{ev.sailsOrMotor}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="event-card-remarks">
+                          <EventRemarksCell
+                            event={ev}
+                            logbookId={logbookId}
+                            voiceMemoLookup={voiceMemoLookup}
+                            readOnly={readOnly}
                           />
                         </div>
-                        {!readOnly && (
-                          <div className="event-card-actions">
-                            <button
-                              type="button"
-                              className="btn-icon"
-                              onClick={() => handleEditEvent(idx)}
-                              title={t('logs.edit_event')}
-                              disabled={editingEventIndex !== null && editingEventIndex !== idx}
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-icon danger"
-                              onClick={() => handleDeleteEvent(idx)}
-                              title={t('logs.delete_event')}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        )}
                       </div>
-
-                      <hr className="event-card-divider" />
-
-                      <div className="event-card-grid">
-                        {hasCourse && (
-                          <span className="event-card-chip" title={t('logs.event_course_section')}>
-                            <Compass size={12} />
-                            <span>
-                              {ev.mgk ? `MgK: ${ev.mgk}°` : ''}
-                              {ev.mgk && ev.rwk ? ' / ' : ''}
-                              {ev.rwk ? `rwK: ${ev.rwk}°` : ''}
-                            </span>
-                          </span>
-                        )}
-
-                        {hasWind && (
-                          <span className="event-card-chip" title={t('logs.event_wind_direction')}>
-                            <span>
-                              Wind:{' '}
-                              {[
-                                ev.windDirection,
-                                ev.windStrength ? `${ev.windStrength} Bft` : '',
-                                ev.windPressure ? `${ev.windPressure} hPa` : ''
-                              ]
-                                .filter(Boolean)
-                                .join(' / ')}
-                            </span>
-                          </span>
-                        )}
-
-                        {hasSeaState && (
-                          <span className="event-card-chip" title={t('logs.event_sea_state')}>
-                            <span>{t('logs.event_sea_state')}: {ev.seaState}</span>
-                          </span>
-                        )}
-
-                        {hasWeather && (
-                          <span className="event-card-chip" title={t('logs.event_weather')}>
-                            <img
-                              src={`https://openweathermap.org/img/wn/${ev.weatherIcon}.png`}
-                              alt="Weather"
-                              className="event-card-weather-img"
-                            />
-                          </span>
-                        )}
-
-                        {hasLog && (
-                          <span className="event-card-chip" title={t('logs.event_log')}>
-                            <span>Log: {ev.logReading} nm</span>
-                          </span>
-                        )}
-
-                        {hasGps && (
-                          <span className="event-card-chip" title={t('logs.event_gps')}>
-                            <MapPin size={12} />
-                            <span className="font-mono text-xs">{ev.gpsLat}, {ev.gpsLng}</span>
-                          </span>
-                        )}
-
-                        {hasVisibility && (
-                          <span className="event-card-chip" title={t('logs.event_visibility')}>
-                            <span>{t('logs.event_visibility')}: {ev.visibility}</span>
-                          </span>
-                        )}
-
-                        {hasHeel && (
-                          <span className="event-card-chip" title={t('logs.event_heel')}>
-                            <span>{t('logs.event_heel')}: {ev.heel}°</span>
-                          </span>
-                        )}
-
-                        {hasSailsOrMotor && (
-                          <span className="event-card-chip" title={t('logs.event_sails')}>
-                            <span>{ev.sailsOrMotor}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="event-card-remarks">
-                        <EventRemarksCell
-                          event={ev}
-                          logbookId={logbookId}
-                          voiceMemoLookup={voiceMemoLookup}
-                          readOnly={readOnly}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+                    );
+                  })}
+                </div>
+              </>
+            )
           )}
 
           {/* Add New Event Form Sub-Card */}
           {!readOnly && (
             <div className="member-editor-card glass">
-              <h4 style={{ margin: '0 0 16px 0', color: '#fbbf24' }}>
-                {editingEventIndex !== null ? t('logs.edit_event') : t('logs.add_event')}
-              </h4>
+              <div
+                className="accordion-header"
+                onClick={() => setAddEventFormCollapsed(!addEventFormCollapsed)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setAddEventFormCollapsed(!addEventFormCollapsed)
+                  }
+                }}
+                role="button"
+                aria-expanded={!addEventFormCollapsed}
+                tabIndex={0}
+                style={{
+                  margin: '0 0 16px 0',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.01)',
+                  border: '1px solid rgba(255, 255, 255, 0.03)'
+                }}
+              >
+                <h4 style={{ margin: 0, color: '#fbbf24' }}>
+                  {editingEventIndex !== null ? t('logs.edit_event') : t('logs.add_event')}
+                </h4>
+                {addEventFormCollapsed ? (
+                  <ChevronDown size={18} style={{ color: '#fbbf24' }} className="accordion-chevron" />
+                ) : (
+                  <ChevronUp size={18} style={{ color: '#fbbf24' }} className="accordion-chevron" />
+                )}
+              </div>
             
-            <div className="form-grid mb-4">
+            {!addEventFormCollapsed && (
+              <>
+                <div className="form-grid mb-4">
               <div className="input-group">
                 <label>
                   <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
@@ -2445,6 +2498,8 @@ export default function LogEntryEditor({
                 {editingEventIndex !== null ? t('logs.save_event_btn') : t('logs.add_event_btn')}
               </button>
             </div>
+          </>
+          )}
           </div>
           )}
         </div>
