@@ -238,7 +238,7 @@ router.post('/transcribe', async (req: any, res) => {
       return res.status(400).json({ error: 'audioDataUrl is required' })
     }
 
-    const match = audioDataUrl.match(/^data:([^;]+);base64,(.+)$/)
+    const match = audioDataUrl.match(/^data:(.+);base64,(.+)$/)
     if (!match) {
       return res.status(400).json({ error: 'Invalid audio data URL format' })
     }
