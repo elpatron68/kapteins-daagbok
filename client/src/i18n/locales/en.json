@@ -186,6 +186,7 @@
       "departure": "Departure Port (von)",
       "destination": "Destination Port (nach)",
       "route": "Route / Journey",
+      "tanks": "Tanks",
       "freshwater": "Freshwater (Liters)",
       "fuel": "Fuel (Liters)",
       "greywater": "Greywater (Liters)",

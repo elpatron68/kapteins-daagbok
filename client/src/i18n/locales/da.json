@@ -186,6 +186,7 @@
       "departure": "Starthavn (rejse fra)",
       "destination": "Destinationsport (til)",
       "route": "Rejse fra/til",
+      "tanks": "Tanke",
       "freshwater": "Ferskvand (liter)",
       "fuel": "Treibstoff / Brændstof (liter)",
       "greywater": "Gråt vand (liter)",

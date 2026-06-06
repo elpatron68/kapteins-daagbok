@@ -298,6 +298,7 @@ export default function LogEntryEditor({
 
   const [eventsCollapsed, setEventsCollapsed] = useState(true)
   const [addEventFormCollapsed, setAddEventFormCollapsed] = useState(false)
+  const [tanksCollapsed, setTanksCollapsed] = useState(true)
 
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -1718,141 +1719,169 @@ export default function LogEntryEditor({
           </div>
         )}
 
-        {/* Section 2: Freshwater and Fuel Consumption */}
-        <div className="form-grid">
-          {/* Freshwater card */}
-          <div className="form-card">
-            <div className="form-header">
+        {/* Section 2: Tanks (Freshwater, Fuel, and Greywater) */}
+        <div className="form-card">
+          <div
+            className="form-header mb-4 accordion-header"
+            onClick={() => setTanksCollapsed(!tanksCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setTanksCollapsed(!tanksCollapsed)
+              }
+            }}
+            role="button"
+            aria-expanded={!tanksCollapsed}
+            tabIndex={0}
+          >
+            <div className="accordion-header-title">
               <Compass size={20} className="form-icon" />
-              <h3>{t('logs.freshwater')}</h3>
+              <h3>{t('logs.tanks')}</h3>
             </div>
-            <div className="consumption-grid">
-              <TankLiterInput
-                id="fw-morning"
-                label={t('logs.morning')}
-                value={fwMorning}
-                onChange={setFwMorning}
-                maxLiters={tankCapacities.freshwaterCapacityL}
-                disabled={saving || readOnly}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <TankLiterInput
-                id="fw-refilled"
-                label={t('logs.refilled')}
-                value={fwRefilled}
-                onChange={setFwRefilled}
-                maxLiters={fwRefilledMax}
-                disabled={saving || readOnly || fwRefilledNoCapacity}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <TankLiterInput
-                id="fw-evening"
-                label={t('logs.evening')}
-                value={fwEvening}
-                onChange={setFwEvening}
-                maxLiters={fwEveningMax}
-                disabled={saving || readOnly}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <div className="input-group">
-                <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
-                <input
-                  type="number"
-                  className="input-text consumption-value"
-                  value={fwConsumption}
-                  readOnly
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  title={tankCapacityTooltip}
-                />
-              </div>
-            </div>
+            {tanksCollapsed ? (
+              <ChevronDown size={20} className="accordion-chevron" />
+            ) : (
+              <ChevronUp size={20} className="accordion-chevron" />
+            )}
           </div>
 
-          {/* Fuel card */}
-          <div className="form-card">
-            <div className="form-header">
-              <Compass size={20} className="form-icon" />
-              <h3>{t('logs.fuel')}</h3>
-            </div>
-            <div className="consumption-grid">
-              <TankLiterInput
-                id="fuel-morning"
-                label={t('logs.morning')}
-                value={fuelMorning}
-                onChange={setFuelMorning}
-                maxLiters={tankCapacities.fuelCapacityL}
-                disabled={saving || readOnly}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <TankLiterInput
-                id="fuel-refilled"
-                label={t('logs.refilled')}
-                value={fuelRefilled}
-                onChange={setFuelRefilled}
-                maxLiters={fuelRefilledMax}
-                disabled={saving || readOnly || fuelRefilledNoCapacity}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <TankLiterInput
-                id="fuel-evening"
-                label={t('logs.evening')}
-                value={fuelEvening}
-                onChange={setFuelEvening}
-                maxLiters={fuelEveningMax}
-                disabled={saving || readOnly}
-                titleTooltip={tankCapacityTooltip}
-              />
-              <div className="input-group">
-                <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
-                <input
-                  type="number"
-                  className="input-text consumption-value"
-                  value={fuelConsumption}
-                  readOnly
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  title={tankCapacityTooltip}
-                />
+          {!tanksCollapsed && (
+            <div className="form-grid" style={{ marginTop: '16px' }}>
+              {/* Freshwater card */}
+              <div className="form-card">
+                <div className="form-header">
+                  <Compass size={20} className="form-icon" />
+                  <h3>{t('logs.freshwater')}</h3>
+                </div>
+                <div className="consumption-grid">
+                  <TankLiterInput
+                    id="fw-morning"
+                    label={t('logs.morning')}
+                    value={fwMorning}
+                    onChange={setFwMorning}
+                    maxLiters={tankCapacities.freshwaterCapacityL}
+                    disabled={saving || readOnly}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <TankLiterInput
+                    id="fw-refilled"
+                    label={t('logs.refilled')}
+                    value={fwRefilled}
+                    onChange={setFwRefilled}
+                    maxLiters={fwRefilledMax}
+                    disabled={saving || readOnly || fwRefilledNoCapacity}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <TankLiterInput
+                    id="fw-evening"
+                    label={t('logs.evening')}
+                    value={fwEvening}
+                    onChange={setFwEvening}
+                    maxLiters={fwEveningMax}
+                    disabled={saving || readOnly}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <div className="input-group">
+                    <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
+                    <input
+                      type="number"
+                      className="input-text consumption-value"
+                      value={fwConsumption}
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                      title={tankCapacityTooltip}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="input-group">
-                <label title={tankCapacityTooltip}>{t('logs.fuel_per_motor_hour')}</label>
-                <input
-                  type="text"
-                  className="input-text consumption-value"
-                  value={
-                    fuelPerMotorHour != null
-                      ? `${formatFuelPerMotorHour(fuelPerMotorHour)} L/h`
-                      : '—'
-                  }
-                  readOnly
-                  tabIndex={-1}
-                  aria-readonly="true"
-                  title={tankCapacityTooltip}
-                />
+              {/* Fuel card */}
+              <div className="form-card">
+                <div className="form-header">
+                  <Compass size={20} className="form-icon" />
+                  <h3>{t('logs.fuel')}</h3>
+                </div>
+                <div className="consumption-grid">
+                  <TankLiterInput
+                    id="fuel-morning"
+                    label={t('logs.morning')}
+                    value={fuelMorning}
+                    onChange={setFuelMorning}
+                    maxLiters={tankCapacities.fuelCapacityL}
+                    disabled={saving || readOnly}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <TankLiterInput
+                    id="fuel-refilled"
+                    label={t('logs.refilled')}
+                    value={fuelRefilled}
+                    onChange={setFuelRefilled}
+                    maxLiters={fuelRefilledMax}
+                    disabled={saving || readOnly || fuelRefilledNoCapacity}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <TankLiterInput
+                    id="fuel-evening"
+                    label={t('logs.evening')}
+                    value={fuelEvening}
+                    onChange={setFuelEvening}
+                    maxLiters={fuelEveningMax}
+                    disabled={saving || readOnly}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                  <div className="input-group">
+                    <label title={tankCapacityTooltip}>{t('logs.consumption')} (L)</label>
+                    <input
+                      type="number"
+                      className="input-text consumption-value"
+                      value={fuelConsumption}
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                      title={tankCapacityTooltip}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label title={tankCapacityTooltip}>{t('logs.fuel_per_motor_hour')}</label>
+                    <input
+                      type="text"
+                      className="input-text consumption-value"
+                      value={
+                        fuelPerMotorHour != null
+                          ? `${formatFuelPerMotorHour(fuelPerMotorHour)} L/h`
+                          : '—'
+                      }
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                      title={tankCapacityTooltip}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Greywater card */}
+              <div className="form-card">
+                <div className="form-header">
+                  <Compass size={20} className="form-icon" />
+                  <h3>{t('logs.greywater')}</h3>
+                </div>
+                <div className="consumption-grid">
+                  <TankLiterInput
+                    id="greywater-level"
+                    label={t('logs.greywater_level')}
+                    value={greywaterLevel}
+                    onChange={setGreywaterLevel}
+                    maxLiters={tankCapacities.greywaterCapacityL}
+                    disabled={saving || readOnly}
+                    titleTooltip={tankCapacityTooltip}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Greywater card */}
-          <div className="form-card">
-            <div className="form-header">
-              <Compass size={20} className="form-icon" />
-              <h3>{t('logs.greywater')}</h3>
-            </div>
-            <div className="consumption-grid">
-              <TankLiterInput
-                id="greywater-level"
-                label={t('logs.greywater_level')}
-                value={greywaterLevel}
-                onChange={setGreywaterLevel}
-                maxLiters={tankCapacities.greywaterCapacityL}
-                disabled={saving || readOnly}
-                titleTooltip={tankCapacityTooltip}
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Section 3: Event Journal Entries */}

@@ -186,6 +186,7 @@
       "departure": "Start-Hafen (Reise von)",
       "destination": "Ziel-Hafen (nach)",
       "route": "Reise von/nach",
+      "tanks": "Tanks",
       "freshwater": "Frischwasser (Liter)",
       "fuel": "Treibstoff / Fuel (Liter)",
       "greywater": "Grauwasser (Liter)",
