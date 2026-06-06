@@ -3,8 +3,6 @@ import { prisma } from '../db.js'
 import { requireUser } from '../middleware/auth.js'
 
 const router = Router()
-
-const PARAKEET_URL = process.env.PARAKEET_URL || 'http://localhost:5092/v1/audio/transcriptions'
 const MAX_ATTEMPTS_PER_ENTRY = 3
 const DEFAULT_MODEL = 'anthropic/claude-3.5-haiku'
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
@@ -243,46 +241,56 @@ router.post('/transcribe', async (req: any, res) => {
       return res.status(400).json({ error: 'Invalid audio data URL format' })
     }
 
-    const [, mimeType, base64Data] = match
-    const buffer = Buffer.from(base64Data, 'base64')
+    const [, fullMimeType, base64Data] = match
+    const mimeType = fullMimeType.split(';')[0]
 
     let ext = 'webm'
     if (mimeType.includes('mp4')) ext = 'mp4'
     else if (mimeType.includes('ogg')) ext = 'ogg'
     else if (mimeType.includes('wav')) ext = 'wav'
 
-    const filename = `audio.${ext}`
-    const file = new File([buffer], filename, { type: mimeType })
+    const apiKey = resolveOpenRouterApiKey()
+    if (!apiKey) {
+      console.warn('[server] OpenRouter API key not configured, transcription unavailable')
+      return res.status(503).json({ error: 'Transcription service not configured' })
+    }
 
-    const formData = new FormData()
-    formData.append('file', file)
-
-    console.log(`[server] Forwarding ASR request to ${PARAKEET_URL} (${filename}, ${buffer.length} bytes)`)
+    console.log(`[server] Forwarding ASR request to OpenRouter (${ext}, ${base64Data.length} chars)`)
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     try {
-      const parakeetRes = await fetch(PARAKEET_URL, {
+      const openRouterRes = await fetch('https://openrouter.ai/api/v1/audio/transcriptions', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'openai/whisper-large-v3',
+          input_audio: {
+            data: base64Data,
+            format: ext
+          }
+        }),
         signal: controller.signal
       })
 
-      if (!parakeetRes.ok) {
-        const errorText = await parakeetRes.text().catch(() => '')
-        console.error(`[server] Parakeet ASR error response (status=${parakeetRes.status}):`, errorText)
-        throw new Error(`Parakeet returned status ${parakeetRes.status}`)
+      if (!openRouterRes.ok) {
+        const errorText = await openRouterRes.text().catch(() => '')
+        console.error(`[server] OpenRouter ASR error response (status=${openRouterRes.status}):`, errorText)
+        throw new Error(`OpenRouter returned status ${openRouterRes.status}`)
       }
 
-      const data: any = await parakeetRes.json()
+      const data: any = await openRouterRes.json()
       const text = (data?.text || '').trim()
 
-      console.log(`[server] ASR completed successfully: "${text}"`)
+      console.log(`[server] OpenRouter ASR completed successfully: "${text}"`)
       return res.json({ text })
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.error('[server] Parakeet ASR request timed out')
+        console.error('[server] OpenRouter ASR request timed out')
         return res.status(504).json({ error: 'Transcription request timed out' })
       }
       throw error
