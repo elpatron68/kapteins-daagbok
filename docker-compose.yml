@@ -72,6 +72,7 @@ services:
     image: ghcr.io/achetronic/parakeet:latest
     container_name: daagbox-prod-parakeet
     restart: always
+    command: ["/app/parakeet", "-workers", "1"]
     ports:
       - "5092:5092"
 
