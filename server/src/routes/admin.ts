@@ -23,6 +23,11 @@ router.get('/summary', requireUser, requireAdmin, async (_req, res) => {
         prisma.aiSummaryUsage.count()
       ])
 
+    const rawDbSize = await prisma.$queryRaw<[{ size: string }]>`
+      SELECT pg_database_size(current_database())::text as size
+    `
+    const dbSize = Number(rawDbSize[0]?.size || '0')
+
     res.json({
       totalUsers,
       totalLogbooks,
@@ -31,7 +36,8 @@ router.get('/summary', requireUser, requireAdmin, async (_req, res) => {
       totalGpsTracks,
       totalCollaborations,
       totalInvitations,
-      aiSummaryEntries
+      aiSummaryEntries,
+      dbSize
     })
   } catch (error: unknown) {
     console.error('admin/summary error', error)
@@ -91,7 +97,7 @@ async function buildTimeSeries(bucket: TimeBucket, windowDays: number): Promise<
   const since = new Date()
   since.setUTCDate(since.getUTCDate() - windowDays)
 
-  const [users, logbooks, photos] = await Promise.all([
+  const [users, logbooks, photos, dbSizeRaw, photosSize, voiceSize, tracksSize, entriesSize] = await Promise.all([
     prisma.user.findMany({
       where: { createdAt: { gte: since } },
       select: { createdAt: true }
@@ -103,8 +109,71 @@ async function buildTimeSeries(bucket: TimeBucket, windowDays: number): Promise<
     prisma.photoPayload.findMany({
       where: { updatedAt: { gte: since } },
       select: { updatedAt: true }
+    }),
+    prisma.$queryRaw<[{ size: string }]>`
+      SELECT pg_database_size(current_database())::text as size
+    `,
+    prisma.photoPayload.findMany({
+      select: { updatedAt: true, encryptedData: true }
+    }),
+    prisma.voiceMemoPayload.findMany({
+      select: { updatedAt: true, encryptedData: true }
+    }),
+    prisma.gpsTrackPayload.findMany({
+      select: { updatedAt: true, encryptedData: true }
+    }),
+    prisma.entryPayload.findMany({
+      select: { updatedAt: true, encryptedData: true }
     })
   ])
+
+  const dbSizeVal = Number(dbSizeRaw[0]?.size || '0')
+
+  const payloads: { date: Date; size: number }[] = []
+  for (const p of photosSize) {
+    payloads.push({ date: p.updatedAt, size: p.encryptedData.length })
+  }
+  for (const v of voiceSize) {
+    payloads.push({ date: v.updatedAt, size: v.encryptedData.length })
+  }
+  for (const g of tracksSize) {
+    payloads.push({ date: g.updatedAt, size: g.encryptedData.length })
+  }
+  for (const e of entriesSize) {
+    payloads.push({ date: e.updatedAt, size: e.encryptedData.length })
+  }
+
+  const totalPayloadsSize = payloads.reduce((acc, p) => acc + p.size, 0)
+  const baseDbSize = Math.max(0, dbSizeVal - totalPayloadsSize)
+
+  payloads.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+  // Generate complete list of date keys for the window
+  const dateKeys: string[] = []
+  const current = new Date(since)
+  const todayStr = bucketDate(new Date(), bucket)
+  while (true) {
+    const key = bucketDate(current, bucket)
+    if (!dateKeys.includes(key)) {
+      dateKeys.push(key)
+    }
+    if (key >= todayStr) break
+    current.setUTCDate(current.getUTCDate() + 1)
+  }
+
+  const dbSizePoints = dateKeys.map((key) => {
+    let sizeSum = 0
+    for (const p of payloads) {
+      if (bucketDate(p.date, bucket) <= key) {
+        sizeSum += p.size
+      } else {
+        break
+      }
+    }
+    const totalBytes = baseDbSize + sizeSum
+    const sizeInMb = Math.round((totalBytes / (1024 * 1024)) * 10) / 10
+    return { date: key, count: sizeInMb }
+  })
 
   function aggregate(dates: Date[], metric: string): TimeSeries {
     const map = new Map<string, number>()
@@ -130,7 +199,11 @@ async function buildTimeSeries(bucket: TimeBucket, windowDays: number): Promise<
     aggregate(
       photos.map((p) => p.updatedAt),
       'photos_updated'
-    )
+    ),
+    {
+      metric: 'database_size',
+      points: dbSizePoints
+    }
   ]
 }
 

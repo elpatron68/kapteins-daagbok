@@ -7,10 +7,20 @@ import {
   type AdminTimeSeriesResponse,
   type AdminTimeBucket
 } from '../services/adminApi.js'
-import { BarChart2, Bookmark, ChevronLeft, Image, MapPin, Mic, Users } from 'lucide-react'
+import { BarChart2, Bookmark, ChevronLeft, Database, Image, MapPin, Mic, Users } from 'lucide-react'
 
 function formatNumber(value: number): string {
   return value.toLocaleString()
+}
+
+function formatBytes(bytes: number | undefined): string {
+  if (bytes === undefined || bytes === null) return '—'
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  const num = bytes / Math.pow(k, i)
+  return `${num.toFixed(1)} ${sizes[i]}`
 }
 
 function KpiCard({
@@ -20,14 +30,14 @@ function KpiCard({
 }: {
   icon: ReactNode
   label: string
-  value: number
+  value: number | string
 }) {
   return (
     <div className="stats-kpi-card glass">
       <div className="stats-kpi-icon">{icon}</div>
       <div className="stats-kpi-body">
         <span className="stats-kpi-label">{label}</span>
-        <span className="stats-kpi-value">{formatNumber(value)}</span>
+        <span className="stats-kpi-value">{typeof value === 'number' ? formatNumber(value) : value}</span>
       </div>
     </div>
   )
@@ -194,6 +204,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
             label="Einträge mit AI-Zusammenfassung"
             value={summary.aiSummaryEntries}
           />
+          <KpiCard icon={<Database size={20} />} label="Datenbankgröße" value={formatBytes(summary.dbSize)} />
         </section>
 
         <section className="admin-controls">
@@ -233,6 +244,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
           <TimeSeriesChart title="Neue Benutzer" seriesKey="users_created" data={timeSeries} />
           <TimeSeriesChart title="Neue Logbücher" seriesKey="logbooks_created" data={timeSeries} />
           <TimeSeriesChart title="Foto-Aktivität" seriesKey="photos_updated" data={timeSeries} />
+          <TimeSeriesChart title="Datenbankgröße (MB)" seriesKey="database_size" data={timeSeries} />
         </section>
       </main>
     </div>

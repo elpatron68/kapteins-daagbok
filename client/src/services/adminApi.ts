@@ -16,6 +16,7 @@ export interface AdminSummary {
   totalCollaborations: number
   totalInvitations: number
   aiSummaryEntries: number
+  dbSize: number
 }
 
 export type AdminTimeBucket = 'day' | 'week' | 'month'
