@@ -4,6 +4,8 @@ import enJson from '../i18n/locales/en.json'
 import daJson from '../i18n/locales/da.json'
 import svJson from '../i18n/locales/sv.json'
 import nbJson from '../i18n/locales/nb.json'
+import frJson from '../i18n/locales/fr.json'
+import esJson from '../i18n/locales/es.json'
 
 function collectKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   const keys: string[] = []
@@ -23,7 +25,9 @@ const bundles = {
   en: enJson.translation,
   da: daJson.translation,
   sv: svJson.translation,
-  nb: nbJson.translation
+  nb: nbJson.translation,
+  fr: frJson.translation,
+  es: esJson.translation
 } as const
 
 describe('i18n locale key parity', () => {

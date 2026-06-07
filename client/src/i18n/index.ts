@@ -6,6 +6,8 @@ import deJson from './locales/de.json'
 import daJson from './locales/da.json'
 import svJson from './locales/sv.json'
 import nbJson from './locales/nb.json'
+import frJson from './locales/fr.json'
+import esJson from './locales/es.json'
 import { initSeo } from '../utils/seo.js'
 import { SUPPORTED_LANGUAGES } from '../utils/i18nLanguages.js'
 
@@ -15,7 +17,9 @@ const resources = {
   de: { translation: deJson.translation },
   da: { translation: daJson.translation },
   sv: { translation: svJson.translation },
-  nb: { translation: nbJson.translation }
+  nb: { translation: nbJson.translation },
+  fr: { translation: frJson.translation },
+  es: { translation: esJson.translation }
 }
 
 i18n

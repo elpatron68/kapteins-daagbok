@@ -15,7 +15,9 @@
       "en": "English",
       "da": "Dansk",
       "sv": "Svenska",
-      "nb": "Norsk"
+      "nb": "Norsk",
+      "fr": "French",
+      "es": "Spanish"
     },
     "dialog": {
       "ok": "OK",

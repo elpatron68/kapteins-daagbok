@@ -23,7 +23,9 @@ const defaultSource = resolve(repoRoot, 'client/src/i18n/locales/de.json')
 const TARGETS = {
   da: 'DA',
   sv: 'SV',
-  nb: 'NB'
+  nb: 'NB',
+  fr: 'FR',
+  es: 'ES'
 }
 
 /** Keys whose values stay identical to source (language names, brand). */

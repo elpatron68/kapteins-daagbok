@@ -10,7 +10,9 @@ const OG_LOCALES: Record<SeoLang, string> = {
   en: 'en_GB',
   da: 'da_DK',
   sv: 'sv_SE',
-  nb: 'nb_NO'
+  nb: 'nb_NO',
+  fr: 'fr_FR',
+  es: 'es_ES'
 }
 
 let i18nRef: I18nInstance | null = null

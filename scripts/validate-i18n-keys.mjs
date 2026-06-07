@@ -11,7 +11,7 @@ import { flattenTranslation } from './lib/deepl-translate.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const localesDir = resolve(__dirname, '../client/src/i18n/locales')
-const localeFiles = ['de.json', 'en.json', 'da.json', 'sv.json', 'nb.json']
+const localeFiles = ['de.json', 'en.json', 'da.json', 'sv.json', 'nb.json', 'fr.json', 'es.json']
 
 async function loadKeys(filename) {
   const raw = await readFile(resolve(localesDir, filename), 'utf8')

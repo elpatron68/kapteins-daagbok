@@ -63,6 +63,21 @@ function FlagIcon({ lang, className, style }: { lang: string; className?: string
           <path d="M7,0 h2 v16 h-2 z M0,7 h22 v2 h-22 z" fill="#00205B"/>
         </svg>
       )
+    case 'fr':
+      return (
+        <svg viewBox="0 0 3 2" className={className} style={baseStyle}>
+          <rect width="3" height="2" fill="#FFFFFF"/>
+          <rect width="1" height="2" fill="#002395"/>
+          <rect x="2" width="1" height="2" fill="#ED2939"/>
+        </svg>
+      )
+    case 'es':
+      return (
+        <svg viewBox="0 0 3 2" className={className} style={baseStyle}>
+          <rect width="3" height="2" fill="#C1272D"/>
+          <rect y="0.5" width="3" height="1" fill="#FEE100"/>
+        </svg>
+      )
     default:
       return null
   }

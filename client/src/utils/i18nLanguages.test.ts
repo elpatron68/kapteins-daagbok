@@ -20,14 +20,13 @@ vi.mock('../services/analytics.js', async (importOriginal) => {
 })
 
 function createMockI18n(language: string): I18nInstance {
-  let current = language
-  return {
-    language: current,
+  const mock = {
+    language,
     changeLanguage: vi.fn(async (lng: string) => {
-      current = lng
-      ;(this as { language: string }).language = lng
+      mock.language = lng
     })
   } as unknown as I18nInstance
+  return mock
 }
 
 describe('i18nLanguages', () => {
@@ -72,11 +71,11 @@ describe('i18nLanguages', () => {
   })
 
   it('cycleAppLanguage tracks the next language', () => {
-    const i18n = createMockI18n('nb')
+    const i18n = createMockI18n('es')
     cycleAppLanguage(i18n)
 
     expect(trackPlausibleEvent).toHaveBeenCalledWith(PlausibleEvents.LANGUAGE_CHANGED, {
-      from: 'nb',
+      from: 'es',
       to: 'de'
     })
   })
