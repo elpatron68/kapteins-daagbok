@@ -820,6 +820,7 @@
       "share_enable": "Aktivera offentlig länk",
       "share_copied": "Länken har kopierats!",
       "share_copy_btn": "Kopiera länken",
+      "share_btn": "Dela länk",
       "link_qr_hint": "QR-kod att skanna med smarttelefonen",
       "link_qr_alt": "QR-kod för länken",
       "danger_zone_title": "Farlig zon",

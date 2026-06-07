@@ -820,6 +820,7 @@
       "share_enable": "Aktiver offentlig lenke",
       "share_copied": "Koblingen er kopiert!",
       "share_copy_btn": "Kopier lenken",
+      "share_btn": "Del lenke",
       "link_qr_hint": "QR-kode som kan skannes med smarttelefonen",
       "link_qr_alt": "QR-kode for lenken",
       "danger_zone_title": "Fareområde",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings as SettingsIcon, Check, Users, Trash2, Copy, Link as LinkIcon } from 'lucide-react'
+import { Settings as SettingsIcon, Check, Users, Trash2, Copy, Link as LinkIcon, Share2 } from 'lucide-react'
 import { ensureLogbookKey } from '../services/logbookKeys.js'
 import LogbookBackupPanel from './LogbookBackupPanel.tsx'
 import LinkQrCode from './LinkQrCode.tsx'
@@ -128,6 +128,24 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       navigator.clipboard.writeText(shareLink)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 2000)
+    }
+  }
+
+  const isShareSupported = typeof navigator !== 'undefined' && !!navigator.share
+
+  const handleShareLink = async () => {
+    if (shareLink) {
+      try {
+        await navigator.share({
+          title: t('seo.title') || 'Kapteins Daagbok',
+          text: t('settings.share_desc'),
+          url: shareLink
+        })
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Sharing link failed:', err)
+        }
+      }
     }
   }
 
@@ -337,6 +355,17 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
                 >
                   {shareCopied ? <Check size={16} /> : <Copy size={16} />}
                 </button>
+                {isShareSupported && (
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void handleShareLink()}
+                    style={{ width: 'auto', padding: '10px' }}
+                    title={t('settings.share_btn')}
+                  >
+                    <Share2 size={16} />
+                  </button>
+                )}
               </div>
               <LinkQrCode value={shareLink} />
             </div>

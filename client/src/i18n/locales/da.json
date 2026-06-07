@@ -820,6 +820,7 @@
       "share_enable": "Aktivér offentligt link",
       "share_copied": "Linket er kopieret!",
       "share_copy_btn": "Kopier link",
+      "share_btn": "Del link",
       "link_qr_hint": "QR-kode til scanning med en smartphone",
       "link_qr_alt": "QR-kode til linket",
       "danger_zone_title": "Farezone",

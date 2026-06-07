@@ -820,6 +820,7 @@
       "share_enable": "Activer le lien public",
       "share_copied": "Lien copié !",
       "share_copy_btn": "Copier le lien",
+      "share_btn": "Partager le lien",
       "link_qr_hint": "Code QR à scanner avec un smartphone",
       "link_qr_alt": "Code QR pour le lien",
       "danger_zone_title": "Zone dangereuse",
