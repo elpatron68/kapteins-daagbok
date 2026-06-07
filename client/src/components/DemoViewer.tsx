@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
+import LanguageDropdown from './LanguageDropdown.tsx'
 import LogbookVesselPicker from './LogbookVesselPicker.tsx'
 import LogbookCrewPicker from './LogbookCrewPicker.tsx'
 import type { LogbookCrewSelectionData } from '../types/person.js'
 import { personToSnapshot } from '../utils/personSnapshots.js'
 import LogEntriesList from './LogEntriesList.tsx'
-import { Ship, Users, FileText, Lock, Globe, ChevronLeft, UserPlus } from 'lucide-react'
+import { Ship, Users, FileText, Lock, ChevronLeft, UserPlus } from 'lucide-react'
 import { buildPublicDemoFixture, type PublicDemoFixture } from '../services/demoLogbookData.js'
 import type { VesselData } from '../types/vessel.js'
 import type { LogbookVesselSelectionData } from '../types/vessel.js'
@@ -52,9 +52,6 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
     }
   }, [registerNavigation, registerDemoTourContext, startTour, fixture.firstEntryId])
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
 
   const {
     title,
@@ -111,10 +108,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
             <UserPlus size={14} style={{ marginRight: '4px' }} />
             {t('demo.cta_register')}
           </button>
-          <button className="btn secondary" onClick={toggleLanguage} style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}>
-            <Globe size={14} style={{ marginRight: '4px' }} />
-            {t(`languages.${getNextLanguage(i18n.language)}`)}
-          </button>
+          <LanguageDropdown variant="secondary-button" align="right" />
         </div>
       </header>
 
@@ -172,7 +166,7 @@ export default function DemoViewer({ onExit }: DemoViewerProps) {
                 payloadId: v.payloadId,
                 data: v.data as VesselData
               }))}
-              preloadedSelection={logbookVesselSelection as LogbookVesselSelectionData}
+              preloadedSelection={logbookVesselSelection as unknown as LogbookVesselSelectionData}
             />
           )}
 

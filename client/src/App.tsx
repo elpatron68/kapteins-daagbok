@@ -46,14 +46,14 @@ import { db } from './services/db.js'
 import { getLogbookAccess } from './services/logbookAccess.js'
 import type { LogbookAccessRole } from './services/logbook.js'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, Languages, BarChart2 } from 'lucide-react'
+import { Ship, LogOut, ChevronLeft, Users, FileText, Settings, Wifi, WifiOff, BarChart2 } from 'lucide-react'
 import DisclaimerHeaderButton from './components/DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './components/FeedbackHeaderButton.tsx'
 import ProfileHeaderButton from './components/ProfileHeaderButton.tsx'
 import AdminHeaderButton from './components/AdminHeaderButton.tsx'
 import { checkAdminAccess } from './services/adminApi.js'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage } from './utils/i18nLanguages.js'
+import LanguageDropdown from './components/LanguageDropdown.tsx'
 import {
   resolveTourLogbookContext,
   seedDemoLogbookIfNeeded
@@ -66,7 +66,7 @@ import { requestPersistentStorage } from './utils/storagePersist.js'
 const PENDING_PUSH_LOGBOOK_KEY = 'pending_push_logbook_id'
 
 function App() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { confirmLeave } = useUnsavedChangesContext()
   const { registerNavigation, registerDemoTourContext, requestStartAfterLogin, isActive, currentStepId } = useAppTour()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -555,10 +555,6 @@ function App() {
     localStorage.removeItem('active_logbook_title')
   }
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
-
   const handleExitDemo = () => {
     window.history.replaceState({}, document.title, '/')
     syncRouteFromLocation()
@@ -715,10 +711,7 @@ function App() {
               {online ? <Wifi size={18} /> : <WifiOff size={18} />}
               <span>{online ? 'Online' : t('sync.status_offline')}</span>
             </div>
-
-            <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
-              <Languages size={18} />
-            </button>
+            <LanguageDropdown variant="icon" align="right" />
 
             {isAdminUser && <AdminHeaderButton onClick={openAdmin} />}
 

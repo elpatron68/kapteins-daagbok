@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
-import { Ship, LogIn, UserPlus, AlertTriangle, ShieldCheck, Languages, ArrowRight, KeyRound } from 'lucide-react'
+import LanguageDropdown from './LanguageDropdown.tsx'
+import { Ship, LogIn, UserPlus, AlertTriangle, ShieldCheck, ArrowRight, KeyRound } from 'lucide-react'
 import {
   getActiveMasterKey,
   registerUser,
@@ -50,7 +50,7 @@ const hexToBuffer = (hex: string): ArrayBuffer => {
 }
 
 export default function InvitationAcceptance({ onAccepted, onCancel }: InvitationAcceptanceProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
@@ -308,9 +308,6 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
     setIsLoggedIn(true)
   }
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
 
   if (recoveryPhrase) {
     return (
@@ -510,10 +507,7 @@ export default function InvitationAcceptance({ onAccepted, onCancel }: Invitatio
       )}
 
       <div className="auth-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', marginTop: '24px' }}>
-        <button className="btn-icon-text" onClick={toggleLanguage}>
-          <Languages size={18} />
-          {t(`languages.${getNextLanguage(i18n.language)}`)}
-        </button>
+        <LanguageDropdown variant="text" align="left" />
       </div>
     </div>
   )

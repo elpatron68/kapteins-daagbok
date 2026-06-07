@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage, getNextLanguage, isGermanLocale } from '../utils/i18nLanguages.js'
+import { isGermanLocale } from '../utils/i18nLanguages.js'
+import LanguageDropdown from './LanguageDropdown.tsx'
 import { decryptJson } from '../services/crypto.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import LogbookVesselPicker from './LogbookVesselPicker.tsx'
@@ -12,7 +13,7 @@ import { emptyLogbookCrewSelection } from '../types/person.js'
 import { legacyCrewRecordsToLogbookSelection } from '../utils/personSnapshots.js'
 import type { PersonData } from '../types/person.js'
 import LogEntriesList from './LogEntriesList.tsx'
-import { Ship, Users, FileText, Lock, AlertCircle, Globe } from 'lucide-react'
+import { Ship, Users, FileText, Lock, AlertCircle } from 'lucide-react'
 
 interface ReadOnlyViewerProps {
   token: string
@@ -215,9 +216,6 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
     }
   }
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
 
   if (loading) {
     return (
@@ -258,10 +256,7 @@ export default function ReadOnlyViewer({ token, hexKey }: ReadOnlyViewerProps) {
         </div>
 
         <div className="header-actions">
-          <button className="btn secondary" onClick={toggleLanguage} style={{ width: 'auto', padding: '6px 12px', fontSize: '13px' }}>
-            <Globe size={14} style={{ marginRight: '4px' }} />
-            {t(`languages.${getNextLanguage(i18n.language)}`)}
-          </button>
+          <LanguageDropdown variant="secondary-button" align="right" />
         </div>
       </header>
 

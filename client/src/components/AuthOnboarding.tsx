@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage, getNextLanguage } from '../utils/i18nLanguages.js'
+import LanguageDropdown from './LanguageDropdown.tsx'
 import {
   registerUser,
   loginUser,
@@ -15,7 +15,7 @@ import {
   logoutUser,
   resolveRestoreUsername
 } from '../services/auth.js'
-import { KeyRound, ShieldAlert, Languages, HelpCircle, UserRound, X } from 'lucide-react'
+import { KeyRound, ShieldAlert, HelpCircle, UserRound, X } from 'lucide-react'
 import RegistrationDisclaimer from './RegistrationDisclaimer.tsx'
 import DisclaimerModal from './DisclaimerModal.tsx'
 import BetaBadge from './BetaBadge.tsx'
@@ -37,7 +37,7 @@ export default function AuthOnboarding({
   onOpenDemo,
   restoreSession = false
 }: AuthOnboardingProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -267,9 +267,6 @@ export default function AuthOnboarding({
     setKnownUsers(getKnownUsernames())
   }
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
 
   const copyToClipboard = () => {
     if (recoveryPhrase) {
@@ -780,10 +777,7 @@ export default function AuthOnboarding({
       </div>
 
       <div className="auth-footer">
-        <button type="button" className="btn-icon-text" onClick={toggleLanguage}>
-          <Languages size={18} />
-          {t(`languages.${getNextLanguage(i18n.language)}`)}
-        </button>
+        <LanguageDropdown variant="text" align="left" />
         <button
           type="button"
           className="btn-icon-text link-sec"

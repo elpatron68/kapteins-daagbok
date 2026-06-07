@@ -6,6 +6,14 @@ export const SUPPORTED_LANGUAGES = ['de', 'en', 'da', 'sv', 'nb'] as const
 
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number]
 
+export const LANGUAGE_FLAGS: Record<AppLanguage, string> = {
+  de: '🇩🇪',
+  en: '🇬🇧',
+  da: '🇩🇰',
+  sv: '🇸🇪',
+  nb: '🇳🇴'
+}
+
 export function normalizeAppLanguage(language?: string): AppLanguage {
   const base = (language ?? 'en').split('-')[0].toLowerCase()
   if ((SUPPORTED_LANGUAGES as readonly string[]).includes(base)) {
