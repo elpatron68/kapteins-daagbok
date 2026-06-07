@@ -70,6 +70,8 @@ DEFAULT_VERSION="0.1.0.0"
 MAX_WAIT=90
 
 REMOTE_USER="${REMOTE_USER:-root}"
+GIT_REMOTE="${GIT_REMOTE:-github}"
+GIT_REMOTE_URL="${GIT_REMOTE_URL:-https://github.com/elpatron68/kapteins-daagbok.git}"
 
 if [[ "$DEST" == "stage" ]]; then
   REMOTE_HOST="${REMOTE_HOST:-10.0.0.27}"
@@ -186,34 +188,34 @@ ensure_local_sync_with_origin() {
     exit 1
   fi
 
-  echo "Syncing with origin..."
-  git fetch --tags origin
+  echo "Syncing with ${GIT_REMOTE}..."
+  git fetch --tags "${GIT_REMOTE}"
   if [ $? -ne 0 ]; then
-    echo "Error: git fetch origin failed." >&2
+    echo "Error: git fetch ${GIT_REMOTE} failed." >&2
     exit 1
   fi
 
-  if ! git rev-parse --verify "origin/${branch}" >/dev/null 2>&1; then
-    echo "Error: origin/${branch} does not exist." >&2
+  if ! git rev-parse --verify "${GIT_REMOTE}/${branch}" >/dev/null 2>&1; then
+    echo "Error: ${GIT_REMOTE}/${branch} does not exist." >&2
     exit 1
   fi
 
   local_sha="$(git rev-parse HEAD)"
-  origin_sha="$(git rev-parse "origin/${branch}")"
+  origin_sha="$(git rev-parse "${GIT_REMOTE}/${branch}")"
 
   if [ "$local_sha" = "$origin_sha" ]; then
-    echo "Local branch '$branch' matches origin/${branch} ($(git rev-parse --short HEAD))."
+    echo "Local branch '$branch' matches ${GIT_REMOTE}/${branch} ($(git rev-parse --short HEAD))."
     return 0
   fi
 
-  echo "Error: Local '$branch' is not in sync with origin/${branch}." >&2
+  echo "Error: Local '$branch' is not in sync with ${GIT_REMOTE}/${branch}." >&2
   echo "  local:  $(git rev-parse --short HEAD) $(git log -1 --format='%s' HEAD)" >&2
-  echo "  origin: $(git rev-parse --short "origin/${branch}") $(git log -1 --format='%s' "origin/${branch}")" >&2
+  echo "  ${GIT_REMOTE}: $(git rev-parse --short "${GIT_REMOTE}/${branch}") $(git log -1 --format='%s' "${GIT_REMOTE}/${branch}")" >&2
 
-  if git merge-base --is-ancestor "$local_sha" "origin/${branch}" 2>/dev/null; then
+  if git merge-base --is-ancestor "$local_sha" "${GIT_REMOTE}/${branch}" 2>/dev/null; then
     echo "Hint: run 'git pull' to fast-forward." >&2
-  elif git merge-base --is-ancestor "origin/${branch}" "$local_sha" 2>/dev/null; then
-    echo "Hint: run 'git push origin ${branch}' before deploying." >&2
+  elif git merge-base --is-ancestor "${GIT_REMOTE}/${branch}" "$local_sha" 2>/dev/null; then
+    echo "Hint: run 'git push ${GIT_REMOTE} ${branch}' before deploying." >&2
   else
     echo "Hint: branches have diverged — reconcile manually before deploying." >&2
   fi
@@ -246,12 +248,12 @@ prepare_release() {
   echo "  Next prep: v${next_version}"
   echo ""
 
-  read -r -p "Push commit and tag to origin? [Y/n] " push_answer
+  read -r -p "Push commit and tag to ${GIT_REMOTE}? [Y/n] " push_answer
   if [[ ! "$push_answer" =~ ^[nN]$ ]]; then
     current_branch="$(git branch --show-current)"
-    git push origin "$current_branch"
-    git push origin "$tag_name"
-    echo "Pushed ${current_branch} and ${tag_name} to origin."
+    git push "${GIT_REMOTE}" "$current_branch"
+    git push "${GIT_REMOTE}" "$tag_name"
+    echo "Pushed ${current_branch} and ${tag_name} to ${GIT_REMOTE}."
   else
     echo "Skipped push. Remote host must receive this commit/tag manually."
   fi
@@ -281,7 +283,7 @@ echo "Deploying v${APP_VERSION} to ${REMOTE_TARGET}:${REMOTE_DIR}"
 echo "=================================================="
 
 ssh -o ConnectTimeout=10 "$REMOTE_TARGET" 'bash -s' -- \
-  "$REMOTE_DIR" "$COMPOSE_FILE" "$BACKEND_CONTAINER" "$MAX_WAIT" "$APP_URL" "$APP_VERSION" "$DEST" "$DEPLOY_BRANCH" <<'REMOTE_SCRIPT'
+  "$REMOTE_DIR" "$COMPOSE_FILE" "$BACKEND_CONTAINER" "$MAX_WAIT" "$APP_URL" "$APP_VERSION" "$DEST" "$DEPLOY_BRANCH" "$GIT_REMOTE_URL" <<'REMOTE_SCRIPT'
 set -uo pipefail
 
 REMOTE_DIR="$1"
@@ -292,8 +294,16 @@ APP_URL="$5"
 APP_VERSION="$6"
 DEST="$7"
 DEPLOY_BRANCH="${8:-}"
+GIT_REMOTE_URL="${9:-https://github.com/elpatron68/kapteins-daagbok.git}"
 
 cd "$REMOTE_DIR" || { echo "Error: Remote directory '$REMOTE_DIR' not found."; exit 1; }
+
+echo "Configuring git remote 'origin' URL to ${GIT_REMOTE_URL} on remote host..."
+if git remote | grep -q "^origin$"; then
+  git remote set-url origin "$GIT_REMOTE_URL"
+else
+  git remote add origin "$GIT_REMOTE_URL"
+fi
 
 if ! git diff-index --quiet HEAD -- || [ -n "$(git status --porcelain)" ]; then
   echo "Warning: Local changes on deployment host will be discarded."
