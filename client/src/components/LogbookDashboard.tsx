@@ -35,10 +35,14 @@ function sortLogbooks(
 ): DecryptedLogbook[] {
   const sorted = [...items]
   sorted.sort((a, b) => {
-    const cmp =
-      sortBy === 'name'
-        ? a.title.localeCompare(b.title, locale, { sensitivity: 'base' })
-        : new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+    let cmp = 0
+    if (sortBy === 'name') {
+      cmp = a.title.localeCompare(b.title, locale, { sensitivity: 'base' })
+    } else {
+      const timeA = a.lastTravelDate ? new Date(a.lastTravelDate).getTime() : new Date(a.updatedAt).getTime()
+      const timeB = b.lastTravelDate ? new Date(b.lastTravelDate).getTime() : new Date(b.updatedAt).getTime()
+      cmp = timeA - timeB
+    }
     return direction === 'asc' ? cmp : -cmp
   })
   return sorted
@@ -288,8 +292,12 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           {lb.isDemo && (
             <span className="demo-badge">{t('demo.badge')}</span>
           )}
+          <span className="entry-count-badge" title={t('dashboard.travel_days_count', { count: lb.entryCount ?? 0 })}>
+            <CalendarDays size={12} style={{ marginRight: '4px' }} />
+            {lb.entryCount ?? 0}
+          </span>
           <span className="date-badge">
-            {new Date(lb.updatedAt).toLocaleDateString(i18n.language, {
+            {new Date(lb.lastTravelDate || lb.updatedAt).toLocaleDateString(i18n.language, {
               year: 'numeric',
               month: 'short',
               day: 'numeric'

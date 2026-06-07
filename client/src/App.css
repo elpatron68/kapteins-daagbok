@@ -2165,6 +2165,16 @@ html.scheme-dark .themed-select-option.is-selected {
   color: var(--app-text-subtle);
 }
 
+.entry-count-badge {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--app-text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
 .entry-sign-badge {
   position: relative;
   display: inline-flex;

@@ -34,6 +34,8 @@ export interface DecryptedLogbook {
   isShared: boolean
   accessRole: LogbookAccessRole
   isDemo?: boolean
+  lastTravelDate?: string
+  entryCount?: number
 }
 
 // Helper to decrypt a logbook's title using the active logbook key or master key
@@ -142,10 +144,24 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
   // Retrieve all from Dexie cache
   const cachedLogbooks = await db.logbooks.toArray()
   
-  // Decrypt titles
+  // Decrypt titles and query last travel dates
   const decrypted: DecryptedLogbook[] = []
   for (const lb of cachedLogbooks) {
     const title = await decryptLogbookTitle(lb.id, lb.encryptedTitle)
+
+    // Find latest travel date from local entries cache
+    const entries = await db.entries.where({ logbookId: lb.id }).toArray()
+    let lastTravelDate: string | undefined = undefined
+    if (entries.length > 0) {
+      const dates = entries
+        .map((e) => e.listCache?.date)
+        .filter((d): d is string => typeof d === 'string' && d.length > 0)
+      if (dates.length > 0) {
+        dates.sort()
+        lastTravelDate = dates[dates.length - 1]
+      }
+    }
+
     decrypted.push({
       id: lb.id,
       title,
@@ -155,7 +171,9 @@ export async function fetchLogbooks(): Promise<DecryptedLogbook[]> {
       accessRole: lb.isShared === 1
         ? parseCollaborationRole(lb.collaborationRole, `cached logbook ${lb.id}`)
         : 'OWNER',
-      isDemo: lb.isDemo === 1
+      isDemo: lb.isDemo === 1,
+      lastTravelDate,
+      entryCount: entries.length
     })
   }
 
