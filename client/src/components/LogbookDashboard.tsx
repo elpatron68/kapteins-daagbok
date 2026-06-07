@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { cycleAppLanguage } from '../utils/i18nLanguages.js'
+import LanguageDropdown from './LanguageDropdown.tsx'
 import { useSyncIndicator } from '../hooks/useSyncIndicator.js'
 import { fetchLogbooks, createLogbook, deleteLogbook, updateLogbookTitle, type DecryptedLogbook } from '../services/logbook.js'
 import { loadLogbookSearchFieldsBatch } from '../services/logbookSearchIndex.js'
@@ -11,7 +11,7 @@ import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import { BookOpen, Plus, Trash2, LogOut, Languages, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
+import { BookOpen, Plus, Trash2, LogOut, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
 import ProfileHeaderButton from './ProfileHeaderButton.tsx'
@@ -198,9 +198,6 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
     onLogout()
   }
 
-  const toggleLanguage = () => {
-    cycleAppLanguage(i18n)
-  }
 
   const ownedLogbooks = logbooks.filter((lb) => !lb.isShared)
   const sharedLogbooks = logbooks.filter((lb) => lb.isShared)
@@ -392,10 +389,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
 
           {onOpenAdmin && <AdminHeaderButton onClick={onOpenAdmin} />}
 
-          {/* Lang toggle */}
-          <button className="btn-icon" onClick={toggleLanguage} title="Switch Language">
-            <Languages size={18} />
-          </button>
+          <LanguageDropdown variant="icon" align="right" />
 
           <DisclaimerHeaderButton />
 
