@@ -9,7 +9,7 @@ import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.j
 import { fileToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
-import { Camera, Image, Trash2, X } from 'lucide-react'
+import { Camera, Image, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { probeCameraAvailability } from '../utils/cameraAvailability.js'
 
 interface PhotoCaptureProps {
@@ -29,6 +29,7 @@ interface DecryptedPhoto {
 export default function PhotoCapture({ entryId, logbookId, readOnly = false, preloadedPhotos }: PhotoCaptureProps) {
   const { t } = useTranslation()
   const { showConfirm } = useDialog()
+  const [collapsed, setCollapsed] = useState(true)
   const [caption, setCaption] = useState('')
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -165,133 +166,156 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
 
   return (
     <div className="form-card mt-6">
-      <div className="form-header mb-4">
-        <Camera size={20} className="form-icon" />
-        <h3>{t('logs.photos_title')}</h3>
+      <div
+        className="form-header accordion-header"
+        onClick={() => setCollapsed(!collapsed)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setCollapsed(!collapsed)
+          }
+        }}
+        role="button"
+        aria-expanded={!collapsed}
+        tabIndex={0}
+      >
+        <div className="accordion-header-title">
+          <Camera size={20} className="form-icon" />
+          <h3>{t('logs.photos_title')}</h3>
+        </div>
+        {collapsed ? (
+          <ChevronDown size={20} className="accordion-chevron" />
+        ) : (
+          <ChevronUp size={20} className="accordion-chevron" />
+        )}
       </div>
 
-      {error && <div className="auth-error mb-4">{error}</div>}
+      {!collapsed && (
+        <div style={{ marginTop: '16px' }}>
+          {error && <div className="auth-error mb-4">{error}</div>}
 
-      {/* Upload area */}
-      {/* Upload Form */}
-      {!readOnly && (
-        <div className="member-editor-card glass mb-6" style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <div className="input-group" style={{ flex: '1', minWidth: '200px', margin: 0 }}>
-              <label>{t('logs.photo_caption_label')}</label>
-              <input
-                type="text"
-                placeholder={t('logs.photo_caption_placeholder')}
-                className="input-text"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                disabled={uploading}
-              />
-            </div>
+          {/* Upload area */}
+          {/* Upload Form */}
+          {!readOnly && (
+            <div className="member-editor-card glass mb-6" style={{ padding: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div className="input-group" style={{ flex: '1', minWidth: '200px', margin: 0 }}>
+                  <label>{t('logs.photo_caption_label')}</label>
+                  <input
+                    type="text"
+                    placeholder={t('logs.photo_caption_placeholder')}
+                    className="input-text"
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    disabled={uploading}
+                  />
+                </div>
 
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
 
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              ref={cameraInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  ref={cameraInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
 
-            {hasCamera ? (
-              <>
-                <button
-                  type="button"
-                  className="btn primary"
-                  onClick={triggerCameraSelect}
-                  disabled={uploading}
-                  style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
-                >
-                  {uploading ? (
-                    <span className="spin">⏳</span>
-                  ) : (
-                    <Camera size={16} />
-                  )}
-                  {uploading ? t('logs.photo_processing') : t('logs.photo_camera_btn')}
-                </button>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={triggerGallerySelect}
-                  disabled={uploading}
-                  style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
-                >
-                  {uploading ? (
-                    <span className="spin">⏳</span>
-                  ) : (
-                    <Image size={16} />
-                  )}
-                  {uploading ? t('logs.photo_processing') : t('logs.photo_gallery_btn')}
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="btn primary"
-                onClick={triggerGallerySelect}
-                disabled={uploading}
-                style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
-              >
-                {uploading ? (
-                  <span className="spin">⏳</span>
+                {hasCamera ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      onClick={triggerCameraSelect}
+                      disabled={uploading}
+                      style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    >
+                      {uploading ? (
+                        <span className="spin">⏳</span>
+                      ) : (
+                        <Camera size={16} />
+                      )}
+                      {uploading ? t('logs.photo_processing') : t('logs.photo_camera_btn')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={triggerGallerySelect}
+                      disabled={uploading}
+                      style={{ width: 'auto', padding: '12px 20px', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    >
+                      {uploading ? (
+                        <span className="spin">⏳</span>
+                      ) : (
+                        <Image size={16} />
+                      )}
+                      {uploading ? t('logs.photo_processing') : t('logs.photo_gallery_btn')}
+                    </button>
+                  </>
                 ) : (
-                  <Camera size={16} />
-                )}
-                {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Photo Grid */}
-      {decryptedPhotos.length === 0 ? (
-        <div className="dashboard-status-msg">{t('logs.no_photos')}</div>
-      ) : (
-        <div className="photo-attachments-grid">
-          {decryptedPhotos.map((photo) => (
-            <div
-              key={photo.payloadId}
-              className="photo-card glass"
-              onClick={() => setMaximizedPhoto(photo)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="photo-container">
-                <img src={photo.image} alt={photo.caption || 'Attachment'} loading="lazy" />
-                {!readOnly && (
                   <button
                     type="button"
-                    className="photo-btn-delete"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(photo.payloadId)
-                    }}
-                    title="Remove photo"
+                    className="btn primary"
+                    onClick={triggerGallerySelect}
+                    disabled={uploading}
+                    style={{ width: 'auto', padding: '12px 24px', display: 'flex', gap: '8px', alignItems: 'center' }}
                   >
-                    <Trash2 size={16} />
+                    {uploading ? (
+                      <span className="spin">⏳</span>
+                    ) : (
+                      <Camera size={16} />
+                    )}
+                    {uploading ? t('logs.photo_processing') : t('logs.photo_btn')}
                   </button>
                 )}
               </div>
-              {photo.caption && (
-                <div className="photo-caption-bar">
-                  <span>{photo.caption}</span>
-                </div>
-              )}
             </div>
-          ))}
+          )}
+
+          {/* Photo Grid */}
+          {decryptedPhotos.length === 0 ? (
+            <div className="dashboard-status-msg">{t('logs.no_photos')}</div>
+          ) : (
+            <div className="photo-attachments-grid">
+              {decryptedPhotos.map((photo) => (
+                <div
+                  key={photo.payloadId}
+                  className="photo-card glass"
+                  onClick={() => setMaximizedPhoto(photo)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="photo-container">
+                    <img src={photo.image} alt={photo.caption || 'Attachment'} loading="lazy" />
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="photo-btn-delete"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(photo.payloadId)
+                        }}
+                        title="Remove photo"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {photo.caption && (
+                    <div className="photo-caption-bar">
+                      <span>{photo.caption}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
