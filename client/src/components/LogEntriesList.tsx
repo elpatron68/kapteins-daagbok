@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
-import { getActiveMasterKey } from '../services/auth.js'
+import { getActiveMasterKey, hasUnlockedLocalCrypto } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
-import { encryptJson } from '../services/crypto.js'
+import { encryptJson, decryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
 import { downloadCsv, shareCsv } from '../services/csvExport.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
+import { buildZipArchive } from '../services/logbookBackup/zipArchive.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { findTodayEntryId, pruneEmptyTodayDuplicates, tryDecryptEntryPayload } from '../services/quickEventLog.js'
@@ -57,6 +58,42 @@ interface DecryptedEntryItem {
   destination: string
   updatedAt: string
   skipperSignStatus: SkipperSignStatus
+}
+
+// Helper to convert data URL to Uint8Array for zip packaging
+function dataUrlToUint8Array(dataUrl: string): { data: Uint8Array; ext: string } {
+  const parts = dataUrl.split(',')
+  if (parts.length < 2) {
+    throw new Error('Invalid data URL')
+  }
+  const meta = parts[0]
+  const base64Data = parts[1]
+
+  let ext = 'jpg'
+  const mimeMatch = meta.match(/data:([^;]+)/)
+  if (mimeMatch) {
+    const mime = mimeMatch[1]
+    if (mime === 'image/png') ext = 'png'
+    else if (mime === 'image/gif') ext = 'gif'
+    else if (mime === 'image/webp') ext = 'webp'
+    else if (mime === 'image/heic') ext = 'heic'
+    else if (mime === 'image/heif') ext = 'heif'
+  }
+
+  const binaryString = atob(base64Data)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  return { data: bytes, ext }
+}
+
+function sanitizeFilename(str: string): string {
+  return str
+    .replace(/[^\w\s-]/gi, '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .slice(0, 30)
 }
 
 export default function LogEntriesList({
@@ -251,6 +288,90 @@ export default function LogEntriesList({
       trackPlausibleEvent(PlausibleEvents.PDF_EXPORTED, { scope: 'entry' })
     } catch (err: any) {
       console.error('Failed to download PDF:', err)
+      setError(getErrorMessage(err, t('errors.export_failed')))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDownloadPhotosZip = async () => {
+    setExporting(true)
+    setError(null)
+    try {
+      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
+      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
+
+      // Fetch all photos for this logbook from IndexedDB
+      const localPhotos = await db.photos.where({ logbookId }).toArray()
+      if (localPhotos.length === 0) {
+        setError(t('logs.no_photos_to_download'))
+        return
+      }
+
+      // Build a map of entry ID to entry info for filename lookup
+      const entryMap = new Map<string, DecryptedEntryItem>()
+      entries.forEach((e) => entryMap.set(e.id, e))
+
+      const files: Record<string, Uint8Array> = {}
+      const usedNames = new Set<string>()
+
+      for (const photo of localPhotos) {
+        // Decrypt photo payload (contains base64 image data and caption)
+        const decrypted = await decryptJson(photo.encryptedData, photo.iv, photo.tag, masterKey)
+        if (!decrypted || !decrypted.image) continue
+
+        const { data, ext } = dataUrlToUint8Array(decrypted.image)
+
+        // Construct unique, friendly filename
+        let fileBase = `photo_${photo.payloadId}`
+        const entry = entryMap.get(photo.entryId)
+        if (entry) {
+          const dateStr = entry.date || 'unknown-date'
+          const travelDay = entry.dayOfTravel ? `day-${entry.dayOfTravel}` : ''
+          const sanitizedCaption = decrypted.caption ? sanitizeFilename(decrypted.caption) : ''
+
+          const parts = [dateStr]
+          if (travelDay) parts.push(travelDay)
+          if (sanitizedCaption) parts.push(sanitizedCaption)
+
+          fileBase = parts.join('_')
+        } else if (decrypted.caption) {
+          fileBase = `photo_${sanitizeFilename(decrypted.caption)}`
+        }
+
+        // De-duplicate name
+        let candidate = `${fileBase}.${ext}`
+        let counter = 1
+        while (usedNames.has(candidate.toLowerCase())) {
+          candidate = `${fileBase}_${counter}.${ext}`
+          counter++
+        }
+        usedNames.add(candidate.toLowerCase())
+
+        files[candidate] = data
+      }
+
+      if (Object.keys(files).length === 0) {
+        setError(t('logs.no_photos_to_download'))
+        return
+      }
+
+      const zipBytes = buildZipArchive(files)
+      const blob = new Blob([zipBytes as any], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+
+      const yachtName = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
+      const safeTitle = yachtName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'logbook'
+      const datePart = new Date().toISOString().slice(0, 10)
+      const filename = `${safeTitle}-photos-${datePart}.zip`
+
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Failed to download photos ZIP:', err)
       setError(getErrorMessage(err, t('errors.export_failed')))
     } finally {
       setExporting(false)
@@ -487,6 +608,21 @@ export default function LogEntriesList({
             <Share2 size={16} />
             <span className="hide-mobile">{t('logs.share_csv')}</span>
           </button>
+
+          {hasUnlockedLocalCrypto() && (
+            <button
+              className="btn secondary"
+              onClick={handleDownloadPhotosZip}
+              disabled={loading || exporting || entries.length === 0}
+              style={{ width: 'auto', padding: '8px 16px' }}
+              title={t('logs.export_photos_zip')}
+            >
+              <Download size={16} />
+              <span className="hide-mobile">
+                {exporting ? t('logs.exporting_photos_zip') : t('logs.export_photos_zip')}
+              </span>
+            </button>
+          )}
 
           {!readOnly && (
             <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.new_entry')}>

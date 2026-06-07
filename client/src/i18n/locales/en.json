@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Stay",
       "unsaved_changes_save_leave": "Save & leave",
       "unsaved_changes_discard": "Discard",
-      "unsaved_changes_leave": "Leave"
+      "unsaved_changes_leave": "Leave",
+      "previous": "Previous",
+      "next": "Next"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Only the skipper may generate AI summaries.",
       "ai_summary_offline": "AI summary generation requires an internet connection. You are currently offline.",
       "photos_title": "Photo Attachments",
+      "export_photos_zip": "Download Photos (ZIP)",
+      "exporting_photos_zip": "Creating ZIP...",
+      "no_photos_to_download": "No photos found in this logbook.",
       "photo_caption_label": "Photo Caption / Label (Optional)",
       "photo_caption_placeholder": "e.g. Setting sails near harbor entrance",
       "photo_btn": "Take Photo / Upload",

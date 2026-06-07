@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Blive",
       "unsaved_changes_save_leave": "Gem og afslut",
       "unsaved_changes_discard": "Afvis",
-      "unsaved_changes_leave": "Forladt"
+      "unsaved_changes_leave": "Forladt",
+      "previous": "Forrige",
+      "next": "Næste"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Kun skipperen må generere AI-opsummeringer.",
       "ai_summary_offline": "AI-opsummeringen kræver en internetforbindelse. Du er i øjeblikket offline.",
       "photos_title": "Fotobilag",
+      "export_photos_zip": "Download fotos (ZIP)",
+      "exporting_photos_zip": "Opretter ZIP...",
+      "no_photos_to_download": "Ingen fotos fundet i denne logbog.",
       "photo_caption_label": "Billedbeskrivelse / Etiket (valgfrit)",
       "photo_caption_placeholder": "f.eks. sætte sejl tæt på havneindsejlingen",
       "photo_btn": "Tag/upload et billede",

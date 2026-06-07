@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Bli",
       "unsaved_changes_save_leave": "Lagre og avslutt",
       "unsaved_changes_discard": "Avvis",
-      "unsaved_changes_leave": "Forlatt"
+      "unsaved_changes_leave": "Forlatt",
+      "previous": "Forrige",
+      "next": "Neste"
     },
     "nav": {
       "dashboard": "Dashbord",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Bare skipperen har lov til å generere AI-sammendrag.",
       "ai_summary_offline": "AI-sammendraget krever en internettforbindelse. Du er for øyeblikket frakoblet.",
       "photos_title": "Bildevedlegg",
+      "export_photos_zip": "Last ned bilder (ZIP)",
+      "exporting_photos_zip": "Oppretter ZIP...",
+      "no_photos_to_download": "Ingen bilder i denne loggboken.",
       "photo_caption_label": "Bildetekst / Etikett (valgfritt)",
       "photo_caption_placeholder": "f.eks. sette seil nær havneinnløpet",
       "photo_btn": "Ta bilde / Last opp",

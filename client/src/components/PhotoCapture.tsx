@@ -9,7 +9,7 @@ import { saveEntryPhoto, deleteEntryPhoto } from '../services/photoAttachments.j
 import { fileToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useDialog } from './ModalDialog.tsx'
-import { Camera, Image, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Camera, Image, Trash2, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { probeCameraAvailability } from '../utils/cameraAvailability.js'
 
 interface PhotoCaptureProps {
@@ -39,6 +39,46 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const touchStartX = useRef<number>(0)
+  const touchEndX = useRef<number>(0)
+
+  const goToNext = () => {
+    if (!maximizedPhoto || decryptedPhotos.length <= 1) return
+    const currentIndex = decryptedPhotos.findIndex(p => p.payloadId === maximizedPhoto.payloadId)
+    if (currentIndex === -1) return
+    const nextIndex = (currentIndex + 1) % decryptedPhotos.length
+    setMaximizedPhoto(decryptedPhotos[nextIndex])
+  }
+
+  const goToPrev = () => {
+    if (!maximizedPhoto || decryptedPhotos.length <= 1) return
+    const currentIndex = decryptedPhotos.findIndex(p => p.payloadId === maximizedPhoto.payloadId)
+    if (currentIndex === -1) return
+    const prevIndex = (currentIndex - 1 + decryptedPhotos.length) % decryptedPhotos.length
+    setMaximizedPhoto(decryptedPhotos[prevIndex])
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX
+    touchEndX.current = e.targetTouches[0].clientX
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return
+    const diffX = touchStartX.current - touchEndX.current
+    const threshold = 50
+    if (diffX > threshold) {
+      goToNext()
+    } else if (diffX < -threshold) {
+      goToPrev()
+    }
+    touchStartX.current = 0
+    touchEndX.current = 0
+  }
 
   useEffect(() => {
     if (!maximizedPhoto) return
@@ -46,6 +86,10 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMaximizedPhoto(null)
+      } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+        goToPrev()
+      } else if (e.key === 'ArrowRight' || e.key === 'Right') {
+        goToNext()
       }
     }
 
@@ -53,7 +97,7 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [maximizedPhoto])
+  }, [maximizedPhoto, decryptedPhotos])
 
   useEffect(() => {
     let cancelled = false
@@ -323,7 +367,37 @@ export default function PhotoCapture({ entryId, logbookId, readOnly = false, pre
         <div
           className="photo-maximized-overlay"
           onClick={() => setMaximizedPhoto(null)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
+          {decryptedPhotos.length > 1 && (
+            <>
+              <button
+                type="button"
+                className="photo-maximized-nav photo-maximized-prev"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  goToPrev()
+                }}
+                aria-label={t('common.previous') || 'Previous'}
+              >
+                <ChevronLeft size={32} />
+              </button>
+              <button
+                type="button"
+                className="photo-maximized-nav photo-maximized-next"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  goToNext()
+                }}
+                aria-label={t('common.next') || 'Next'}
+              >
+                <ChevronRight size={32} />
+              </button>
+            </>
+          )}
+
           <div className="photo-maximized-container" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"

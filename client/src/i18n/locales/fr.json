@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Rester",
       "unsaved_changes_save_leave": "Enregistrer et quitter",
       "unsaved_changes_discard": "Rejeter",
-      "unsaved_changes_leave": "Quitter"
+      "unsaved_changes_leave": "Quitter",
+      "previous": "Précédent",
+      "next": "Suivant"
     },
     "nav": {
       "dashboard": "Tableau de bord",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Seul le skipper est autorisé à générer des résumés basés sur l'IA.",
       "ai_summary_offline": "Le résumé généré par l'IA nécessite une connexion Internet. Tu es actuellement hors ligne.",
       "photos_title": "Pièces jointes (photos)",
+      "export_photos_zip": "Télécharger les photos (ZIP)",
+      "exporting_photos_zip": "Création du fichier ZIP...",
+      "no_photos_to_download": "Aucune photo disponible dans ce journal.",
       "photo_caption_label": "Description de la photo / Étiquette (facultatif)",
       "photo_caption_placeholder": "par exemple, hisser les voiles près de l'entrée du port",
       "photo_btn": "Prendre une photo / Télécharger une photo",

@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Stanna kvar",
       "unsaved_changes_save_leave": "Spara och avsluta",
       "unsaved_changes_discard": "Avvisa",
-      "unsaved_changes_leave": "Lämna"
+      "unsaved_changes_leave": "Lämna",
+      "previous": "Föregående",
+      "next": "Nästa"
     },
     "nav": {
       "dashboard": "Instrumentpanelen",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Endast skepparen får skapa AI-sammanfattningar.",
       "ai_summary_offline": "AI-sammanfattningen kräver en internetanslutning. Du är för närvarande offline.",
       "photos_title": "Bilagor med bilder",
+      "export_photos_zip": "Ladda ner bilder (ZIP)",
+      "exporting_photos_zip": "Skapar ZIP...",
+      "no_photos_to_download": "Inga bilder i denna loggbok.",
       "photo_caption_label": "Bildbeskrivning / Etikett (valfritt)",
       "photo_caption_placeholder": "t.ex. sätta segel nära hamninloppet",
       "photo_btn": "Ta en bild / Ladda upp",

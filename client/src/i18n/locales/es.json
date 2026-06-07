@@ -36,7 +36,9 @@
       "unsaved_changes_stay": "Quedarse",
       "unsaved_changes_save_leave": "Guardar y salir",
       "unsaved_changes_discard": "Descartar",
-      "unsaved_changes_leave": "Abandonado"
+      "unsaved_changes_leave": "Abandonado",
+      "previous": "Anterior",
+      "next": "Siguiente"
     },
     "nav": {
       "dashboard": "Panel de control",
@@ -445,6 +447,9 @@
       "ai_summary_error_forbidden": "Solo el capitán puede generar resúmenes de IA.",
       "ai_summary_offline": "El resumen generado por IA requiere una conexión a Internet. Actualmente no tienes conexión.",
       "photos_title": "Archivos adjuntos con fotos",
+      "export_photos_zip": "Descargar fotos (ZIP)",
+      "exporting_photos_zip": "Creando archivo ZIP...",
+      "no_photos_to_download": "No hay fotos disponibles en este cuaderno de bitácora.",
       "photo_caption_label": "Descripción de la foto / Etiqueta (opcional)",
       "photo_caption_placeholder": "p. ej., izar las velas cerca de la entrada del puerto",
       "photo_btn": "Hacer una foto / Subir una foto",

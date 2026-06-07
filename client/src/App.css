@@ -3336,6 +3336,51 @@ html.theme-cupertino .events-scroll-container {
   word-break: break-word;
 }
 
+.photo-maximized-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 11005;
+}
+
+.photo-maximized-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #ffffff;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.photo-maximized-prev {
+  left: 24px;
+}
+
+.photo-maximized-next {
+  right: 24px;
+}
+
+@media (max-width: 768px) {
+  .photo-maximized-nav {
+    width: 44px;
+    height: 44px;
+  }
+  .photo-maximized-prev {
+    left: 12px;
+  }
+  .photo-maximized-next {
+    right: 12px;
+  }
+}
+
 /* Custom Dialog Modals Styling */
 .custom-dialog-overlay {
   position: fixed;
