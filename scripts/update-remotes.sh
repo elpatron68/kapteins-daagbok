@@ -70,8 +70,11 @@ DEFAULT_VERSION="0.1.0.0"
 MAX_WAIT=90
 
 REMOTE_USER="${REMOTE_USER:-root}"
-GIT_REMOTE="${GIT_REMOTE:-github}"
-GIT_REMOTE_URL="${GIT_REMOTE_URL:-https://github.com/elpatron68/kapteins-daagbok.git}"
+# GIT_REMOTE="${GIT_REMOTE:-github}"
+# GIT_REMOTE_URL="${GIT_REMOTE_URL:-https://github.com/elpatron68/kapteins-daagbok.git}"
+GIT_REMOTE="${GIT_REMOTE:-origin}"
+GIT_REMOTE_URL="${GIT_REMOTE_URL:-https://gitea.elpatron.me/elpatron/kapteins-daagbok.git}"
+
 
 if [[ "$DEST" == "stage" ]]; then
   REMOTE_HOST="${REMOTE_HOST:-10.0.0.27}"
