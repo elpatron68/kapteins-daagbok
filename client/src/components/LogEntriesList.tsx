@@ -541,17 +541,17 @@ export default function LogEntriesList({
                 </div>
               </div>
 
-              <ChevronRight size={18} className="logbook-card-chevron" aria-hidden />
-
-              <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
-                <Download size={18} />
-              </button>
-
-              {!readOnly && (
-                <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
-                  <Trash2 size={18} />
+              <div className="logbook-card-right-group">
+                <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
+                  <Download size={18} />
                 </button>
-              )}
+                {!readOnly && (
+                  <button className="btn-delete" onClick={(e) => handleDelete(item.id, e)} title={t('logs.delete_entry')}>
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                <ChevronRight size={18} className="logbook-card-chevron" aria-hidden />
+              </div>
             </div>
           ))}
         </div>

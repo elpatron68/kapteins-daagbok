@@ -1939,6 +1939,21 @@ html.scheme-dark .themed-select-option.is-selected {
   pointer-events: none;
 }
 
+.logbook-card-right-group {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  align-self: center;
+}
+
+.logbook-card-right-group .logbook-card-chevron {
+  margin-left: 0;
+}
+
 .logbook-card .logbook-title-editable,
 .logbook-card .logbook-title-inline-edit,
 .logbook-card .card-title-row {
@@ -2965,6 +2980,12 @@ html.scheme-dark .themed-select-option.is-selected {
   }
 
   .logbook-card-actions .btn-delete {
+    opacity: 1;
+  }
+
+  .logbook-card-right-group .btn-pdf,
+  .logbook-card-right-group .btn-delete {
+    position: static;
     opacity: 1;
   }
 
