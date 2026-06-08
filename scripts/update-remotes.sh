@@ -90,7 +90,7 @@ else
   COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
   BACKEND_CONTAINER="${BACKEND_CONTAINER:-daagbox-prod-backend}"
   APP_URL="${APP_URL:-https://kapteins-daagbok.eu}"
-  DEPLOY_BRANCH=""
+  DEPLOY_BRANCH="none"
   ENV_LABEL="Production"
 fi
 
