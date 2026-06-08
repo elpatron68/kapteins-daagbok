@@ -852,7 +852,6 @@ function App() {
           {activeTab === 'settings' && (
             <SettingsForm
               logbookId={activeLogbookId}
-              onLogbookRestored={selectLogbook}
             />
           )}
         </main>

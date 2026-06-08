@@ -11,11 +11,12 @@ import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { logoutUser } from '../services/auth.js'
 import { useDialog } from './ModalDialog.tsx'
-import { BookOpen, Plus, Trash2, LogOut, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown } from 'lucide-react'
+import { BookOpen, Plus, Trash2, LogOut, RefreshCw, Ship, Wifi, WifiOff, Search, X, CalendarDays, CaseSensitive, ArrowUp, ArrowDown, Upload } from 'lucide-react'
 import DisclaimerHeaderButton from './DisclaimerHeaderButton.tsx'
 import FeedbackHeaderButton from './FeedbackHeaderButton.tsx'
 import ProfileHeaderButton from './ProfileHeaderButton.tsx'
 import AdminHeaderButton from './AdminHeaderButton.tsx'
+import LogbookRestorePanel from './LogbookRestorePanel.tsx'
 
 interface LogbookDashboardProps {
   onSelectLogbook: (id: string, title: string) => void
@@ -67,6 +68,7 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
   const [sortDirection, setSortDirection] = useState<LogbookSortDirection>('desc')
   const filterInputRef = useRef<HTMLInputElement>(null)
   const [online, setOnline] = useState(navigator.onLine)
+  const [showRestore, setShowRestore] = useState(false)
 
   const { pendingCount, showSpinner, showPendingWarning, connStatusClassName } = useSyncIndicator()
 
@@ -434,6 +436,24 @@ export default function LogbookDashboard({ onSelectLogbook, onLogout, onOpenProf
           </form>
 
           {error && <div className="auth-error mt-4">{error}</div>}
+
+          <div style={{ marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', textAlign: 'center' }}>
+            <button
+              type="button"
+              className="btn-link"
+              style={{ fontSize: '13.5px', color: 'var(--app-text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setShowRestore(!showRestore)}
+            >
+              <Upload size={14} />
+              {t('settings.backup_restore_title')}
+            </button>
+          </div>
+
+          {showRestore && (
+            <div style={{ marginTop: '16px', textAlign: 'left' }}>
+              <LogbookRestorePanel onRestored={onSelectLogbook} />
+            </div>
+          )}
         </section>
 
         {/* Right Side: Logbooks list */}

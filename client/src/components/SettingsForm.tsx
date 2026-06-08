@@ -17,7 +17,6 @@ import { isIosDevice, isRunningStandalone } from '../hooks/usePwaInstall.js'
 
 interface SettingsFormProps {
   logbookId?: string | null
-  onLogbookRestored?: (logbookId: string, title: string) => void
 }
 
 interface Collaborator {
@@ -34,7 +33,7 @@ const bufferToHex = (buffer: ArrayBuffer): string => {
     .join('')
 }
 
-export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsFormProps) {
+export default function SettingsForm({ logbookId }: SettingsFormProps) {
   const { t } = useTranslation()
   const { showConfirm, showAlert } = useDialog()
 
@@ -374,7 +373,7 @@ export default function SettingsForm({ logbookId, onLogbookRestored }: SettingsF
       )}
 
       {logbookId && isOwner && (
-        <LogbookBackupPanel logbookId={logbookId} onRestored={onLogbookRestored} />
+        <LogbookBackupPanel logbookId={logbookId} />
       )}
 
       {logbookId && isOwner && (
