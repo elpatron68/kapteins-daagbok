@@ -116,7 +116,6 @@ import {
 } from '../utils/tankCapacity.js'
 import {
   formatAppCoordinate,
-  formatAppDecimal,
   parseAppDecimal,
   parseAppDecimalOrZero
 } from '../utils/numberFormat.js'
