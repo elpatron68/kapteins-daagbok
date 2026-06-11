@@ -91,4 +91,24 @@ describe('buildLogEntryPayload tides', () => {
     })
     expect(payload.tides).toEqual({ highWater: '18:34', lowWater: '12:05' })
   })
+
+  it('persists tide location metadata', () => {
+    const payload = buildLogEntryPayload({
+      ...base,
+      tides: {
+        highWater: '06:00',
+        lowWater: '00:04',
+        locationSource: 'gps',
+        lat: '53.624526',
+        lng: '7.155263'
+      }
+    })
+    expect(payload.tides).toEqual({
+      highWater: '06:00',
+      lowWater: '00:04',
+      locationSource: 'gps',
+      lat: '53.624526',
+      lng: '7.155263'
+    })
+  })
 })

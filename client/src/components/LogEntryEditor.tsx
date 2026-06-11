@@ -44,7 +44,13 @@ import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
 import { fetchTidesByPlace, fetchTidesNearby, TidesApiError } from '../services/tides.js'
-import { resolveTideFetchLocation } from '../utils/tideLocation.js'
+import {
+  buildTideLocationMeta,
+  formatTideLocationLabel,
+  pickTideLocationMeta,
+  resolveTideFetchLocation,
+  type TideLocationMeta
+} from '../utils/tideLocation.js'
 import { parseTideTurtleForDate } from '../utils/tideTurtle.js'
 import {
   buildTravelDayContext,
@@ -306,8 +312,8 @@ export default function LogEntryEditor({
   const [tidesCollapsed, setTidesCollapsed] = useState(true)
   const [tideHighWater, setTideHighWater] = useState('')
   const [tideLowWater, setTideLowWater] = useState('')
+  const [tideLocation, setTideLocation] = useState<TideLocationMeta>({})
   const [tidesLoading, setTidesLoading] = useState(false)
-  const [tideFetchHint, setTideFetchHint] = useState('')
   const [tanksCollapsed, setTanksCollapsed] = useState(true)
 
   const [columnSelectorOpen, setColumnSelectorOpen] = useState(false)
@@ -440,7 +446,7 @@ export default function LogEntryEditor({
         consumption: parseAppDecimalOrZero(fuelConsumption)
       },
       greywater: { level: parseAppDecimalOrZero(greywaterLevel) },
-      tides: { highWater: tideHighWater, lowWater: tideLowWater },
+      tides: { highWater: tideHighWater, lowWater: tideLowWater, ...tideLocation },
       trackDistanceNm: parseOptionalFormDecimal(trackDistanceNm),
       trackSpeedMaxKn: parseOptionalFormDecimal(trackSpeedMaxKn),
       trackSpeedAvgKn: parseOptionalFormDecimal(trackSpeedAvgKn),
@@ -453,7 +459,7 @@ export default function LogEntryEditor({
     fwMorning, fwRefilled, fwEvening, fwConsumption,
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
     greywaterLevel,
-    tideHighWater, tideLowWater,
+    tideHighWater, tideLowWater, tideLocation,
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
     events,
     entryCrew
@@ -502,6 +508,11 @@ export default function LogEntryEditor({
         tankCapacities.fuelCapacityL
       ),
     [fuelMorning, fuelRefilled, tankCapacities.fuelCapacityL]
+  )
+
+  const tideLocationLabel = useMemo(
+    () => formatTideLocationLabel(tideLocation, t),
+    [tideLocation, t]
   )
 
   const currentFingerprint = useMemo(() => {
@@ -936,7 +947,7 @@ export default function LogEntryEditor({
           const preloadedTides = readLogEntryTides(preloadedEntry as Record<string, unknown>)
           setTideHighWater(preloadedTides.highWater)
           setTideLowWater(preloadedTides.lowWater)
-          setTideFetchHint('')
+          setTideLocation(pickTideLocationMeta(preloadedTides))
 
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
@@ -982,7 +993,7 @@ export default function LogEntryEditor({
             const loadedTides = readLogEntryTides(decrypted as Record<string, unknown>)
             setTideHighWater(loadedTides.highWater)
             setTideLowWater(loadedTides.lowWater)
-            setTideFetchHint('')
+            setTideLocation(pickTideLocationMeta(loadedTides))
 
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
@@ -1300,7 +1311,6 @@ export default function LogEntryEditor({
     }
 
     setTidesLoading(true)
-    setTideFetchHint('')
     try {
       const loaded = await loadEntry(logbookId, entryId)
       const eventsForLocation = loaded
@@ -1339,25 +1349,7 @@ export default function LogEntryEditor({
 
       if (parsed.highWater) setTideHighWater(parsed.highWater)
       if (parsed.lowWater) setTideLowWater(parsed.lowWater)
-
-      if (location.source === 'departure') {
-        setTideFetchHint(
-          t('logs.tide_fetched_from_departure', {
-            place: parsed.placeName || location.query
-          })
-        )
-      } else if (location.source === 'gps') {
-        setTideFetchHint(t('logs.tide_fetched_at_position'))
-      } else if (parsed.placeName) {
-        setTideFetchHint(
-          parsed.distanceKm != null
-            ? t('logs.tide_fetched_from', {
-                place: parsed.placeName,
-                distance: formatAppDecimal(parsed.distanceKm, { maximumFractionDigits: 1 }) ?? String(parsed.distanceKm)
-              })
-            : parsed.placeName
-        )
-      }
+      setTideLocation(buildTideLocationMeta(location, data))
     } catch (err) {
       if (err instanceof TidesApiError) {
         if (err.code === 'OFFLINE') {
@@ -2250,9 +2242,9 @@ export default function LogEntryEditor({
                 <p className="form-hint" role="note">
                   {t('logs.tide_disclaimer')}
                 </p>
-                {tideFetchHint ? (
-                  <p className="form-hint" role="status">
-                    {tideFetchHint}
+                {tideLocationLabel ? (
+                  <p className="tides-panel__location" role="status">
+                    {tideLocationLabel}
                   </p>
                 ) : null}
               </div>

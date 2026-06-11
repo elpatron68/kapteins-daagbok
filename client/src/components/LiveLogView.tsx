@@ -59,7 +59,11 @@ const formatSpeedKn = (speedKn: number) =>
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
 import { fetchTidesByPlace, fetchTidesNearby, TidesApiError } from '../services/tides.js'
-import { resolveTideFetchLocation } from '../utils/tideLocation.js'
+import {
+  buildTideLocationMeta,
+  formatTideLocationLabel,
+  resolveTideFetchLocation
+} from '../utils/tideLocation.js'
 import { parseTideTurtleForDate } from '../utils/tideTurtle.js'
 import {
   geolocationErrorI18nKey,
@@ -211,10 +215,7 @@ export default function LiveLogView({
   const [tidePreview, setTidePreview] = useState<{
     highWater: string
     lowWater: string
-    placeName?: string
-    distanceKm?: number
-    source: 'gps' | 'departure'
-    departureQuery?: string
+    location: ReturnType<typeof buildTideLocationMeta>
   } | null>(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [commentText, setCommentText] = useState('')
@@ -851,10 +852,7 @@ export default function LiveLogView({
         setTidePreview({
           highWater: parsed.highWater,
           lowWater: parsed.lowWater,
-          placeName: parsed.placeName,
-          distanceKm: parsed.distanceKm,
-          source: location.source,
-          departureQuery: location.mode === 'by-place' ? location.query : undefined
+          location: buildTideLocationMeta(location, data)
         })
         setModal('tides')
       } catch (err) {
@@ -886,7 +884,8 @@ export default function LiveLogView({
     void runQuickAction(async () => {
       await patchEntryTides(logbookId, entryId, {
         highWater: preview.highWater,
-        lowWater: preview.lowWater
+        lowWater: preview.lowWater,
+        ...preview.location
       })
       setTidePreview(null)
       setModal('none')
@@ -1585,24 +1584,9 @@ export default function LiveLogView({
             <p className="live-log-modal-hint" role="note">
               {t('logs.tide_disclaimer')}
             </p>
-            {tidePreview.source === 'departure' && tidePreview.departureQuery ? (
+            {formatTideLocationLabel(tidePreview.location, t) ? (
               <p className="live-log-modal-hint" role="status">
-                {t('logs.tide_fetched_from_departure', {
-                  place: tidePreview.placeName || tidePreview.departureQuery
-                })}
-              </p>
-            ) : tidePreview.source === 'gps' ? (
-              <p className="live-log-modal-hint" role="status">
-                {t('logs.tide_fetched_at_position')}
-              </p>
-            ) : tidePreview.placeName ? (
-              <p className="live-log-modal-hint" role="status">
-                {tidePreview.distanceKm != null
-                  ? t('logs.tide_fetched_from', {
-                      place: tidePreview.placeName,
-                      distance: formatAppDecimal(tidePreview.distanceKm, { maximumFractionDigits: 1 }) ?? String(tidePreview.distanceKm)
-                    })
-                  : tidePreview.placeName}
+                {formatTideLocationLabel(tidePreview.location, t)}
               </p>
             ) : null}
             <dl className="live-log-tide-preview">

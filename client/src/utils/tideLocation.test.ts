@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { LIVE_EVENT_CODES } from './liveEventCodes.js'
-import { resolveTideFetchLocation } from './tideLocation.js'
+import {
+  buildTideLocationMeta,
+  formatTideLocationLabel,
+  resolveTideFetchLocation
+} from './tideLocation.js'
 
 const entryDate = '2026-06-11'
 const nowMs = new Date('2026-06-11T12:00:00').getTime()
@@ -106,6 +110,33 @@ describe('resolveTideFetchLocation', () => {
       nowMs
     })
     expect(result).toEqual({ error: 'stale' })
+  })
+
+  it('builds GPS location metadata from nearby fetch', () => {
+    const meta = buildTideLocationMeta(
+      { mode: 'nearby', lat: '53.624526', lng: '7.155263', source: 'gps' },
+      { location: { name: 'Norddeich', lat: 53.62, lon: 7.15, source: 'coordinates' } }
+    )
+    expect(meta).toEqual({
+      locationSource: 'gps',
+      lat: '53.624526',
+      lng: '7.155263',
+      placeName: 'Norddeich'
+    })
+  })
+
+  it('formats coordinate and place labels', () => {
+    const t = (key: string, options?: Record<string, string>) =>
+      `${key}:${JSON.stringify(options ?? {})}`
+    expect(
+      formatTideLocationLabel(
+        { locationSource: 'gps', lat: '53.62', lng: '7.15', placeName: 'Norddeich' },
+        t
+      )
+    ).toContain('tide_data_for_place_and_position')
+    expect(
+      formatTideLocationLabel({ locationSource: 'gps', lat: '53.62', lng: '7.15' }, t)
+    ).toContain('tide_data_for_position')
   })
 
   it('returns missing without position or departure', () => {

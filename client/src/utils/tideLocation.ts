@@ -3,9 +3,11 @@ import {
   getLatestLoggedPosition,
   LIVE_LOG_TIDE_POSITION_MAX_AGE_MS
 } from './liveEventCodes.js'
-import type { LogEventPayload } from './logEntryPayload.js'
+import type { LogEntryTides, LogEventPayload, TideLocationSource } from './logEntryPayload.js'
 
-export type TideLocationSource = 'gps' | 'departure'
+export type { TideLocationSource }
+
+export type TideLocationMeta = Pick<LogEntryTides, 'locationSource' | 'placeName' | 'lat' | 'lng'>
 
 export type TideFetchLocation =
   | { mode: 'nearby'; lat: string; lng: string; source: 'gps' }
@@ -44,4 +46,74 @@ export function resolveTideFetchLocation(options: {
   }
 
   return { error: 'missing' }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+export function buildTideLocationMeta(
+  fetchLocation: TideFetchLocation,
+  apiData: Record<string, unknown>
+): TideLocationMeta {
+  const apiLocation = asRecord(apiData.location)
+
+  if (fetchLocation.mode === 'nearby') {
+    return {
+      locationSource: 'gps',
+      lat: fetchLocation.lat,
+      lng: fetchLocation.lng,
+      placeName: apiLocation?.name ? String(apiLocation.name) : undefined
+    }
+  }
+
+  const placeName = apiLocation?.name ? String(apiLocation.name) : fetchLocation.query
+  const lat = apiLocation?.lat != null && apiLocation.lat !== '' ? String(apiLocation.lat) : undefined
+  const lng = apiLocation?.lon != null && apiLocation.lon !== '' ? String(apiLocation.lon) : undefined
+
+  return {
+    locationSource: apiLocation?.source === 'geocoded' ? 'geocoded' : 'departure',
+    placeName,
+    lat,
+    lng
+  }
+}
+
+type TideLocationLabelT = (
+  key: string,
+  options?: Record<string, string | undefined>
+) => string
+
+export function formatTideLocationLabel(
+  tides: TideLocationMeta,
+  t: TideLocationLabelT
+): string {
+  const placeName = tides.placeName?.trim()
+  const lat = tides.lat?.trim()
+  const lng = tides.lng?.trim()
+
+  if (placeName && lat && lng) {
+    return t('logs.tide_data_for_place_and_position', { place: placeName, lat, lng })
+  }
+  if (lat && lng) {
+    return t('logs.tide_data_for_position', { lat, lng })
+  }
+  if (placeName) {
+    if (tides.locationSource === 'departure') {
+      return t('logs.tide_fetched_from_departure', { place: placeName })
+    }
+    return t('logs.tide_data_for_place', { place: placeName })
+  }
+  return ''
+}
+
+export function pickTideLocationMeta(tides: LogEntryTides): TideLocationMeta {
+  return {
+    locationSource: tides.locationSource,
+    placeName: tides.placeName,
+    lat: tides.lat,
+    lng: tides.lng
+  }
 }

@@ -4628,6 +4628,14 @@ html.theme-cupertino .events-scroll-container {
   line-height: 1.45;
 }
 
+.tides-panel__location {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--app-text);
+  line-height: 1.45;
+}
+
 .tides-panel__fields {
   margin: 0;
 }

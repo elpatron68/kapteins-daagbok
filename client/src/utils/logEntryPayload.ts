@@ -150,9 +150,15 @@ export function sortLogEventsByTime<T extends LogEventPayload>(events: T[]): T[]
   return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 }
 
+export type TideLocationSource = 'gps' | 'departure' | 'geocoded'
+
 export interface LogEntryTides {
   highWater: string
   lowWater: string
+  locationSource?: TideLocationSource
+  placeName?: string
+  lat?: string
+  lng?: string
 }
 
 export interface LogEntryPayloadInput {
@@ -172,13 +178,28 @@ export interface LogEntryPayloadInput {
   entryCrew?: EntryCrewFields
 }
 
+function readTideLocationSource(value: unknown): TideLocationSource | undefined {
+  const source = String(value ?? '').trim()
+  if (source === 'gps' || source === 'departure' || source === 'geocoded') return source
+  return undefined
+}
+
 export function readLogEntryTides(data: Record<string, unknown>): LogEntryTides {
   const tides = data.tides as Record<string, unknown> | undefined
   const highRaw = String(tides?.highWater ?? '').trim()
   const lowRaw = String(tides?.lowWater ?? '').trim()
+  const placeName = String(tides?.placeName ?? '').trim()
+  const lat = String(tides?.lat ?? '').trim()
+  const lng = String(tides?.lng ?? '').trim()
+  const locationSource = readTideLocationSource(tides?.locationSource)
+
   return {
     highWater: parseTimeToHHMM(highRaw) ?? '',
-    lowWater: parseTimeToHHMM(lowRaw) ?? ''
+    lowWater: parseTimeToHHMM(lowRaw) ?? '',
+    ...(locationSource ? { locationSource } : {}),
+    ...(placeName ? { placeName } : {}),
+    ...(lat ? { lat } : {}),
+    ...(lng ? { lng } : {})
   }
 }
 
@@ -211,7 +232,15 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
     const highWater = parseTimeToHHMM(input.tides.highWater) ?? ''
     const lowWater = parseTimeToHHMM(input.tides.lowWater) ?? ''
     if (highWater || lowWater) {
-      payload.tides = { highWater, lowWater }
+      const tides: Record<string, string> = { highWater, lowWater }
+      if (input.tides.locationSource) tides.locationSource = input.tides.locationSource
+      const placeName = input.tides.placeName?.trim()
+      if (placeName) tides.placeName = placeName
+      const lat = input.tides.lat?.trim()
+      if (lat) tides.lat = lat
+      const lng = input.tides.lng?.trim()
+      if (lng) tides.lng = lng
+      payload.tides = tides
     }
   }
 
