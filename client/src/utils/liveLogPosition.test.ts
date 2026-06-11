@@ -19,6 +19,16 @@ describe('live log position', () => {
     expect(position?.source).toBe('position')
   })
 
+  it('picks latest position by event time even when array is not sorted', () => {
+    const entryDate = '2026-06-01'
+    const events = [
+      { remarks: LIVE_EVENT_CODES.POSITION, time: '14:16', gpsLat: '54.12', gpsLng: '10.65' },
+      { remarks: LIVE_EVENT_CODES.POSITION, time: '14:03', gpsLat: '53.62', gpsLng: '7.15' }
+    ]
+    const position = getLatestLoggedPosition(events, entryDate)
+    expect(position?.lat).toBe('54.12')
+  })
+
   it('reads legacy __live:fix remarks', () => {
     const entryDate = '2026-06-01'
     const events = [

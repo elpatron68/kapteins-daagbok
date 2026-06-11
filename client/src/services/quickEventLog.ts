@@ -7,9 +7,11 @@ import { putEntryRecord } from '../utils/entryListCache.js'
 import {
   buildLogEntryPayload,
   normalizeLogEvent,
+  readLogEntryTides,
   sortLogEventsByTime,
   currentLocalTimeHHMM,
   localDateString,
+  type LogEntryTides,
   type LogEventPayload
 } from '../utils/logEntryPayload.js'
 import {
@@ -75,6 +77,7 @@ function buildEncryptedPayload(
     destination?: string
     freshwater?: { morning: number; refilled: number; evening: number; consumption: number }
     fuel?: { morning: number; refilled: number; evening: number; consumption: number }
+    tides?: LogEntryTides
     clearSignatures?: boolean
   }
 ): Record<string, unknown> {
@@ -113,6 +116,7 @@ function buildEncryptedPayload(
     freshwater,
     fuel: fuelLevels,
     greywater: gw ? { level: gw.level || 0 } : undefined,
+    tides: options.tides ?? readLogEntryTides(data),
     trackDistanceNm:
       trackDistance != null && trackDistance !== ''
         ? parseFloat(String(trackDistance))
@@ -396,6 +400,24 @@ export async function appendQuickEvents(
   })
 
   return { events: nextEvents, hadSignature }
+}
+
+export async function patchEntryTides(
+  logbookId: string,
+  entryId: string,
+  tides: LogEntryTides
+): Promise<void> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
+  const currentEvents = (loaded.data.events as LogEventPayload[]) || []
+
+  await persistEntry(logbookId, entryId, loaded.data, {
+    events: currentEvents,
+    tides,
+    clearSignatures: hadSignature
+  })
 }
 
 async function persistEntry(

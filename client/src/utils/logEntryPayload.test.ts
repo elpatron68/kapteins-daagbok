@@ -72,3 +72,23 @@ describe('buildLogEntryPayload greywater', () => {
     expect(payload.greywater).toBeUndefined()
   })
 })
+
+describe('buildLogEntryPayload tides', () => {
+  const base = {
+    date: '2026-06-11',
+    dayOfTravel: '1',
+    departure: 'Norddeich',
+    destination: 'Juist',
+    freshwater: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+    fuel: { morning: 0, refilled: 0, evening: 0, consumption: 0 },
+    events: [] as LogEventPayload[]
+  }
+
+  it('persists high and low water times', () => {
+    const payload = buildLogEntryPayload({
+      ...base,
+      tides: { highWater: '18:34', lowWater: '12:05' }
+    })
+    expect(payload.tides).toEqual({ highWater: '18:34', lowWater: '12:05' })
+  })
+})

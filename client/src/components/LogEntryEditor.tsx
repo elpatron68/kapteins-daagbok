@@ -8,7 +8,7 @@ import { syncLogbook } from '../services/sync.js'
 import { saveEntryDraft, clearEntryDraft } from '../services/entryDraft.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles, Sliders } from 'lucide-react'
+import { FileText, Save, ChevronLeft, Check, Compass, Plus, Trash2, MapPin, CloudSun, Clock, Download, Upload, Pencil, X, ChevronDown, ChevronUp, Sparkles, Sliders, Waves } from 'lucide-react'
 import PhotoCapture from './PhotoCapture.tsx'
 import EventRemarksCell from './EventRemarksCell.tsx'
 import CreatorAvatar from './CreatorAvatar.tsx'
@@ -33,7 +33,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, readLogEntryTides, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
 import EventTimeInput24h from './EventTimeInput24h.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
@@ -43,13 +43,16 @@ import { putEntryRecord } from '../utils/entryListCache.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
+import { fetchTidesByPlace, fetchTidesNearby, TidesApiError } from '../services/tides.js'
+import { resolveTideFetchLocation } from '../utils/tideLocation.js'
+import { parseTideTurtleForDate } from '../utils/tideTurtle.js'
 import {
   buildTravelDayContext,
   fetchTravelDaySummaryUsage,
   generateTravelDaySummary,
   TravelDaySummaryApiError
 } from '../services/aiSummary.js'
-import { tryDecryptEntryPayload } from '../services/quickEventLog.js'
+import { loadEntry, tryDecryptEntryPayload } from '../services/quickEventLog.js'
 import { getAiAuthorized } from '../services/userPreferences.js'
 import {
   getDecryptedTrack,
@@ -107,6 +110,7 @@ import {
 } from '../utils/tankCapacity.js'
 import {
   formatAppCoordinate,
+  formatAppDecimal,
   parseAppDecimal,
   parseAppDecimalOrZero
 } from '../utils/numberFormat.js'
@@ -164,6 +168,7 @@ function fingerprintFromStoredEntry(decrypted: Record<string, unknown>): string 
       motorHoursRaw != null && motorHoursRaw !== ''
         ? (parseAppDecimal(String(motorHoursRaw)) ?? undefined)
         : undefined,
+    tides: readLogEntryTides(decrypted),
     events: (decrypted.events as LogEventPayload[]) || [],
     entryCrew: entryCrewFromPreviousEntry(decrypted as Record<string, unknown>)
   })
@@ -298,6 +303,11 @@ export default function LogEntryEditor({
 
   const [eventsCollapsed, setEventsCollapsed] = useState(true)
   const [addEventFormCollapsed, setAddEventFormCollapsed] = useState(false)
+  const [tidesCollapsed, setTidesCollapsed] = useState(true)
+  const [tideHighWater, setTideHighWater] = useState('')
+  const [tideLowWater, setTideLowWater] = useState('')
+  const [tidesLoading, setTidesLoading] = useState(false)
+  const [tideFetchHint, setTideFetchHint] = useState('')
   const [tanksCollapsed, setTanksCollapsed] = useState(true)
 
   const [columnSelectorOpen, setColumnSelectorOpen] = useState(false)
@@ -430,6 +440,7 @@ export default function LogEntryEditor({
         consumption: parseAppDecimalOrZero(fuelConsumption)
       },
       greywater: { level: parseAppDecimalOrZero(greywaterLevel) },
+      tides: { highWater: tideHighWater, lowWater: tideLowWater },
       trackDistanceNm: parseOptionalFormDecimal(trackDistanceNm),
       trackSpeedMaxKn: parseOptionalFormDecimal(trackSpeedMaxKn),
       trackSpeedAvgKn: parseOptionalFormDecimal(trackSpeedAvgKn),
@@ -442,6 +453,7 @@ export default function LogEntryEditor({
     fwMorning, fwRefilled, fwEvening, fwConsumption,
     fuelMorning, fuelRefilled, fuelEvening, fuelConsumption,
     greywaterLevel,
+    tideHighWater, tideLowWater,
     trackDistanceNm, trackSpeedMaxKn, trackSpeedAvgKn, motorHours,
     events,
     entryCrew
@@ -921,6 +933,11 @@ export default function LogEntryEditor({
             setGreywaterLevel('0')
           }
 
+          const preloadedTides = readLogEntryTides(preloadedEntry as Record<string, unknown>)
+          setTideHighWater(preloadedTides.highWater)
+          setTideLowWater(preloadedTides.lowWater)
+          setTideFetchHint('')
+
           setSignSkipper(normalizeSignature(preloadedEntry.signSkipper) || '')
           setSignCrew(normalizeSignature(preloadedEntry.signCrew) || '')
           setEntryCrew(entryCrewFromPreviousEntry(preloadedEntry as Record<string, unknown>))
@@ -961,6 +978,11 @@ export default function LogEntryEditor({
             } else {
               setGreywaterLevel('0')
             }
+
+            const loadedTides = readLogEntryTides(decrypted as Record<string, unknown>)
+            setTideHighWater(loadedTides.highWater)
+            setTideLowWater(loadedTides.lowWater)
+            setTideFetchHint('')
 
             setSignSkipper(normalizeSignature(decrypted.signSkipper) || '')
             setSignCrew(normalizeSignature(decrypted.signCrew) || '')
@@ -1268,6 +1290,93 @@ export default function LogEntryEditor({
       showAlert(t('settings.weather_error'))
     } finally {
       setWeatherLoading(false)
+    }
+  }
+
+  const handleFetchTides = async () => {
+    if (!isOnline) {
+      showAlert(t('logs.weather_offline'), t('logs.tide_fetch_btn'))
+      return
+    }
+
+    setTidesLoading(true)
+    setTideFetchHint('')
+    try {
+      const loaded = await loadEntry(logbookId, entryId)
+      const eventsForLocation = loaded
+        ? sortLogEventsByTime((loaded.data.events as LogEventPayload[]) || [])
+        : events
+      const entryDateForLocation = loaded ? String(loaded.data.date || date) : date
+      const departureForLocation = loaded ? String(loaded.data.departure || departure) : departure
+
+      const location = resolveTideFetchLocation({
+        events: eventsForLocation,
+        entryDate: entryDateForLocation,
+        departure: departureForLocation
+      })
+      if ('error' in location) {
+        if (location.error === 'stale') {
+          showAlert(t('logs.tide_position_stale'), t('logs.tide_fetch_btn'))
+        } else {
+          showAlert(t('logs.tide_location_required'), t('logs.tide_fetch_btn'))
+        }
+        return
+      }
+
+      const data =
+        location.mode === 'nearby'
+          ? await fetchTidesNearby(location.lat, location.lng, {
+              analyticsSource: 'entry_editor',
+              locationSource: location.source
+            })
+          : await fetchTidesByPlace(location.query, { analyticsSource: 'entry_editor' })
+
+      const parsed = parseTideTurtleForDate(data, date)
+      if (!parsed.highWater && !parsed.lowWater) {
+        showAlert(t('logs.tide_no_data'), t('logs.tide_fetch_btn'))
+        return
+      }
+
+      if (parsed.highWater) setTideHighWater(parsed.highWater)
+      if (parsed.lowWater) setTideLowWater(parsed.lowWater)
+
+      if (location.source === 'departure') {
+        setTideFetchHint(
+          t('logs.tide_fetched_from_departure', {
+            place: parsed.placeName || location.query
+          })
+        )
+      } else if (location.source === 'gps') {
+        setTideFetchHint(t('logs.tide_fetched_at_position'))
+      } else if (parsed.placeName) {
+        setTideFetchHint(
+          parsed.distanceKm != null
+            ? t('logs.tide_fetched_from', {
+                place: parsed.placeName,
+                distance: formatAppDecimal(parsed.distanceKm, { maximumFractionDigits: 1 }) ?? String(parsed.distanceKm)
+              })
+            : parsed.placeName
+        )
+      }
+    } catch (err) {
+      if (err instanceof TidesApiError) {
+        if (err.code === 'OFFLINE') {
+          showAlert(t('logs.weather_offline'), t('logs.tide_fetch_btn'))
+          return
+        }
+        if (err.code === 'PLACE_NOT_FOUND') {
+          showAlert(t('logs.tide_place_not_found', { place: departure.trim() }), t('logs.tide_fetch_btn'))
+          return
+        }
+        if (err.code === 'NOT_FOUND') {
+          showAlert(t('logs.tide_no_data'), t('logs.tide_fetch_btn'))
+          return
+        }
+      }
+      console.error('Tide fetch failed:', err)
+      showAlert(t('logs.tide_fetch_failed'), t('logs.tide_fetch_btn'))
+    } finally {
+      setTidesLoading(false)
     }
   }
 
@@ -2112,6 +2221,77 @@ export default function LogEntryEditor({
             )}
           </div>
         )}
+
+        {/* Tides */}
+        <div className="form-card">
+          <div
+            className="form-header mb-4 accordion-header"
+            onClick={() => setTidesCollapsed(!tidesCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setTidesCollapsed(!tidesCollapsed)
+              }
+            }}
+            role="button"
+            aria-expanded={!tidesCollapsed}
+            tabIndex={0}
+          >
+            <div className="accordion-header-title">
+              <Waves size={20} className="form-icon" />
+              <h3>{t('logs.tides')}</h3>
+            </div>
+            {tidesCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+          </div>
+
+          {!tidesCollapsed && (
+            <div className="tides-panel">
+              <div className="tides-panel__hints">
+                <p className="form-hint" role="note">
+                  {t('logs.tide_disclaimer')}
+                </p>
+                {tideFetchHint ? (
+                  <p className="form-hint" role="status">
+                    {tideFetchHint}
+                  </p>
+                ) : null}
+              </div>
+              <div className="form-grid tides-panel__fields">
+                <div className="input-group">
+                  <label>{t('logs.tide_high_water')}</label>
+                  <EventTimeInput24h
+                    value={tideHighWater}
+                    onChange={setTideHighWater}
+                    disabled={readOnly || saving || tidesLoading}
+                    aria-label={t('logs.tide_high_water')}
+                  />
+                </div>
+                <div className="input-group">
+                  <label>{t('logs.tide_low_water')}</label>
+                  <EventTimeInput24h
+                    value={tideLowWater}
+                    onChange={setTideLowWater}
+                    disabled={readOnly || saving || tidesLoading}
+                    aria-label={t('logs.tide_low_water')}
+                  />
+                </div>
+              </div>
+              {!readOnly && (
+                <div className="tides-panel__actions">
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    onClick={() => void handleFetchTides()}
+                    disabled={saving || tidesLoading}
+                  >
+                    <Waves size={16} />
+                    {tidesLoading ? t('logs.tide_fetch_loading') : t('logs.tide_fetch_btn')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Section 2: Tanks (Freshwater, Fuel, and Greywater) */}
         <div className="form-card">

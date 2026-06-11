@@ -44,6 +44,7 @@ export const PlausibleEvents = {
   VOICE_MEMO_UPLOADED: 'Voice Memo Uploaded',
   VOICE_MEMO_TRANSCRIBED: 'Voice Memo Transcribed',
   OWM_WEATHER_FETCHED: 'OWM Weather Fetched',
+  TIDE_FETCHED: 'Tide Fetched',
   AI_SUMMARY_GENERATED: 'AI Summary Generated',
   PWA_BOOT_WATCHDOG_SOFT: 'PWA Boot Watchdog Soft',
   PWA_BOOT_WATCHDOG_HARD: 'PWA Boot Watchdog Hard',
@@ -53,6 +54,8 @@ export const PlausibleEvents = {
 
 /** Where a successful OpenWeatherMap API call originated (no coordinates or place names). */
 export type OwmAnalyticsSource = 'live_log' | 'entry_editor' | 'entry_editor_gps_lookup'
+
+export type TideAnalyticsSource = 'live_log' | 'entry_editor'
 
 export type PlausibleEventName = (typeof PlausibleEvents)[keyof typeof PlausibleEvents]
 

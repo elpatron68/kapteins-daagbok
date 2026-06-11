@@ -49,6 +49,7 @@ Das Script wird über `plausible-bootstrap.js` geladen; `data-domain` ist der ak
 | Voice Memo Uploaded | Sprachnotiz gespeichert (`voiceAttachments.ts`) | `context`: `logbook` \| `live_log` |
 | Voice Memo Transcribed | Sprachmemo transkribiert (`LiveLogView.tsx`, `EventRemarksCell.tsx`) | `status`: `success` \| `failed`, `mode`: `auto` (beim Speichern) \| `manual` (nachträglich) |
 | OWM Weather Fetched | Erfolgreicher OpenWeatherMap-API-Abruf (`weather.ts`, zentral nach HTTP 200) | `source`: siehe [OWM-Quellen](#owm-quellen) |
+| Tide Fetched | Erfolgreicher TideTurtle-Abruf (`tides.ts`) | `source`: `live_log` \| `entry_editor`; `location_source`: `gps` \| `departure` |
 | AI Summary Generated | Erfolgreiche KI-Zusammenfassung eines Reisetags (`aiSummary.ts`) | — |
 | Backup Exported | Backup-Datei heruntergeladen (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes` (Anzahlen/Größe, keine Inhalte) |
 | Backup Restored | Backup wiederhergestellt (`LogbookBackupPanel.tsx`, v2 ZIP) | `entries`, `photos`, `voiceMemos`, `bytes`, `mode`: `same_id` \| `overwrite` \| `new_id` |
@@ -148,7 +149,7 @@ Empfohlene Goal-Ketten für Auswertung (nur Business!):
 8. **Internationalisierung:** Language Changed (Verteilung `to`, Pfade mit Übersetzungs-Feedback)
 9. **NMEA-Import:** NMEA Uploaded → NMEA Imported (Modus, `events`, optional Track; Upload-Funnel vs. Abbruch)
 10. **Live-Journal:** Live Log Opened → Live Log Event Logged (Verteilung `action`; z. B. `position`, `course`, `motor_start`) → Photo Uploaded / Voice Memo Uploaded (Filter `context`: `live_log`)
-11. **OpenWeatherMap:** OWM Weather Fetched (Verteilung `source`; Live-Journal vs. Reisetag-Editor)
+11. **OpenWeatherMap / Gezeiten:** OWM Weather Fetched (Verteilung `source`); Tide Fetched (Verteilung `location_source`)
 12. **PWA-Stabilitaet:** PWA Boot Watchdog Soft → PWA Boot Watchdog Hard → PWA Boot Watchdog Fallback → PWA Boot Watchdog Manual Repair
 
 ## Entwicklung

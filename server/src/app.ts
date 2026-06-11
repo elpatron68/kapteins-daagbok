@@ -10,6 +10,7 @@ import collaborationRouter from './routes/collaboration.js'
 import signRouter from './routes/sign.js'
 import pushRouter from './routes/push.js'
 import weatherRouter from './routes/weather.js'
+import tidesRouter from './routes/tides.js'
 import aiRouter from './routes/ai.js'
 import feedbackRouter from './routes/feedback.js'
 import adminRouter from './routes/admin.js'
@@ -120,6 +121,7 @@ export function createApp(): express.Express {
   app.use('/api/sign', signRouter)
   app.use('/api/push', pushRouter)
   app.use('/api/weather', weatherRouter)
+  app.use('/api/tides', tidesRouter)
   app.use('/api/ai', aiRouter)
   app.use('/api/feedback', feedbackRouter)
   app.use('/api/admin', adminRouter)

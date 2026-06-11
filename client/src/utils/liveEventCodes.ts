@@ -154,6 +154,9 @@ export function getLastAutoPositionMs(
 /** Max age of a logged position for OpenWeatherMap lookups in live log. */
 export const LIVE_LOG_WEATHER_POSITION_MAX_AGE_MS = 6 * 60 * 60 * 1000
 
+/** Max age of a logged position for tide lookups (TideTurtle). */
+export const LIVE_LOG_TIDE_POSITION_MAX_AGE_MS = 2 * 60 * 60 * 1000
+
 export type LiveLogPositionSource = 'position' | 'auto_position'
 
 export interface LiveLogPosition {
@@ -176,7 +179,10 @@ export function getLatestLoggedPosition(
   events: Array<{ remarks: string; time: string; gpsLat?: string; gpsLng?: string }>,
   entryDate: string
 ): LiveLogPosition | null {
-  for (let i = events.length - 1; i >= 0; i--) {
+  let best: LiveLogPosition | null = null
+  let bestIndex = -1
+
+  for (let i = 0; i < events.length; i++) {
     const event = events[i]
     const code = event.remarks.trim()
     if (!isPositionEventCode(code)) continue
@@ -185,14 +191,25 @@ export function getLatestLoggedPosition(
     if (!lat || !lng) continue
     const loggedAtMs = eventTimestampMs(entryDate, event.time)
     if (loggedAtMs == null) continue
-    return {
+
+    const candidate: LiveLogPosition = {
       lat,
       lng,
       loggedAtMs,
       source: isManualPositionEventCode(code) ? 'position' : 'auto_position'
     }
+
+    if (
+      !best ||
+      candidate.loggedAtMs > best.loggedAtMs ||
+      (candidate.loggedAtMs === best.loggedAtMs && i > bestIndex)
+    ) {
+      best = candidate
+      bestIndex = i
+    }
   }
-  return null
+
+  return best
 }
 
 /** Logged position for weather if recorded within `maxAgeMs` (default 6 h). */

@@ -4607,6 +4607,41 @@ html.theme-cupertino .events-scroll-container {
   grid-column: 1 / -1;
 }
 
+/* Tides accordion (LogEntryEditor) */
+.tides-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.tides-panel__hints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tides-panel__hints .form-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--app-text-muted);
+  line-height: 1.45;
+}
+
+.tides-panel__fields {
+  margin: 0;
+}
+
+.tides-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tides-panel__actions .btn {
+  width: auto;
+}
+
 .metric-range-input--compact {
   gap: 0;
   margin: 0;

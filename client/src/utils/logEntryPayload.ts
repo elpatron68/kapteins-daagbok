@@ -150,6 +150,11 @@ export function sortLogEventsByTime<T extends LogEventPayload>(events: T[]): T[]
   return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 }
 
+export interface LogEntryTides {
+  highWater: string
+  lowWater: string
+}
+
 export interface LogEntryPayloadInput {
   date: string
   dayOfTravel: string
@@ -158,12 +163,23 @@ export interface LogEntryPayloadInput {
   freshwater: { morning: number; refilled: number; evening: number; consumption: number }
   fuel: { morning: number; refilled: number; evening: number; consumption: number }
   greywater?: { level: number }
+  tides?: LogEntryTides
   trackDistanceNm?: number
   trackSpeedMaxKn?: number
   trackSpeedAvgKn?: number
   motorHours?: number
   events: LogEventPayload[]
   entryCrew?: EntryCrewFields
+}
+
+export function readLogEntryTides(data: Record<string, unknown>): LogEntryTides {
+  const tides = data.tides as Record<string, unknown> | undefined
+  const highRaw = String(tides?.highWater ?? '').trim()
+  const lowRaw = String(tides?.lowWater ?? '').trim()
+  return {
+    highWater: parseTimeToHHMM(highRaw) ?? '',
+    lowWater: parseTimeToHHMM(lowRaw) ?? ''
+  }
 }
 
 export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string, unknown> {
@@ -188,6 +204,14 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
     const level = Number(input.greywater.level) || 0
     if (level > 0) {
       payload.greywater = { level: Number(level.toFixed(1)) }
+    }
+  }
+
+  if (input.tides) {
+    const highWater = parseTimeToHHMM(input.tides.highWater) ?? ''
+    const lowWater = parseTimeToHHMM(input.tides.lowWater) ?? ''
+    if (highWater || lowWater) {
+      payload.tides = { highWater, lowWater }
     }
   }
 

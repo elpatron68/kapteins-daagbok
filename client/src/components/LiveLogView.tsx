@@ -19,6 +19,7 @@ import {
   Radio,
   Sailboat,
   Undo2,
+  Waves,
   Zap
 } from 'lucide-react'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
@@ -29,6 +30,7 @@ import {
   appendTankRefill as apiAppendTankRefill,
   findOrCreateTodayEntry,
   loadEntry,
+  patchEntryTides,
   removeLastEvent
 } from '../services/quickEventLog.js'
 import CreatorAvatar from './CreatorAvatar.tsx'
@@ -56,6 +58,9 @@ const formatSpeedKn = (speedKn: number) =>
   formatAppDecimal(speedKn, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
+import { fetchTidesByPlace, fetchTidesNearby, TidesApiError } from '../services/tides.js'
+import { resolveTideFetchLocation } from '../utils/tideLocation.js'
+import { parseTideTurtleForDate } from '../utils/tideTurtle.js'
 import {
   geolocationErrorI18nKey,
   getCurrentPosition,
@@ -108,6 +113,7 @@ type LiveModal =
   | 'sog'
   | 'stw'
   | 'position'
+  | 'tides'
   | 'photo'
   | 'voice'
 
@@ -190,6 +196,7 @@ export default function LiveLogView({
   const [entryId, setEntryId] = useState<string | null>(null)
   const [dayOfTravel, setDayOfTravel] = useState('')
   const [date, setDate] = useState('')
+  const [departure, setDeparture] = useState('')
   const [events, setEvents] = useState<LogEventPayload[]>([])
   const [crewSnapshotsById, setCrewSnapshotsById] = useState<Record<string, any>>({})
   const [selectedSkipperId, setSelectedSkipperId] = useState<string | null>(null)
@@ -200,6 +207,15 @@ export default function LiveLogView({
   const [modal, setModal] = useState<LiveModal>('none')
   const [weatherExpanded, setWeatherExpanded] = useState(false)
   const [weatherOwmLoading, setWeatherOwmLoading] = useState(false)
+  const [tidesLoading, setTidesLoading] = useState(false)
+  const [tidePreview, setTidePreview] = useState<{
+    highWater: string
+    lowWater: string
+    placeName?: string
+    distanceKm?: number
+    source: 'gps' | 'departure'
+    departureQuery?: string
+  } | null>(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [commentText, setCommentText] = useState('')
   const [valueInput, setValueInput] = useState('')
@@ -301,6 +317,7 @@ export default function LiveLogView({
     const entryEvents = (loaded.data.events as LogEventPayload[]) || []
     setDayOfTravel(String(loaded.data.dayOfTravel || ''))
     setDate(String(loaded.data.date || ''))
+    setDeparture(String(loaded.data.departure || ''))
     setEvents(sortLogEventsByTime(entryEvents.map((e) => ({ ...e }))))
     setCrewSnapshotsById((loaded.data.crewSnapshotsById as Record<string, any>) || {})
     setSelectedSkipperId(typeof loaded.data.selectedSkipperId === 'string' ? loaded.data.selectedSkipperId : null)
@@ -784,6 +801,105 @@ export default function LiveLogView({
     })()
   }
 
+  const handleFetchTides = () => {
+    if (!entryId || busy || tidesLoading) return
+    if (!isOnline) {
+      void showAlert(t('logs.weather_offline'), t('logs.tides'))
+      return
+    }
+
+    setTidesLoading(true)
+    setError(null)
+    void (async () => {
+      try {
+        const loaded = await loadEntry(logbookId, entryId)
+        const eventsForLocation = loaded
+          ? sortLogEventsByTime((loaded.data.events as LogEventPayload[]) || [])
+          : events
+        const entryDateForLocation = loaded ? String(loaded.data.date || date) : date
+        const departureForLocation = loaded ? String(loaded.data.departure || departure) : departure
+
+        const location = resolveTideFetchLocation({
+          events: eventsForLocation,
+          entryDate: entryDateForLocation,
+          departure: departureForLocation
+        })
+        if ('error' in location) {
+          void showAlert(
+            location.error === 'stale'
+              ? t('logs.tide_position_stale')
+              : t('logs.tide_location_required'),
+            t('logs.tides')
+          )
+          return
+        }
+
+        const data =
+          location.mode === 'nearby'
+            ? await fetchTidesNearby(location.lat, location.lng, {
+                analyticsSource: 'live_log',
+                locationSource: location.source
+              })
+            : await fetchTidesByPlace(location.query, { analyticsSource: 'live_log' })
+
+        const parsed = parseTideTurtleForDate(data, date)
+        if (!parsed.highWater && !parsed.lowWater) {
+          void showAlert(t('logs.tide_no_data'), t('logs.tides'))
+          return
+        }
+
+        setTidePreview({
+          highWater: parsed.highWater,
+          lowWater: parsed.lowWater,
+          placeName: parsed.placeName,
+          distanceKm: parsed.distanceKm,
+          source: location.source,
+          departureQuery: location.mode === 'by-place' ? location.query : undefined
+        })
+        setModal('tides')
+      } catch (err) {
+        if (err instanceof TidesApiError) {
+          if (err.code === 'OFFLINE') {
+            void showAlert(t('logs.weather_offline'), t('logs.tides'))
+            return
+          }
+          if (err.code === 'PLACE_NOT_FOUND') {
+            void showAlert(t('logs.tide_place_not_found', { place: departure.trim() }), t('logs.tides'))
+            return
+          }
+          if (err.code === 'NOT_FOUND') {
+            void showAlert(t('logs.tide_no_data'), t('logs.tides'))
+            return
+          }
+        }
+        console.error('Live log tide fetch failed:', err)
+        void showAlert(t('logs.tide_fetch_failed'), t('logs.tides'))
+      } finally {
+        setTidesLoading(false)
+      }
+    })()
+  }
+
+  const confirmTides = () => {
+    if (!entryId || !tidePreview || busy) return
+    const preview = tidePreview
+    void runQuickAction(async () => {
+      await patchEntryTides(logbookId, entryId, {
+        highWater: preview.highWater,
+        lowWater: preview.lowWater
+      })
+      setTidePreview(null)
+      setModal('none')
+      void showAlert(
+        t('logs.tide_applied_success', {
+          highWater: preview.highWater || '—',
+          lowWater: preview.lowWater || '—'
+        }),
+        t('logs.tides')
+      )
+    }, 'tides', false)
+  }
+
   const handleUndo = () => {
     if (!entryId || busy) return
     const photoId = undoPhotoIdRef.current
@@ -1257,6 +1373,10 @@ export default function LiveLogView({
             <MapPin size={18} />
             {t('logs.live_position')}
           </button>
+          <button type="button" className="live-log-action-btn" onClick={handleFetchTides} disabled={busy || tidesLoading}>
+            <Waves size={18} />
+            {tidesLoading ? t('logs.tide_fetch_loading') : t('logs.tides')}
+          </button>
           <button type="button" className="live-log-action-btn" onClick={() => { setCommentText(''); setModal('comment') }} disabled={busy}>
             <MessageSquare size={18} />
             {t('logs.live_comment_btn')}
@@ -1449,6 +1569,56 @@ export default function LiveLogView({
                 disabled={busy || !normalizeGpsCoordinates(positionLat, positionLng)}
               >
                 {t('logs.live_sails_confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal === 'tides' && tidePreview && (
+        <div
+          className="live-log-modal-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal() }}
+        >
+          <div className="live-log-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{t('logs.tides')}</h3>
+            <p className="live-log-modal-hint" role="note">
+              {t('logs.tide_disclaimer')}
+            </p>
+            {tidePreview.source === 'departure' && tidePreview.departureQuery ? (
+              <p className="live-log-modal-hint" role="status">
+                {t('logs.tide_fetched_from_departure', {
+                  place: tidePreview.placeName || tidePreview.departureQuery
+                })}
+              </p>
+            ) : tidePreview.source === 'gps' ? (
+              <p className="live-log-modal-hint" role="status">
+                {t('logs.tide_fetched_at_position')}
+              </p>
+            ) : tidePreview.placeName ? (
+              <p className="live-log-modal-hint" role="status">
+                {tidePreview.distanceKm != null
+                  ? t('logs.tide_fetched_from', {
+                      place: tidePreview.placeName,
+                      distance: formatAppDecimal(tidePreview.distanceKm, { maximumFractionDigits: 1 }) ?? String(tidePreview.distanceKm)
+                    })
+                  : tidePreview.placeName}
+              </p>
+            ) : null}
+            <dl className="live-log-tide-preview">
+              <div>
+                <dt>{t('logs.tide_high_water')}</dt>
+                <dd>{tidePreview.highWater || '—'}</dd>
+              </div>
+              <div>
+                <dt>{t('logs.tide_low_water')}</dt>
+                <dd>{tidePreview.lowWater || '—'}</dd>
+              </div>
+            </dl>
+            <div className="live-log-modal-actions">
+              <button type="button" className="btn secondary" onClick={closeModal}>{t('logs.live_cancel')}</button>
+              <button type="button" className="btn primary" onClick={confirmTides} disabled={busy}>
+                {t('logs.tide_apply')}
               </button>
             </div>
           </div>
