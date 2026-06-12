@@ -224,18 +224,61 @@ function scoreGeocodingResult(query: string, result: GeocodingResult): number {
   return score
 }
 
-export async function geocodePlace(query: string): Promise<GeocodingResult | null> {
+function replaceGermanDigraphs(str: string): string {
+  return str
+    .replace(/ae/g, 'ä')
+    .replace(/oe/g, 'ö')
+    .replace(/ue/g, 'ü')
+    .replace(/Ae/g, 'Ä')
+    .replace(/Oe/g, 'Ö')
+    .replace(/Ue/g, 'Ü')
+    .replace(/AE/g, 'Ä')
+    .replace(/OE/g, 'Ö')
+    .replace(/UE/g, 'Ü');
+}
+
+async function doGeocode(q: string): Promise<GeocodingResult | null> {
   const url = new URL(GEOCODING_API)
-  url.searchParams.set('name', query.trim())
+  url.searchParams.set('name', q.trim())
   url.searchParams.set('count', '10')
   url.searchParams.set('language', 'de')
 
-  const data = await fetchJson<{ results?: GeocodingResult[] }>(url.toString())
-  const results = data.results ?? []
-  if (results.length === 0) return null
-
-  return [...results].sort((a, b) => scoreGeocodingResult(query, b) - scoreGeocodingResult(query, a))[0]
+  console.log(`[geocodePlace] Fetching URL: ${url.toString()}`);
+  try {
+    const data = await fetchJson<{ results?: GeocodingResult[] }>(url.toString())
+    const results = data.results ?? []
+    if (results.length === 0) {
+      return null
+    }
+    const sorted = [...results].sort((a, b) => scoreGeocodingResult(q, b) - scoreGeocodingResult(q, a))
+    return sorted[0]
+  } catch (err) {
+    console.error(`[geocodePlace] Geocoding API request failed for "${q}":`, err)
+    return null
+  }
 }
+
+export async function geocodePlace(query: string): Promise<GeocodingResult | null> {
+  console.log(`[geocodePlace] query: "${query}" (length: ${query.length})`);
+  
+  let match = await doGeocode(query)
+  if (!match) {
+    const fallbackQuery = replaceGermanDigraphs(query)
+    if (fallbackQuery !== query) {
+      console.log(`[geocodePlace] No results for "${query}". Trying fallback query: "${fallbackQuery}"`);
+      match = await doGeocode(fallbackQuery)
+    }
+  }
+
+  if (match) {
+    console.log(`[geocodePlace] Best match for "${query}": ${match.name} (${match.latitude}, ${match.longitude})`);
+  } else {
+    console.log(`[geocodePlace] No results found for "${query}"`);
+  }
+
+  return match
+}
+
 
 export async function fetchTidesForPlace(query: string): Promise<TideLookupResult> {
   const place = await geocodePlace(query)

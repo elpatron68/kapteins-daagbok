@@ -54,7 +54,8 @@ import {
 import {
   fetchTidesForEntry,
   fetchTidesForStationChoice,
-  type TideFetchNeedsStationPick
+  type TideFetchNeedsStationPick,
+  type TideFetchResult
 } from '../utils/tideFetch.js'
 import {
   buildTravelDayContext,
@@ -62,7 +63,7 @@ import {
   generateTravelDaySummary,
   TravelDaySummaryApiError
 } from '../services/aiSummary.js'
-import { loadEntry, tryDecryptEntryPayload } from '../services/quickEventLog.js'
+import { tryDecryptEntryPayload } from '../services/quickEventLog.js'
 import { getAiAuthorized } from '../services/userPreferences.js'
 import {
   getDecryptedTrack,
@@ -1351,17 +1352,10 @@ export default function LogEntryEditor({
 
     setTidesLoading(true)
     try {
-      const loaded = await loadEntry(logbookId, entryId)
-      const eventsForLocation = loaded
-        ? sortLogEventsByTime((loaded.data.events as LogEventPayload[]) || [])
-        : events
-      const entryDateForLocation = loaded ? String(loaded.data.date || date) : date
-      const departureForLocation = loaded ? String(loaded.data.departure || departure) : departure
-
       const location = resolveTideFetchLocation({
-        events: eventsForLocation,
-        entryDate: entryDateForLocation,
-        departure: departureForLocation
+        events,
+        entryDate: date,
+        departure
       })
       if ('error' in location) {
         if (location.error === 'stale') {
@@ -1374,16 +1368,16 @@ export default function LogEntryEditor({
 
       const outcome = await fetchTidesForEntry({
         fetchLocation: location,
-        entryDate: entryDateForLocation,
+        entryDate: date,
         analyticsSource: 'entry_editor'
       })
 
-      if (outcome.kind === 'pick_station') {
-        setTideStationPicker(outcome)
+      if ('kind' in outcome && outcome.kind === 'pick_station') {
+        setTideStationPicker(outcome as TideFetchNeedsStationPick)
         return
       }
 
-      applyTideFetchResult(outcome)
+      applyTideFetchResult(outcome as TideFetchResult)
     } catch (err) {
       if (err instanceof TidesApiError) {
         if (err.code === 'OFFLINE') {

@@ -68,7 +68,8 @@ import {
 import {
   fetchTidesForEntry,
   fetchTidesForStationChoice,
-  type TideFetchNeedsStationPick
+  type TideFetchNeedsStationPick,
+  type TideFetchResult
 } from '../utils/tideFetch.js'
 import {
   geolocationErrorI18nKey,
@@ -851,17 +852,10 @@ export default function LiveLogView({
     setError(null)
     void (async () => {
       try {
-        const loaded = await loadEntry(logbookId, entryId)
-        const eventsForLocation = loaded
-          ? sortLogEventsByTime((loaded.data.events as LogEventPayload[]) || [])
-          : events
-        const entryDateForLocation = loaded ? String(loaded.data.date || date) : date
-        const departureForLocation = loaded ? String(loaded.data.departure || departure) : departure
-
         const location = resolveTideFetchLocation({
-          events: eventsForLocation,
-          entryDate: entryDateForLocation,
-          departure: departureForLocation
+          events,
+          entryDate: date,
+          departure
         })
         if ('error' in location) {
           void showAlert(
@@ -875,19 +869,20 @@ export default function LiveLogView({
 
         const outcome = await fetchTidesForEntry({
           fetchLocation: location,
-          entryDate: entryDateForLocation,
+          entryDate: date,
           analyticsSource: 'live_log'
         })
 
-        if (outcome.kind === 'pick_station') {
-          setTideStationPicker(outcome)
+        if ('kind' in outcome && outcome.kind === 'pick_station') {
+          setTideStationPicker(outcome as TideFetchNeedsStationPick)
           return
         }
 
+        const result = outcome as TideFetchResult
         setTidePreview({
-          highWater: outcome.highWater,
-          lowWater: outcome.lowWater,
-          location: outcome.location
+          highWater: result.highWater,
+          lowWater: result.lowWater,
+          location: result.location
         })
         setModal('tides')
       } catch (err) {

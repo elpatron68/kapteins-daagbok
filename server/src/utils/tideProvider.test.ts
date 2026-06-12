@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import * as bshTides from './bshTides.js'
 import * as openMeteoTides from './openMeteoTides.js'
-import { fetchTidesForCoordinates } from './tideProvider.js'
+import { fetchTidesForCoordinates, fetchTidesForPlace } from './tideProvider.js'
 
 describe('fetchTidesForCoordinates', () => {
   beforeEach(() => {
@@ -71,5 +71,50 @@ describe('fetchTidesForCoordinates', () => {
     const result = await fetchTidesForCoordinates(62, 5)
     expect(result.fallback).toBe('open_meteo')
     expect(result.tides.data.source).toContain('Fallback')
+  })
+})
+
+describe('fetchTidesForPlace', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('matches BSH station directly by name startsWith', async () => {
+    vi.spyOn(bshTides, 'loadBshStationIndex').mockResolvedValue([
+      { id: 'buesum_schleuse', name: 'Büsum, Schleuse', lat: 54.12, lon: 8.85 }
+    ])
+    const fetchSpy = vi.spyOn(bshTides, 'fetchBshTidesForStation').mockResolvedValue({
+      distanceKm: 0,
+      location: { name: 'Büsum, Schleuse', lat: 54.12, lon: 8.85, source: 'bsh_station', stationId: 'buesum_schleuse' },
+      tides: { data: { timezone: 'Europe/Berlin', datum: 'gauge', source: 'BSH', extrema: [] } }
+    })
+
+    const result = await fetchTidesForPlace('Buesum')
+    expect(fetchSpy).toHaveBeenCalledWith('buesum_schleuse', undefined)
+    expect(result.location.name).toBe('Büsum, Schleuse')
+  })
+
+  it('falls back to geocoding if BSH station index does not match', async () => {
+    vi.spyOn(bshTides, 'loadBshStationIndex').mockResolvedValue([
+      { id: 'buesum_schleuse', name: 'Büsum, Schleuse', lat: 54.12, lon: 8.85 }
+    ])
+    vi.spyOn(openMeteoTides, 'geocodePlace').mockResolvedValue({
+      name: 'Kiel',
+      latitude: 54.32,
+      longitude: 10.13
+    })
+    const coordSpy = vi.spyOn(bshTides, 'fetchBshTidesForCoordinates').mockResolvedValue({
+      distanceKm: 0,
+      location: { name: 'Kiel-Holtenau', lat: 54.37, lon: 10.15, source: 'bsh_station', stationId: 'kiel_holtenau' },
+      tides: { data: { timezone: 'Europe/Berlin', datum: 'gauge', source: 'BSH', extrema: [] } }
+    })
+
+    const result = await fetchTidesForPlace('Kiel')
+    expect(coordSpy).toHaveBeenCalledWith(54.32, 10.13)
+    expect(result.location.name).toBe('Kiel-Holtenau')
   })
 })
