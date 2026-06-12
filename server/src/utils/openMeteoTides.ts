@@ -243,7 +243,6 @@ async function doGeocode(q: string): Promise<GeocodingResult | null> {
   url.searchParams.set('count', '10')
   url.searchParams.set('language', 'de')
 
-  console.log(`[geocodePlace] Fetching URL: ${url.toString()}`);
   try {
     const data = await fetchJson<{ results?: GeocodingResult[] }>(url.toString())
     const results = data.results ?? []
@@ -259,21 +258,12 @@ async function doGeocode(q: string): Promise<GeocodingResult | null> {
 }
 
 export async function geocodePlace(query: string): Promise<GeocodingResult | null> {
-  console.log(`[geocodePlace] query: "${query}" (length: ${query.length})`);
-  
   let match = await doGeocode(query)
   if (!match) {
     const fallbackQuery = replaceGermanDigraphs(query)
     if (fallbackQuery !== query) {
-      console.log(`[geocodePlace] No results for "${query}". Trying fallback query: "${fallbackQuery}"`);
       match = await doGeocode(fallbackQuery)
     }
-  }
-
-  if (match) {
-    console.log(`[geocodePlace] Best match for "${query}": ${match.name} (${match.latitude}, ${match.longitude})`);
-  } else {
-    console.log(`[geocodePlace] No results found for "${query}"`);
   }
 
   return match

@@ -98,7 +98,6 @@ export async function fetchTidesForPlace(query: string): Promise<TideProviderRes
         match = stations.find(s => normalizeForMatching(s.name).startsWith(normQuery))
       }
       if (match) {
-        console.log(`[tideProvider] Match found in BSH station index for "${query}": ${match.name} (${match.id})`)
         return await fetchTidesForStation(match.id)
       }
     } catch (err) {
@@ -116,7 +115,6 @@ export async function fetchTidesForPlace(query: string): Promise<TideProviderRes
           normQuery.includes(normalizeForMatching(s.name))
         )
         if (match) {
-          console.log(`[tideProvider] Geocoding failed. Found fallback BSH station match for "${query}": ${match.name} (${match.id})`)
           return await fetchTidesForStation(match.id)
         }
       } catch (err) {
