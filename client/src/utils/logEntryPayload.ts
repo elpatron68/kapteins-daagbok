@@ -159,6 +159,8 @@ export interface LogEntryTides {
   placeName?: string
   lat?: string
   lng?: string
+  distanceKm?: string
+  tideFallback?: 'open_meteo'
 }
 
 export interface LogEntryPayloadInput {
@@ -191,7 +193,9 @@ export function readLogEntryTides(data: Record<string, unknown>): LogEntryTides 
   const placeName = String(tides?.placeName ?? '').trim()
   const lat = String(tides?.lat ?? '').trim()
   const lng = String(tides?.lng ?? '').trim()
+  const distanceKm = String(tides?.distanceKm ?? '').trim()
   const locationSource = readTideLocationSource(tides?.locationSource)
+  const tideFallback = tides?.tideFallback === 'open_meteo' ? 'open_meteo' as const : undefined
 
   return {
     highWater: parseTimeToHHMM(highRaw) ?? '',
@@ -199,7 +203,9 @@ export function readLogEntryTides(data: Record<string, unknown>): LogEntryTides 
     ...(locationSource ? { locationSource } : {}),
     ...(placeName ? { placeName } : {}),
     ...(lat ? { lat } : {}),
-    ...(lng ? { lng } : {})
+    ...(lng ? { lng } : {}),
+    ...(distanceKm ? { distanceKm } : {}),
+    ...(tideFallback ? { tideFallback } : {})
   }
 }
 
@@ -240,6 +246,9 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
       if (lat) tides.lat = lat
       const lng = input.tides.lng?.trim()
       if (lng) tides.lng = lng
+      const distanceKm = input.tides.distanceKm?.trim()
+      if (distanceKm) tides.distanceKm = distanceKm
+      if (input.tides.tideFallback === 'open_meteo') tides.tideFallback = 'open_meteo'
       payload.tides = tides
     }
   }

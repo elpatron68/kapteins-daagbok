@@ -10,17 +10,20 @@ export interface TideExtreme {
   isHigh: boolean
 }
 
+export type TideLocationSource = 'coordinates' | 'geocoded' | 'bsh_station'
+
 export interface TideLookupResult {
   location: {
     name?: string
     lat: number
     lon: number
-    source: 'coordinates' | 'geocoded'
+    source: TideLocationSource
+    stationId?: string
   }
   tides: {
     data: {
       timezone: string
-      datum: 'MSL'
+      datum: 'MSL' | 'gauge'
       source: string
       extrema: TideExtreme[]
     }

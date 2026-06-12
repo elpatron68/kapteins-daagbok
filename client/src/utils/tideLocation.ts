@@ -7,7 +7,10 @@ import type { LogEntryTides, LogEventPayload, TideLocationSource } from './logEn
 
 export type { TideLocationSource }
 
-export type TideLocationMeta = Pick<LogEntryTides, 'locationSource' | 'placeName' | 'lat' | 'lng'>
+export type TideLocationMeta = Pick<
+  LogEntryTides,
+  'locationSource' | 'placeName' | 'lat' | 'lng' | 'distanceKm' | 'tideFallback'
+>
 
 export type TideFetchLocation =
   | { mode: 'nearby'; lat: string; lng: string; source: 'gps' }
@@ -54,18 +57,33 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+function readDistanceKm(apiData: Record<string, unknown>): string | undefined {
+  if (apiData.distanceKm == null || apiData.distanceKm === '') return undefined
+  const km = Number(apiData.distanceKm)
+  if (Number.isNaN(km)) return undefined
+  return String(Math.round(km * 10) / 10)
+}
+
+function readTideFallback(apiData: Record<string, unknown>): 'open_meteo' | undefined {
+  return apiData.fallback === 'open_meteo' ? 'open_meteo' : undefined
+}
+
 export function buildTideLocationMeta(
   fetchLocation: TideFetchLocation,
   apiData: Record<string, unknown>
 ): TideLocationMeta {
   const apiLocation = asRecord(apiData.location)
+  const distanceKm = readDistanceKm(apiData)
+  const tideFallback = readTideFallback(apiData)
 
   if (fetchLocation.mode === 'nearby') {
     return {
       locationSource: 'gps',
       lat: fetchLocation.lat,
       lng: fetchLocation.lng,
-      placeName: apiLocation?.name ? String(apiLocation.name) : undefined
+      placeName: apiLocation?.name ? String(apiLocation.name) : undefined,
+      ...(distanceKm ? { distanceKm } : {}),
+      ...(tideFallback ? { tideFallback } : {})
     }
   }
 
@@ -77,7 +95,9 @@ export function buildTideLocationMeta(
     locationSource: apiLocation?.source === 'geocoded' ? 'geocoded' : 'departure',
     placeName,
     lat,
-    lng
+    lng,
+    ...(distanceKm ? { distanceKm } : {}),
+    ...(tideFallback ? { tideFallback } : {})
   }
 }
 
@@ -93,6 +113,15 @@ export function formatTideLocationLabel(
   const placeName = tides.placeName?.trim()
   const lat = tides.lat?.trim()
   const lng = tides.lng?.trim()
+  const distanceKm = tides.distanceKm?.trim()
+
+  if (tides.tideFallback === 'open_meteo') {
+    return t('logs.tide_open_meteo_fallback')
+  }
+
+  if (placeName && distanceKm) {
+    return t('logs.tide_fetched_from', { place: placeName, distance: distanceKm })
+  }
 
   if (placeName && lat && lng) {
     return t('logs.tide_data_for_place_and_position', { place: placeName, lat, lng })
@@ -114,6 +143,8 @@ export function pickTideLocationMeta(tides: LogEntryTides): TideLocationMeta {
     locationSource: tides.locationSource,
     placeName: tides.placeName,
     lat: tides.lat,
-    lng: tides.lng
+    lng: tides.lng,
+    distanceKm: tides.distanceKm,
+    tideFallback: tides.tideFallback
   }
 }

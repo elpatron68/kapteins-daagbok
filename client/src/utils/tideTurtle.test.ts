@@ -25,16 +25,24 @@ describe('parseTideTurtleForDate', () => {
     expect(parsed.distanceKm).toBe(1.2)
   })
 
-  it('reads Open-Meteo coordinate response without distance', () => {
+  it('reads BSH coordinate response with distance to nearest station', () => {
     const parsed = parseTideTurtleForDate(
       {
-        location: { source: 'coordinates', lat: 53.62, lon: 7.15 },
+        distanceKm: 8,
+        location: {
+          source: 'bsh_station',
+          name: 'Norderney, Riffgat',
+          lat: 53.696389,
+          lon: 7.157778,
+          stationId: 'norderney_riffgat'
+        },
         tides: sampleNearby.tides
       },
       '2026-06-11'
     )
     expect(parsed.highWater).toBe('10:50')
-    expect(parsed.distanceKm).toBeUndefined()
+    expect(parsed.distanceKm).toBe(8)
+    expect(parsed.placeName).toBe('Norderney, Riffgat')
   })
 
   it('leaves missing tide type empty', () => {

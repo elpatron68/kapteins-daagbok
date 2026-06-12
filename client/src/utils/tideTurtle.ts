@@ -74,11 +74,9 @@ export function extractTideTurtlePayload(data: Record<string, unknown>): {
   if (!placeName && spatial?.name) placeName = String(spatial.name)
 
   const distanceKm =
-    location?.source === 'coordinates'
-      ? undefined
-      : data.distanceKm != null && data.distanceKm !== ''
-        ? Number(data.distanceKm)
-        : undefined
+    data.distanceKm != null && data.distanceKm !== ''
+      ? Number(data.distanceKm)
+      : undefined
 
   return { extrema, timezone, placeName, distanceKm }
 }

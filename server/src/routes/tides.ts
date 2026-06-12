@@ -3,7 +3,7 @@ import { requireUser } from '../middleware/auth.js'
 import {
   fetchTidesForCoordinates,
   fetchTidesForPlace
-} from '../utils/openMeteoTides.js'
+} from '../utils/tideProvider.js'
 
 const router = Router()
 

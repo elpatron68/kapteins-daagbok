@@ -130,13 +130,39 @@ describe('resolveTideFetchLocation', () => {
       `${key}:${JSON.stringify(options ?? {})}`
     expect(
       formatTideLocationLabel(
-        { locationSource: 'gps', lat: '53.62', lng: '7.15', placeName: 'Norddeich' },
+        {
+          locationSource: 'gps',
+          lat: '53.62',
+          lng: '7.15',
+          placeName: 'Norderney, Riffgat',
+          distanceKm: '8'
+        },
         t
       )
-    ).toContain('tide_data_for_place_and_position')
+    ).toContain('tide_fetched_from')
     expect(
       formatTideLocationLabel({ locationSource: 'gps', lat: '53.62', lng: '7.15' }, t)
     ).toContain('tide_data_for_position')
+    expect(
+      formatTideLocationLabel({ locationSource: 'gps', tideFallback: 'open_meteo' }, t)
+    ).toContain('tide_open_meteo_fallback')
+  })
+
+  it('stores distance from BSH API metadata', () => {
+    const meta = buildTideLocationMeta(
+      { mode: 'nearby', lat: '53.624526', lng: '7.155263', source: 'gps' },
+      {
+        distanceKm: 8.1,
+        location: {
+          name: 'Norderney, Riffgat',
+          lat: 53.696389,
+          lon: 7.157778,
+          source: 'bsh_station'
+        }
+      }
+    )
+    expect(meta.distanceKm).toBe('8.1')
+    expect(meta.placeName).toBe('Norderney, Riffgat')
   })
 
   it('returns missing without position or departure', () => {

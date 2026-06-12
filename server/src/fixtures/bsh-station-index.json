@@ -1,0 +1,42 @@
+[
+  {
+    "id": "bensersiel",
+    "name": "Bensersiel",
+    "lat": 53.674722,
+    "lon": 7.575,
+    "area": "Jade und Ostfriesland",
+    "hasHwnw": true
+  },
+  {
+    "id": "emden_grosse_seeschleuse",
+    "name": "Emden, Ems, Große Seeschleuse",
+    "lat": 53.336667,
+    "lon": 7.186389,
+    "area": "Ems",
+    "hasHwnw": true
+  },
+  {
+    "id": "kiel-holtenau",
+    "name": "Kiel-Holtenau",
+    "lat": 54.3720866822911,
+    "lon": 10.1570496121807,
+    "area": "Kieler Bucht",
+    "hasHwnw": false
+  },
+  {
+    "id": "leyhoern_leybucht",
+    "name": "Leyhörn, Leybucht",
+    "lat": 53.549167,
+    "lon": 7.036111,
+    "area": "Jade und Ostfriesland",
+    "hasHwnw": true
+  },
+  {
+    "id": "norderney_riffgat",
+    "name": "Norderney, Riffgat",
+    "lat": 53.696389,
+    "lon": 7.157778,
+    "area": "Jade und Ostfriesland",
+    "hasHwnw": true
+  }
+]
