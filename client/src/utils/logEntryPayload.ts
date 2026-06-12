@@ -72,8 +72,8 @@ export function isValidTimeHHMM(value: string): boolean {
   return parseTimeToHHMM(value) !== null
 }
 
-export function splitTimeHHMM(value: string): { hours: string; minutes: string } {
-  const parsed = parseTimeToHHMM(value) ?? currentLocalTimeHHMM()
+export function splitTimeHHMM(value: string, fallback?: string): { hours: string; minutes: string } {
+  const parsed = parseTimeToHHMM(value) ?? fallback ?? currentLocalTimeHHMM()
   return { hours: parsed.slice(0, 2), minutes: parsed.slice(3, 5) }
 }
 

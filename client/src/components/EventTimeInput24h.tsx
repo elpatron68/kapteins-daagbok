@@ -10,18 +10,23 @@ interface EventTimeInput24hProps {
   onChange: (value: string) => void
   disabled?: boolean
   'aria-label'?: string
+  fallback?: string
 }
 
 export default function EventTimeInput24h({
   value,
   onChange,
   disabled = false,
-  'aria-label': ariaLabel
+  'aria-label': ariaLabel,
+  fallback
 }: EventTimeInput24hProps) {
   const baseId = useId()
   const useNativePicker = preferNativeCameraPicker()
-  const { hours, minutes } = useMemo(() => splitTimeHHMM(value), [value])
-  const timeValue = useMemo(() => joinTimeHHMM(hours, minutes), [hours, minutes])
+  const { hours, minutes } = useMemo(() => splitTimeHHMM(value, fallback), [value, fallback])
+  const timeValue = useMemo(() => {
+    if (!value.trim()) return ''
+    return joinTimeHHMM(hours, minutes)
+  }, [value, hours, minutes])
 
   if (useNativePicker) {
     return (
@@ -34,7 +39,7 @@ export default function EventTimeInput24h({
           value={timeValue}
           onChange={(e) => {
             const next = e.target.value
-            if (next) onChange(next.slice(0, 5))
+            onChange(next ? next.slice(0, 5) : '')
           }}
           disabled={disabled}
           aria-label={ariaLabel}

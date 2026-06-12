@@ -33,7 +33,7 @@ import {
   hasAnySignature
 } from '../utils/signatures.js'
 import type { SignatureValue } from '../types/signatures.js'
-import { buildLogEntryPayload, readLogEntryTides, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload } from '../utils/logEntryPayload.js'
+import { buildLogEntryPayload, readLogEntryTides, sortLogEventsByTime, normalizeLogEvent, hasUnsavedEventDraft, currentLocalTimeHHMM, isValidTimeHHMM, type LogEventPayload, type LogEntryTides } from '../utils/logEntryPayload.js'
 import EventTimeInput24h from './EventTimeInput24h.tsx'
 import CourseDialInput from './CourseDialInput.tsx'
 import { parseOwmCurrentWeather } from '../utils/openWeatherMap.js'
@@ -432,7 +432,7 @@ export default function LogEntryEditor({
     }
   }
 
-  const buildPayloadForSigning = useCallback((eventsOverride?: LogEvent[]) => {
+  const buildPayloadForSigning = useCallback((eventsOverride?: LogEvent[], tidesOverride?: LogEntryTides) => {
     return buildLogEntryPayload({
       date,
       dayOfTravel,
@@ -451,7 +451,7 @@ export default function LogEntryEditor({
         consumption: parseAppDecimalOrZero(fuelConsumption)
       },
       greywater: { level: parseAppDecimalOrZero(greywaterLevel) },
-      tides: { highWater: tideHighWater, lowWater: tideLowWater, ...tideLocation },
+      tides: tidesOverride ?? { highWater: tideHighWater, lowWater: tideLowWater, ...tideLocation },
       trackDistanceNm: parseOptionalFormDecimal(trackDistanceNm),
       trackSpeedMaxKn: parseOptionalFormDecimal(trackSpeedMaxKn),
       trackSpeedAvgKn: parseOptionalFormDecimal(trackSpeedAvgKn),
@@ -603,12 +603,14 @@ export default function LogEntryEditor({
       signCrew?: SignatureValue | ''
       aiSummary?: string
       aiSummaryGeneratedAt?: string
+      tidesOverride?: LogEntryTides
     }
   ) => {
     if (readOnly) return
 
     const normalized = Array.isArray(options) ? { eventsOverride: options } : (options ?? {})
     const eventsOverride = normalized.eventsOverride
+    const tidesOverride = normalized.tidesOverride
     const skipperToSave = normalized.signSkipper !== undefined ? normalized.signSkipper : signSkipper
     const crewToSave = normalized.signCrew !== undefined ? normalized.signCrew : signCrew
     let summaryToSave = normalized.aiSummary !== undefined ? normalized.aiSummary : aiSummary
@@ -636,7 +638,7 @@ export default function LogEntryEditor({
     }
 
     const entryData: Record<string, unknown> = {
-      ...buildPayloadForSigning(eventsOverride),
+      ...buildPayloadForSigning(eventsOverride, tidesOverride),
       signSkipper: normalizedSerializedSignature(skipperToSave),
       signCrew: normalizedSerializedSignature(crewToSave)
     }
@@ -1309,14 +1311,27 @@ export default function LogEntryEditor({
     }
   }
 
-  const applyTideFetchResult = (result: {
+  const applyTideFetchResult = async (result: {
     highWater: string
     lowWater: string
     location: TideLocationMeta
   }) => {
-    if (result.highWater) setTideHighWater(result.highWater)
-    if (result.lowWater) setTideLowWater(result.lowWater)
+    const nextTides = {
+      highWater: result.highWater,
+      lowWater: result.lowWater,
+      ...result.location
+    }
+    setTideHighWater(result.highWater)
+    setTideLowWater(result.lowWater)
     setTideLocation(result.location)
+
+    try {
+      await persistEntryToDb({ tidesOverride: nextTides })
+      trackPlausibleEvent(PlausibleEvents.TRAVEL_DAY_SAVED)
+    } catch (err) {
+      console.error('Failed to auto-save after tide fetch:', err)
+      showAlert(t('logs.tide_fetch_failed'), t('logs.tide_fetch_btn'))
+    }
   }
 
   const handleTideStationPick = async (pick: TideFetchNeedsStationPick, station: TideStation) => {
@@ -1330,7 +1345,7 @@ export default function LogEntryEditor({
         queryLng: pick.queryLng,
         analyticsSource: 'entry_editor'
       })
-      applyTideFetchResult(result)
+      await applyTideFetchResult(result)
       setTideStationPicker(null)
     } catch (err) {
       if (err instanceof TidesApiError && err.code === 'NO_DATA_FOR_DATE') {
@@ -1377,7 +1392,7 @@ export default function LogEntryEditor({
         return
       }
 
-      applyTideFetchResult(outcome as TideFetchResult)
+      await applyTideFetchResult(outcome as TideFetchResult)
     } catch (err) {
       if (err instanceof TidesApiError) {
         if (err.code === 'OFFLINE') {
@@ -2288,6 +2303,7 @@ export default function LogEntryEditor({
                     onChange={setTideHighWater}
                     disabled={readOnly || saving || tidesLoading}
                     aria-label={t('logs.tide_high_water')}
+                    fallback="00:00"
                   />
                 </div>
                 <div className="input-group">
@@ -2297,6 +2313,7 @@ export default function LogEntryEditor({
                     onChange={setTideLowWater}
                     disabled={readOnly || saving || tidesLoading}
                     aria-label={t('logs.tide_low_water')}
+                    fallback="00:00"
                   />
                 </div>
               </div>

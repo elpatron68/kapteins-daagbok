@@ -5,6 +5,7 @@ import {
   isLogEventDraftEmpty,
   localDateString,
   normalizeLogEvent,
+  splitTimeHHMM,
   type LogEventPayload
 } from './logEntryPayload.js'
 
@@ -110,5 +111,27 @@ describe('buildLogEntryPayload tides', () => {
       lat: '53.624526',
       lng: '7.155263'
     })
+  })
+})
+
+describe('splitTimeHHMM', () => {
+  it('splits valid time HH:MM correctly', () => {
+    const result = splitTimeHHMM('15:45')
+    expect(result).toEqual({ hours: '15', minutes: '45' })
+  })
+
+  it('uses fallback value when time is empty', () => {
+    const result = splitTimeHHMM('', '00:00')
+    expect(result).toEqual({ hours: '00', minutes: '00' })
+  })
+
+  it('falls back to current local time when empty and no fallback is specified', () => {
+    const result = splitTimeHHMM('')
+    const hours = parseInt(result.hours, 10)
+    const minutes = parseInt(result.minutes, 10)
+    expect(hours).toBeGreaterThanOrEqual(0)
+    expect(hours).toBeLessThanOrEqual(23)
+    expect(minutes).toBeGreaterThanOrEqual(0)
+    expect(minutes).toBeLessThanOrEqual(59)
   })
 })
