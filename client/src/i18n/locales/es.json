@@ -558,7 +558,13 @@
       "revoke": "Eliminar",
       "revoke_confirm": "¿Estás seguro de que quieres revocar el acceso a este miembro del equipo?",
       "invite_role": "Papel",
-      "invite_expires": "El enlace es válido durante 48 horas"
+      "invite_expires": "El enlace es válido durante 48 horas",
+      "tide_fetched_from_destination": "Tides based on destination “{{place}}”.",
+      "tide_role_departure": "Departure Port",
+      "tide_role_destination": "Destination Port",
+      "tide_role_gps": "GPS Position",
+      "tide_location_picker_title": "Select Tide Position",
+      "tide_location_picker_hint": "Select the position to fetch tides for:"
     },
     "dashboard": {
       "title": "Tus diarios de a bordo",

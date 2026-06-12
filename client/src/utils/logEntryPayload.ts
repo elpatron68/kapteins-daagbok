@@ -150,7 +150,9 @@ export function sortLogEventsByTime<T extends LogEventPayload>(events: T[]): T[]
   return [...events].sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 }
 
-export type TideLocationSource = 'gps' | 'departure' | 'geocoded'
+export type TideRole = 'departure' | 'destination' | 'gps'
+
+export type TideLocationSource = 'gps' | 'departure' | 'geocoded' | 'destination'
 
 export interface LogEntryTides {
   highWater: string
@@ -163,6 +165,8 @@ export interface LogEntryTides {
   tideFallback?: 'open_meteo'
 }
 
+export type LogEntryTidesMap = Partial<Record<TideRole, LogEntryTides>>
+
 export interface LogEntryPayloadInput {
   date: string
   dayOfTravel: string
@@ -171,7 +175,7 @@ export interface LogEntryPayloadInput {
   freshwater: { morning: number; refilled: number; evening: number; consumption: number }
   fuel: { morning: number; refilled: number; evening: number; consumption: number }
   greywater?: { level: number }
-  tides?: LogEntryTides
+  tides?: LogEntryTidesMap
   trackDistanceNm?: number
   trackSpeedMaxKn?: number
   trackSpeedAvgKn?: number
@@ -182,7 +186,7 @@ export interface LogEntryPayloadInput {
 
 function readTideLocationSource(value: unknown): TideLocationSource | undefined {
   const source = String(value ?? '').trim()
-  if (source === 'gps' || source === 'departure' || source === 'geocoded') return source
+  if (source === 'gps' || source === 'departure' || source === 'geocoded' || source === 'destination') return source
   return undefined
 }
 
@@ -207,6 +211,35 @@ export function readLogEntryTides(data: Record<string, unknown>): LogEntryTides 
     ...(distanceKm ? { distanceKm } : {}),
     ...(tideFallback ? { tideFallback } : {})
   }
+}
+
+export function readLogEntryTidesMap(data: Record<string, unknown>): LogEntryTidesMap {
+  const tidesRaw = data.tides as Record<string, unknown> | undefined
+  if (!tidesRaw) return {}
+
+  // Check if it's the old schema (flat object with highWater/lowWater)
+  const isOldSchema = ('highWater' in tidesRaw || 'lowWater' in tidesRaw)
+
+  if (isOldSchema) {
+    const parsedOld = readLogEntryTides({ tides: tidesRaw })
+    let role: TideRole = 'departure'
+    if (parsedOld.locationSource === 'gps') {
+      role = 'gps'
+    } else if (parsedOld.locationSource === 'destination') {
+      role = 'destination'
+    }
+    return { [role]: parsedOld }
+  }
+
+  // Otherwise, it's the new schema mapping roles to tide values
+  const map: LogEntryTidesMap = {}
+  const roles: TideRole[] = ['departure', 'destination', 'gps']
+  for (const role of roles) {
+    if (tidesRaw[role] && typeof tidesRaw[role] === 'object') {
+      map[role] = readLogEntryTides({ tides: tidesRaw[role] })
+    }
+  }
+  return map
 }
 
 export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string, unknown> {
@@ -235,21 +268,31 @@ export function buildLogEntryPayload(input: LogEntryPayloadInput): Record<string
   }
 
   if (input.tides) {
-    const highWater = parseTimeToHHMM(input.tides.highWater) ?? ''
-    const lowWater = parseTimeToHHMM(input.tides.lowWater) ?? ''
-    if (highWater || lowWater) {
-      const tides: Record<string, string> = { highWater, lowWater }
-      if (input.tides.locationSource) tides.locationSource = input.tides.locationSource
-      const placeName = input.tides.placeName?.trim()
-      if (placeName) tides.placeName = placeName
-      const lat = input.tides.lat?.trim()
-      if (lat) tides.lat = lat
-      const lng = input.tides.lng?.trim()
-      if (lng) tides.lng = lng
-      const distanceKm = input.tides.distanceKm?.trim()
-      if (distanceKm) tides.distanceKm = distanceKm
-      if (input.tides.tideFallback === 'open_meteo') tides.tideFallback = 'open_meteo'
-      payload.tides = tides
+    const serializedMap: Record<string, unknown> = {}
+    const roles: TideRole[] = ['departure', 'destination', 'gps']
+    for (const role of roles) {
+      const tideData = input.tides[role]
+      if (tideData) {
+        const highWater = parseTimeToHHMM(tideData.highWater) ?? ''
+        const lowWater = parseTimeToHHMM(tideData.lowWater) ?? ''
+        if (highWater || lowWater) {
+          const tidesObj: Record<string, string> = { highWater, lowWater }
+          if (tideData.locationSource) tidesObj.locationSource = tideData.locationSource
+          const placeName = tideData.placeName?.trim()
+          if (placeName) tidesObj.placeName = placeName
+          const lat = tideData.lat?.trim()
+          if (lat) tidesObj.lat = lat
+          const lng = tideData.lng?.trim()
+          if (lng) tidesObj.lng = lng
+          const distanceKm = tideData.distanceKm?.trim()
+          if (distanceKm) tidesObj.distanceKm = distanceKm
+          if (tideData.tideFallback === 'open_meteo') tidesObj.tideFallback = 'open_meteo'
+          serializedMap[role] = tidesObj
+        }
+      }
+    }
+    if (Object.keys(serializedMap).length > 0) {
+      payload.tides = serializedMap
     }
   }
 

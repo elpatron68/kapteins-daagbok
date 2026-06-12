@@ -558,7 +558,13 @@
       "revoke": "Fjern",
       "revoke_confirm": "Er du sikker på, at du vil fjerne dette besætningsmedlems adgang?",
       "invite_role": "Rolle",
-      "invite_expires": "Linket er gyldigt i 48 timer"
+      "invite_expires": "Linket er gyldigt i 48 timer",
+      "tide_fetched_from_destination": "Tides based on destination “{{place}}”.",
+      "tide_role_departure": "Departure Port",
+      "tide_role_destination": "Destination Port",
+      "tide_role_gps": "GPS Position",
+      "tide_location_picker_title": "Select Tide Position",
+      "tide_location_picker_hint": "Select the position to fetch tides for:"
     },
     "dashboard": {
       "title": "Dine logbøger",

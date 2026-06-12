@@ -6,6 +6,7 @@ import {
   localDateString,
   normalizeLogEvent,
   splitTimeHHMM,
+  readLogEntryTidesMap,
   type LogEventPayload
 } from './logEntryPayload.js'
 
@@ -74,7 +75,7 @@ describe('buildLogEntryPayload greywater', () => {
   })
 })
 
-describe('buildLogEntryPayload tides', () => {
+describe('buildLogEntryPayload tides map', () => {
   const base = {
     date: '2026-06-11',
     dayOfTravel: '1',
@@ -85,18 +86,35 @@ describe('buildLogEntryPayload tides', () => {
     events: [] as LogEventPayload[]
   }
 
-  it('persists high and low water times', () => {
+  it('persists multiple tide roles (departure and destination)', () => {
     const payload = buildLogEntryPayload({
       ...base,
-      tides: { highWater: '18:34', lowWater: '12:05' }
+      tides: {
+        departure: { highWater: '18:34', lowWater: '12:05' },
+        destination: { highWater: '19:00', lowWater: '12:30' }
+      }
     })
-    expect(payload.tides).toEqual({ highWater: '18:34', lowWater: '12:05' })
+    expect(payload.tides).toEqual({
+      departure: { highWater: '18:34', lowWater: '12:05' },
+      destination: { highWater: '19:00', lowWater: '12:30' }
+    })
   })
 
   it('persists tide location metadata', () => {
     const payload = buildLogEntryPayload({
       ...base,
       tides: {
+        gps: {
+          highWater: '06:00',
+          lowWater: '00:04',
+          locationSource: 'gps',
+          lat: '53.624526',
+          lng: '7.155263'
+        }
+      }
+    })
+    expect(payload.tides).toEqual({
+      gps: {
         highWater: '06:00',
         lowWater: '00:04',
         locationSource: 'gps',
@@ -104,13 +122,71 @@ describe('buildLogEntryPayload tides', () => {
         lng: '7.155263'
       }
     })
-    expect(payload.tides).toEqual({
-      highWater: '06:00',
-      lowWater: '00:04',
-      locationSource: 'gps',
-      lat: '53.624526',
-      lng: '7.155263'
+  })
+})
+
+describe('readLogEntryTidesMap backward compatibility', () => {
+  it('reads old flat schema as departure role', () => {
+    const oldData = {
+      tides: {
+        highWater: '12:30',
+        lowWater: '06:15',
+        locationSource: 'departure',
+        placeName: 'Kiel'
+      }
+    }
+    const map = readLogEntryTidesMap(oldData)
+    expect(map.departure).toEqual({
+      highWater: '12:30',
+      lowWater: '06:15',
+      locationSource: 'departure',
+      placeName: 'Kiel'
     })
+    expect(map.gps).toBeUndefined()
+    expect(map.destination).toBeUndefined()
+  })
+
+  it('reads old flat schema with gps locationSource as gps role', () => {
+    const oldData = {
+      tides: {
+        highWater: '12:30',
+        lowWater: '06:15',
+        locationSource: 'gps',
+        lat: '54.3',
+        lng: '10.1'
+      }
+    }
+    const map = readLogEntryTidesMap(oldData)
+    expect(map.gps).toEqual({
+      highWater: '12:30',
+      lowWater: '06:15',
+      locationSource: 'gps',
+      lat: '54.3',
+      lng: '10.1'
+    })
+    expect(map.departure).toBeUndefined()
+    expect(map.destination).toBeUndefined()
+  })
+
+  it('reads new nested schema correctly', () => {
+    const newData = {
+      tides: {
+        departure: { highWater: '12:00', lowWater: '06:00', placeName: 'Kiel' },
+        gps: { highWater: '13:00', lowWater: '07:00', lat: '54.3' }
+      }
+    }
+    const map = readLogEntryTidesMap(newData)
+    expect(map.departure).toEqual({
+      highWater: '12:00',
+      lowWater: '06:00',
+      placeName: 'Kiel'
+    })
+    expect(map.gps).toEqual({
+      highWater: '13:00',
+      lowWater: '07:00',
+      lat: '54.3'
+    })
+    expect(map.destination).toBeUndefined()
   })
 })
 

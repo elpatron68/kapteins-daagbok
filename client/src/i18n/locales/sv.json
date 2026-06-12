@@ -558,7 +558,13 @@
       "revoke": "Ta bort",
       "revoke_confirm": "Är du säker på att du vill ta bort åtkomsten för den här medarbetaren?",
       "invite_role": "Roll",
-      "invite_expires": "Länken är giltig i 48 timmar"
+      "invite_expires": "Länken är giltig i 48 timmar",
+      "tide_fetched_from_destination": "Tides based on destination “{{place}}”.",
+      "tide_role_departure": "Departure Port",
+      "tide_role_destination": "Destination Port",
+      "tide_role_gps": "GPS Position",
+      "tide_location_picker_title": "Select Tide Position",
+      "tide_location_picker_hint": "Select the position to fetch tides for:"
     },
     "dashboard": {
       "title": "Dina loggböcker",

@@ -3,7 +3,8 @@ import { LIVE_EVENT_CODES } from './liveEventCodes.js'
 import {
   buildTideLocationMeta,
   formatTideLocationLabel,
-  resolveTideFetchLocation
+  resolveTideFetchLocation,
+  getAvailableTideLocations
 } from './tideLocation.js'
 
 const entryDate = '2026-06-11'
@@ -126,7 +127,7 @@ describe('resolveTideFetchLocation', () => {
   })
 
   it('formats coordinate and place labels', () => {
-    const t = (key: string, options?: Record<string, string>) =>
+    const t = (key: string, options?: Record<string, string | undefined>) =>
       `${key}:${JSON.stringify(options ?? {})}`
     expect(
       formatTideLocationLabel(
@@ -173,5 +174,64 @@ describe('resolveTideFetchLocation', () => {
       nowMs
     })
     expect(result).toEqual({ error: 'missing' })
+  })
+})
+
+describe('getAvailableTideLocations', () => {
+  it('returns empty list when no locations are available', () => {
+    const list = getAvailableTideLocations({
+      departure: '',
+      destination: '',
+      events: [],
+      entryDate
+    })
+    expect(list).toEqual([])
+  })
+
+  it('returns departure and destination when they are non-empty', () => {
+    const list = getAvailableTideLocations({
+      departure: 'Büsum',
+      destination: 'Helgoland',
+      events: [],
+      entryDate
+    })
+    expect(list).toHaveLength(2)
+    expect(list[0]).toEqual({
+      role: 'departure',
+      labelKey: 'logs.tide_role_departure',
+      displayLabel: 'Büsum',
+      fetchLocation: { mode: 'by-place', query: 'Büsum', source: 'departure' }
+    })
+    expect(list[1]).toEqual({
+      role: 'destination',
+      labelKey: 'logs.tide_role_destination',
+      displayLabel: 'Helgoland',
+      fetchLocation: { mode: 'by-place', query: 'Helgoland', source: 'destination' }
+    })
+  })
+
+  it('returns gps when fresh position is present in events', () => {
+    const list = getAvailableTideLocations({
+      departure: 'Büsum',
+      destination: '',
+      events: [
+        {
+          time: '11:30',
+          remarks: LIVE_EVENT_CODES.POSITION,
+          gpsLat: '54.1',
+          gpsLng: '8.8'
+        }
+      ],
+      entryDate,
+      nowMs
+    })
+    expect(list).toHaveLength(2)
+    expect(list[0].role).toBe('departure')
+    expect(list[1]).toEqual({
+      role: 'gps',
+      labelKey: 'logs.tide_role_gps',
+      displayLabel: '54.1, 8.8',
+      fetchLocation: { mode: 'nearby', lat: '54.1', lng: '8.8', source: 'gps' }
+    })
   })
 })

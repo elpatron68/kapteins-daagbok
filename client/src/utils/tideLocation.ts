@@ -3,7 +3,7 @@ import {
   getLatestLoggedPosition,
   LIVE_LOG_TIDE_POSITION_MAX_AGE_MS
 } from './liveEventCodes.js'
-import type { LogEntryTides, LogEventPayload, TideLocationSource } from './logEntryPayload.js'
+import type { LogEntryTides, LogEventPayload, TideLocationSource, TideRole } from './logEntryPayload.js'
 
 export type { TideLocationSource }
 
@@ -14,7 +14,14 @@ export type TideLocationMeta = Pick<
 
 export type TideFetchLocation =
   | { mode: 'nearby'; lat: string; lng: string; source: 'gps' }
-  | { mode: 'by-place'; query: string; source: 'departure' }
+  | { mode: 'by-place'; query: string; source: 'departure' | 'destination' }
+
+export interface TideLocationOption {
+  role: TideRole
+  labelKey: string
+  displayLabel: string
+  fetchLocation: TideFetchLocation
+}
 
 export type TideLocationError = 'stale' | 'missing'
 
@@ -133,6 +140,9 @@ export function formatTideLocationLabel(
     if (tides.locationSource === 'departure') {
       return t('logs.tide_fetched_from_departure', { place: placeName })
     }
+    if (tides.locationSource === 'destination') {
+      return t('logs.tide_fetched_from_destination', { place: placeName })
+    }
     return t('logs.tide_data_for_place', { place: placeName })
   }
   return ''
@@ -147,4 +157,49 @@ export function pickTideLocationMeta(tides: LogEntryTides): TideLocationMeta {
     distanceKm: tides.distanceKm,
     tideFallback: tides.tideFallback
   }
+}
+
+export function getAvailableTideLocations(options: {
+  departure: string
+  destination: string
+  events: Array<Pick<LogEventPayload, 'remarks' | 'time' | 'gpsLat' | 'gpsLng'>>
+  entryDate: string
+  maxAgeMs?: number
+  nowMs?: number
+}): TideLocationOption[] {
+  const optionsList: TideLocationOption[] = []
+
+  const departure = options.departure.trim()
+  if (departure) {
+    optionsList.push({
+      role: 'departure',
+      labelKey: 'logs.tide_role_departure',
+      displayLabel: departure,
+      fetchLocation: { mode: 'by-place', query: departure, source: 'departure' }
+    })
+  }
+
+  const destination = options.destination.trim()
+  if (destination) {
+    optionsList.push({
+      role: 'destination',
+      labelKey: 'logs.tide_role_destination',
+      displayLabel: destination,
+      fetchLocation: { mode: 'by-place', query: destination, source: 'destination' }
+    })
+  }
+
+  const maxAgeMs = options.maxAgeMs ?? LIVE_LOG_TIDE_POSITION_MAX_AGE_MS
+  const nowMs = options.nowMs ?? Date.now()
+  const freshGps = getLastLoggedPositionWithin(options.events, options.entryDate, maxAgeMs, nowMs)
+  if (freshGps) {
+    optionsList.push({
+      role: 'gps',
+      labelKey: 'logs.tide_role_gps',
+      displayLabel: `${freshGps.lat}, ${freshGps.lng}`,
+      fetchLocation: { mode: 'nearby', lat: freshGps.lat, lng: freshGps.lng, source: 'gps' }
+    })
+  }
+
+  return optionsList
 }

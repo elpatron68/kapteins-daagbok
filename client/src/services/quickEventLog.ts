@@ -7,12 +7,14 @@ import { putEntryRecord } from '../utils/entryListCache.js'
 import {
   buildLogEntryPayload,
   normalizeLogEvent,
-  readLogEntryTides,
+  readLogEntryTidesMap,
   sortLogEventsByTime,
   currentLocalTimeHHMM,
   localDateString,
   type LogEntryTides,
-  type LogEventPayload
+  type LogEntryTidesMap,
+  type LogEventPayload,
+  type TideRole
 } from '../utils/logEntryPayload.js'
 import {
   carryOverFromPreviousDay,
@@ -77,7 +79,7 @@ function buildEncryptedPayload(
     destination?: string
     freshwater?: { morning: number; refilled: number; evening: number; consumption: number }
     fuel?: { morning: number; refilled: number; evening: number; consumption: number }
-    tides?: LogEntryTides
+    tides?: LogEntryTidesMap
     clearSignatures?: boolean
   }
 ): Record<string, unknown> {
@@ -116,7 +118,7 @@ function buildEncryptedPayload(
     freshwater,
     fuel: fuelLevels,
     greywater: gw ? { level: gw.level || 0 } : undefined,
-    tides: options.tides ?? readLogEntryTides(data),
+    tides: options.tides ?? readLogEntryTidesMap(data),
     trackDistanceNm:
       trackDistance != null && trackDistance !== ''
         ? parseFloat(String(trackDistance))
@@ -405,6 +407,7 @@ export async function appendQuickEvents(
 export async function patchEntryTides(
   logbookId: string,
   entryId: string,
+  role: TideRole,
   tides: LogEntryTides
 ): Promise<void> {
   const loaded = await loadEntry(logbookId, entryId)
@@ -413,9 +416,15 @@ export async function patchEntryTides(
   const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
   const currentEvents = (loaded.data.events as LogEventPayload[]) || []
 
+  const currentTidesMap = readLogEntryTidesMap(loaded.data)
+  const nextTidesMap = {
+    ...currentTidesMap,
+    [role]: tides
+  }
+
   await persistEntry(logbookId, entryId, loaded.data, {
     events: currentEvents,
-    tides,
+    tides: nextTidesMap,
     clearSignatures: hadSignature
   })
 }
