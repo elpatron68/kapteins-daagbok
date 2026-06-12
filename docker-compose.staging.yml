@@ -60,6 +60,7 @@ services:
     environment:
       PLAUSIBLE_ENABLED: ${PLAUSIBLE_ENABLED:-false}
       PLAUSIBLE_HOST: ${PLAUSIBLE_HOST:-https://plausible.elpatron.me}
+      ROBOTS_NOINDEX: ${ROBOTS_NOINDEX:-true}
     ports:
       - "80:80"
     depends_on:

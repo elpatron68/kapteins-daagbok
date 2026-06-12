@@ -83,7 +83,7 @@ Notfall ohne Checks: `SKIP_PREDEPLOY_CHECK=1 ./scripts/update-remotes.sh -dest s
 | Forward Port | `80` |
 | SSL | Let's Encrypt |
 
-Empfohlen: Custom Header `X-Robots-Tag: noindex, nofollow` (Staging nicht indexieren).
+Staging ist per Default nicht indexierbar: `ROBOTS_NOINDEX=true` im Frontend-Container setzt `X-Robots-Tag: noindex, nofollow` und liefert `robots.txt` mit `Disallow: /` (siehe `docker-compose.staging.yml`).
 
 Details zu Proxy-Headern und Security: [npm-security.md](npm-security.md).
 

@@ -16,8 +16,22 @@ case "$(printf '%s' "$PLAUSIBLE_ENABLED" | tr '[:upper:]' '[:lower:]')" in
     ;;
 esac
 
+ROBOTS_NOINDEX="${ROBOTS_NOINDEX:-false}"
+case "$(printf '%s' "$ROBOTS_NOINDEX" | tr '[:upper:]' '[:lower:]')" in
+  true|1|yes)
+    export ROBOTS_NOINDEX_HEADER='    add_header X-Robots-Tag "noindex, nofollow" always;'
+    cat > /usr/share/nginx/html/robots.txt <<'EOF'
+User-agent: *
+Disallow: /
+EOF
+    ;;
+  *)
+    export ROBOTS_NOINDEX_HEADER=''
+    ;;
+esac
+
 export PLAUSIBLE_CSP
-envsubst '${PLAUSIBLE_CSP}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '${PLAUSIBLE_CSP} ${ROBOTS_NOINDEX_HEADER}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
 cat > /usr/share/nginx/html/runtime-config.json <<EOF
 {"plausibleEnabled":${PLAUSIBLE_ENABLED_JSON},"plausibleHost":"${PLAUSIBLE_HOST}"}
