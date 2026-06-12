@@ -2,7 +2,9 @@ import { Router } from 'express'
 import { requireUser } from '../middleware/auth.js'
 import {
   fetchTidesForCoordinates,
-  fetchTidesForPlace
+  fetchTidesForPlace,
+  fetchTidesForStation,
+  listNearbyTideStations
 } from '../utils/tideProvider.js'
 
 const router = Router()
@@ -14,6 +16,61 @@ function parseLatLon(lat: unknown, lon: unknown): { lat: number; lon: number } |
   if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) return null
   return { lat: latNum, lon: lonNum }
 }
+
+function parseLimit(value: unknown, fallback = 8): number {
+  const n = Number(value)
+  if (Number.isNaN(n)) return fallback
+  return Math.min(20, Math.max(1, Math.floor(n)))
+}
+
+async function noTideDataResponse(lat: number, lon: number) {
+  const stations = await listNearbyTideStations(lat, lon, 8)
+  if (stations.length > 0) {
+    return { error: 'no_tide_data', stations }
+  }
+  return { error: 'no_tide_data' }
+}
+
+router.get('/stations/nearby', requireUser, async (req, res) => {
+  try {
+    const coords = parseLatLon(req.query.lat, req.query.lon)
+    if (!coords) {
+      return res.status(400).json({ error: 'lat and lon are required' })
+    }
+
+    const stations = await listNearbyTideStations(coords.lat, coords.lon, parseLimit(req.query.limit))
+    return res.json({ stations })
+  } catch (error: unknown) {
+    console.error('Error listing nearby tide stations:', error)
+    return res.status(502).json({ error: 'station_list_failed' })
+  }
+})
+
+router.get('/station/:stationId', requireUser, async (req, res) => {
+  try {
+    const stationId = String(req.params.stationId ?? '').trim()
+    if (!stationId) {
+      return res.status(400).json({ error: 'stationId is required' })
+    }
+
+    const coords = parseLatLon(req.query.lat, req.query.lon)
+    const data = await fetchTidesForStation(
+      stationId,
+      coords ? { queryLat: coords.lat, queryLon: coords.lon } : undefined
+    )
+    return res.json(data)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Tide lookup failed'
+    if (message === 'bsh_invalid_station') {
+      return res.status(404).json({ error: 'station_not_found' })
+    }
+    if (message === 'no_tide_data') {
+      return res.status(404).json({ error: 'no_tide_data' })
+    }
+    console.error('Error fetching station tides:', error)
+    return res.status(502).json({ error: message })
+  }
+})
 
 router.get('/nearby', requireUser, async (req, res) => {
   try {
@@ -27,6 +84,10 @@ router.get('/nearby', requireUser, async (req, res) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Tide lookup failed'
     if (message === 'no_tide_data') {
+      const coords = parseLatLon(req.query.lat, req.query.lon)
+      if (coords) {
+        return res.status(404).json(await noTideDataResponse(coords.lat, coords.lon))
+      }
       return res.status(404).json({ error: 'no_tide_data' })
     }
     console.error('Error fetching nearby tides:', error)

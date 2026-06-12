@@ -99,21 +99,52 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
+export interface BshStationSuggestion {
+  id: string
+  name: string
+  lat: number
+  lon: number
+  distanceKm: number
+  area?: string
+}
+
+export function findNearestBshStations(
+  lat: number,
+  lon: number,
+  stations: BshStation[],
+  limit = 8
+): BshStationSuggestion[] {
+  const ranked = stations
+    .map((station) => ({
+      id: station.id,
+      name: station.name,
+      lat: station.lat,
+      lon: station.lon,
+      area: station.area,
+      distanceKm: Number(haversineKm(lat, lon, station.lat, station.lon).toFixed(1))
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+
+  return ranked.slice(0, Math.max(1, limit))
+}
+
 export function findNearestBshStation(
   lat: number,
   lon: number,
   stations: BshStation[]
 ): { station: BshStation; distanceKm: number } | null {
-  if (stations.length === 0) return null
-
-  let best: { station: BshStation; distanceKm: number } | null = null
-  for (const station of stations) {
-    const distanceKm = haversineKm(lat, lon, station.lat, station.lon)
-    if (!best || distanceKm < best.distanceKm) {
-      best = { station, distanceKm }
-    }
+  const nearest = findNearestBshStations(lat, lon, stations, 1)[0]
+  if (!nearest) return null
+  return {
+    station: {
+      id: nearest.id,
+      name: nearest.name,
+      lat: nearest.lat,
+      lon: nearest.lon,
+      area: nearest.area
+    },
+    distanceKm: nearest.distanceKm
   }
-  return best
 }
 
 export async function loadBshStationIndex(): Promise<BshStation[]> {
@@ -265,6 +296,71 @@ export interface BshTideLookupResult extends TideLookupResult {
   distanceKm: number
 }
 
+export async function listNearbyBshStations(
+  lat: number,
+  lon: number,
+  limit = 8
+): Promise<BshStationSuggestion[]> {
+  const stations = await loadBshStationIndex()
+  return findNearestBshStations(lat, lon, stations, limit)
+}
+
+function buildBshTideResult(
+  station: BshStation,
+  distanceKm: number,
+  feature: OgcFeature
+): BshTideLookupResult {
+  const extrema = parseBshFeatureToExtrema(feature)
+  if (extrema.length === 0) {
+    throw new Error('no_tide_data')
+  }
+
+  const copyright = feature.properties?.copyright
+  let sourceNote = 'BSH Wasserstandsvorhersage (© BSH, CC BY 4.0)'
+  if (copyright && typeof copyright === 'object' && copyright !== null) {
+    const cr = copyright as Record<string, string>
+    sourceNote = cr.de || cr.en || sourceNote
+  }
+
+  return {
+    distanceKm: Number(distanceKm.toFixed(1)),
+    location: {
+      name: station.name,
+      lat: station.lat,
+      lon: station.lon,
+      source: 'bsh_station',
+      stationId: station.id
+    },
+    tides: {
+      data: {
+        timezone: BSH_TIMEZONE,
+        datum: 'gauge',
+        source: sourceNote,
+        extrema
+      }
+    }
+  }
+}
+
+export async function fetchBshTidesForStation(
+  stationId: string,
+  options?: { queryLat?: number; queryLon?: number }
+): Promise<BshTideLookupResult> {
+  const stations = await loadBshStationIndex()
+  const station = stations.find((item) => item.id === stationId)
+  if (!station) {
+    throw new Error('bsh_invalid_station')
+  }
+
+  const feature = await fetchBshStationFeature(stationId)
+  const distanceKm =
+    options?.queryLat != null && options?.queryLon != null
+      ? haversineKm(options.queryLat, options.queryLon, station.lat, station.lon)
+      : 0
+
+  return buildBshTideResult(station, distanceKm, feature)
+}
+
 export async function fetchBshTidesForCoordinates(
   lat: number,
   lon: number
@@ -282,34 +378,5 @@ export async function fetchBshTidesForCoordinates(
   }
 
   const feature = await fetchBshStationFeature(nearest.station.id)
-  const extrema = parseBshFeatureToExtrema(feature)
-  if (extrema.length === 0) {
-    throw new Error('no_tide_data')
-  }
-
-  const copyright = feature.properties?.copyright
-  let sourceNote = 'BSH Wasserstandsvorhersage (© BSH, CC BY 4.0)'
-  if (copyright && typeof copyright === 'object' && copyright !== null) {
-    const cr = copyright as Record<string, string>
-    sourceNote = cr.de || cr.en || sourceNote
-  }
-
-  return {
-    distanceKm: Number(nearest.distanceKm.toFixed(1)),
-    location: {
-      name: nearest.station.name,
-      lat: nearest.station.lat,
-      lon: nearest.station.lon,
-      source: 'bsh_station',
-      stationId: nearest.station.id
-    },
-    tides: {
-      data: {
-        timezone: BSH_TIMEZONE,
-        datum: 'gauge',
-        source: sourceNote,
-        extrema
-      }
-    }
-  }
+  return buildBshTideResult(nearest.station, nearest.distanceKm, feature)
 }

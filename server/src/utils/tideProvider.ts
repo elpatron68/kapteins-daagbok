@@ -1,4 +1,10 @@
-import { fetchBshTidesForCoordinates, MAX_BSH_DISTANCE_KM } from './bshTides.js'
+import {
+  fetchBshTidesForCoordinates,
+  fetchBshTidesForStation,
+  listNearbyBshStations,
+  MAX_BSH_DISTANCE_KM,
+  type BshStationSuggestion
+} from './bshTides.js'
 import {
   fetchTidesForCoordinates as fetchOpenMeteoTidesForCoordinates,
   fetchTidesForPlace as fetchOpenMeteoTidesForPlace,
@@ -40,6 +46,34 @@ export async function fetchTidesForCoordinates(
         }
       }
     }
+  }
+}
+
+export async function listNearbyTideStations(
+  lat: number,
+  lon: number,
+  limit = 8
+): Promise<BshStationSuggestion[]> {
+  try {
+    return await listNearbyBshStations(lat, lon, limit)
+  } catch {
+    return []
+  }
+}
+
+export async function fetchTidesForStation(
+  stationId: string,
+  options?: { queryLat?: number; queryLon?: number }
+): Promise<TideProviderResult> {
+  try {
+    return await fetchBshTidesForStation(stationId, options)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : ''
+    if (message === 'bsh_invalid_station' || message === 'no_tide_data') {
+      throw error
+    }
+    console.warn('BSH station tide lookup failed:', error)
+    throw new Error('no_tide_data')
   }
 }
 

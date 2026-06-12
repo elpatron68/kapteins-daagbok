@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   findNearestBshStation,
+  findNearestBshStations,
   haversineKm,
   parseBshFeatureToExtrema,
   parseBshHwnwForecast,
@@ -22,6 +23,15 @@ const stationIndex = loadJson<BshStation[]>('bsh-station-index.json')
 describe('haversineKm', () => {
   it('returns zero for identical points', () => {
     expect(haversineKm(53.62, 7.15, 53.62, 7.15)).toBe(0)
+  })
+})
+
+describe('findNearestBshStations', () => {
+  it('returns multiple ranked stations', () => {
+    const nearest = findNearestBshStations(53.624526, 7.155263, stationIndex, 3)
+    expect(nearest).toHaveLength(3)
+    expect(nearest[0].id).toBe('norderney_riffgat')
+    expect(nearest[1].distanceKm).toBeGreaterThanOrEqual(nearest[0].distanceKm)
   })
 })
 

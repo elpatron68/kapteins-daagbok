@@ -43,15 +43,19 @@ import { putEntryRecord } from '../utils/entryListCache.js'
 import { getLogbookAccess } from '../services/logbookAccess.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { fetchOpenWeatherCurrent, WeatherApiError } from '../services/weather.js'
-import { fetchTidesByPlace, fetchTidesNearby, TidesApiError } from '../services/tides.js'
+import { TidesApiError, type TideStation } from '../services/tides.js'
+import { TideStationPickerModal } from './TideStationPickerModal.tsx'
 import {
-  buildTideLocationMeta,
   formatTideLocationLabel,
   pickTideLocationMeta,
   resolveTideFetchLocation,
   type TideLocationMeta
 } from '../utils/tideLocation.js'
-import { parseTideTurtleForDate } from '../utils/tideTurtle.js'
+import {
+  fetchTidesForEntry,
+  fetchTidesForStationChoice,
+  type TideFetchNeedsStationPick
+} from '../utils/tideFetch.js'
 import {
   buildTravelDayContext,
   fetchTravelDaySummaryUsage,
@@ -313,6 +317,7 @@ export default function LogEntryEditor({
   const [tideLowWater, setTideLowWater] = useState('')
   const [tideLocation, setTideLocation] = useState<TideLocationMeta>({})
   const [tidesLoading, setTidesLoading] = useState(false)
+  const [tideStationPicker, setTideStationPicker] = useState<TideFetchNeedsStationPick | null>(null)
   const [tanksCollapsed, setTanksCollapsed] = useState(true)
 
   const [columnSelectorOpen, setColumnSelectorOpen] = useState(false)
@@ -1303,6 +1308,41 @@ export default function LogEntryEditor({
     }
   }
 
+  const applyTideFetchResult = (result: {
+    highWater: string
+    lowWater: string
+    location: TideLocationMeta
+  }) => {
+    if (result.highWater) setTideHighWater(result.highWater)
+    if (result.lowWater) setTideLowWater(result.lowWater)
+    setTideLocation(result.location)
+  }
+
+  const handleTideStationPick = async (pick: TideFetchNeedsStationPick, station: TideStation) => {
+    setTidesLoading(true)
+    try {
+      const result = await fetchTidesForStationChoice({
+        stationId: station.id,
+        entryDate: pick.entryDate,
+        fetchLocation: pick.fetchLocation,
+        queryLat: pick.queryLat,
+        queryLng: pick.queryLng,
+        analyticsSource: 'entry_editor'
+      })
+      applyTideFetchResult(result)
+      setTideStationPicker(null)
+    } catch (err) {
+      if (err instanceof TidesApiError && err.code === 'NO_DATA_FOR_DATE') {
+        showAlert(t('logs.tide_no_data_for_date', { date: pick.entryDate }), t('logs.tide_fetch_btn'))
+        return
+      }
+      console.error('Tide station fetch failed:', err)
+      showAlert(t('logs.tide_fetch_failed'), t('logs.tide_fetch_btn'))
+    } finally {
+      setTidesLoading(false)
+    }
+  }
+
   const handleFetchTides = async () => {
     if (!isOnline) {
       showAlert(t('logs.weather_offline'), t('logs.tide_fetch_btn'))
@@ -1332,23 +1372,18 @@ export default function LogEntryEditor({
         return
       }
 
-      const data =
-        location.mode === 'nearby'
-          ? await fetchTidesNearby(location.lat, location.lng, {
-              analyticsSource: 'entry_editor',
-              locationSource: location.source
-            })
-          : await fetchTidesByPlace(location.query, { analyticsSource: 'entry_editor' })
+      const outcome = await fetchTidesForEntry({
+        fetchLocation: location,
+        entryDate: entryDateForLocation,
+        analyticsSource: 'entry_editor'
+      })
 
-      const parsed = parseTideTurtleForDate(data, date)
-      if (!parsed.highWater && !parsed.lowWater) {
-        showAlert(t('logs.tide_no_data'), t('logs.tide_fetch_btn'))
+      if (outcome.kind === 'pick_station') {
+        setTideStationPicker(outcome)
         return
       }
 
-      if (parsed.highWater) setTideHighWater(parsed.highWater)
-      if (parsed.lowWater) setTideLowWater(parsed.lowWater)
-      setTideLocation(buildTideLocationMeta(location, data))
+      applyTideFetchResult(outcome)
     } catch (err) {
       if (err instanceof TidesApiError) {
         if (err.code === 'OFFLINE') {
@@ -1357,6 +1392,10 @@ export default function LogEntryEditor({
         }
         if (err.code === 'PLACE_NOT_FOUND') {
           showAlert(t('logs.tide_place_not_found', { place: departure.trim() }), t('logs.tide_fetch_btn'))
+          return
+        }
+        if (err.code === 'NO_DATA_FOR_DATE') {
+          showAlert(t('logs.tide_no_data_for_date', { date }), t('logs.tide_fetch_btn'))
           return
         }
         if (err.code === 'NOT_FOUND') {
@@ -3101,6 +3140,19 @@ export default function LogEntryEditor({
         nmeaArchive={nmeaArchive}
         onImport={handleNmeaImport}
       />
+
+      {tideStationPicker ? (
+        <TideStationPickerModal
+          title={t('logs.tide_pick_station_title')}
+          hint={t('logs.tide_pick_station_hint')}
+          cancelLabel={t('logs.live_cancel')}
+          stations={tideStationPicker.stations}
+          onCancel={() => setTideStationPicker(null)}
+          onSelect={(station) => {
+            void handleTideStationPick(tideStationPicker, station)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
