@@ -13,3 +13,6 @@ server/dist/
 *.log
 
 userfeedback/
+
+# Cursor IDE local rules
+.cursor/rules/
