@@ -2,25 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  Anchor,
-  ChevronDown,
-  ChevronLeft,
-  ChevronUp,
-  CloudSun,
-  Compass,
-  Droplets,
-  FileText,
-  Fuel,
-  Gauge,
   MapPin,
-  MessageSquare,
-  Camera,
-  Mic,
+  MoreVertical,
+  Pencil,
   Radio,
-  Sailboat,
-  Undo2,
-  Waves,
-  Zap
+  Undo2
 } from 'lucide-react'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getAiAuthorized } from '../services/userPreferences.js'
@@ -50,7 +36,8 @@ import {
   liveSogRemark,
   liveStwRemark,
   liveTempRemark,
-  liveWaterRemark
+  liveWaterRemark,
+  parseLiveSailsRemark
 } from '../utils/liveEventCodes.js'
 import { formatAppDecimal, formatTankLiters, parseAppDecimal } from '../utils/numberFormat.js'
 
@@ -104,11 +91,35 @@ import { saveEntryVoiceMemo, deleteEntryVoiceMemo } from '../services/voiceAttac
 import { blobToCompressedJpegDataUrl } from '../utils/imageCompress.js'
 import { blobToAudioDataUrl } from '../utils/audioBlob.js'
 import { useEntryVoiceMemos } from '../hooks/useEntryVoiceMemos.js'
+import { useEventEditor } from '../hooks/useEventEditor.js'
+import LiveActionToolbar from './LiveActionToolbar.tsx'
+import LiveEventSheet from './LiveEventSheet.tsx'
+import LiveOverflowMenu from './LiveOverflowMenu.tsx'
+
+export interface LiveEntrySummary {
+  id: string
+  date: string
+  dayOfTravel: string
+  departure: string
+  destination: string
+}
 
 interface LiveLogViewProps {
   logbookId: string
+  selectedEntryId?: string | null
+  entrySummaries?: LiveEntrySummary[]
+  todayEntryId?: string | null
+  onEntryChange?: (entryId: string) => void
   onOpenEditor: (entryId: string) => void
-  onSwitchToList: () => void
+  onOpenAllDays: () => void
+  onDeleteEntry?: (entryId: string) => void
+  onDownloadCsv?: () => void
+  onShareCsv?: () => void
+  onDownloadPhotosZip?: () => void
+  onDownloadPdf?: (entryId: string, date: string) => void
+  exporting?: boolean
+  canExportPhotosZip?: boolean
+  hasLogbookEntries?: boolean
 }
 
 type LiveModal =
@@ -174,6 +185,14 @@ function lastWindDirectionFromEvents(events: LogEventPayload[]): string {
   return ''
 }
 
+function lastSailsFromEvents(events: LogEventPayload[]): string {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const sails = parseLiveSailsRemark(events[i].remarks?.trim() ?? '')
+    if (sails) return sails
+  }
+  return ''
+}
+
 function gpsFailureAlertBody(
   t: (key: string) => string,
   reason: GeolocationErrorReason
@@ -201,8 +220,20 @@ function findActiveCreatorId(
 
 export default function LiveLogView({
   logbookId,
+  selectedEntryId: selectedEntryIdProp,
+  entrySummaries = [],
+  todayEntryId,
+  onEntryChange,
   onOpenEditor,
-  onSwitchToList
+  onOpenAllDays,
+  onDeleteEntry,
+  onDownloadCsv,
+  onShareCsv,
+  onDownloadPhotosZip,
+  onDownloadPdf,
+  exporting = false,
+  canExportPhotosZip = false,
+  hasLogbookEntries = true
 }: LiveLogViewProps) {
   const { t, i18n } = useTranslation()
   const { showAlert, showConfirm } = useDialog()
@@ -221,7 +252,9 @@ export default function LiveLogView({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<LiveModal>('none')
-  const [weatherExpanded, setWeatherExpanded] = useState(false)
+  const [overflowOpen, setOverflowOpen] = useState(false)
+  const [editingEventIndex, setEditingEventIndex] = useState<number | null>(null)
+  const [signSkipper, setSignSkipper] = useState('')
   const [weatherOwmLoading, setWeatherOwmLoading] = useState(false)
   const [tidesLoading, setTidesLoading] = useState(false)
   const [tidePreview, setTidePreview] = useState<{
@@ -323,11 +356,25 @@ export default function LiveLogView({
   )
   const motorRunning = isMotorRunningFromEvents(events)
   const motorLabel = t('logs.motor_propulsion')
+  const lastSailsLabel = lastSailsFromEvents(events)
   const hasLoggedPosition = useMemo(
     () => (date ? getLatestLoggedPosition(events, date) != null : false),
     [events, date]
   )
   const voiceMemoLookup = useEntryVoiceMemos(logbookId, entryId)
+
+  const { updateEvent, deleteEvent } = useEventEditor({
+    logbookId,
+    entryId,
+    events,
+    onEventsChange: setEvents,
+    hasSkipperSignature: !!signSkipper
+  })
+
+  const dayChips = useMemo(() => {
+    const max = 5
+    return entrySummaries.slice(0, max)
+  }, [entrySummaries])
 
   const applyLoadedEntry = useCallback((loaded: NonNullable<Awaited<ReturnType<typeof loadEntry>>>) => {
     const entryEvents = (loaded.data.events as LogEventPayload[]) || []
@@ -335,6 +382,7 @@ export default function LiveLogView({
     setDate(String(loaded.data.date || ''))
     setDeparture(String(loaded.data.departure || ''))
     setDestination(String(loaded.data.destination || ''))
+    setSignSkipper(typeof loaded.data.signSkipper === 'string' ? loaded.data.signSkipper : '')
     setEvents(sortLogEventsByTime(entryEvents.map((e) => ({ ...e }))))
     setCrewSnapshotsById((loaded.data.crewSnapshotsById as Record<string, any>) || {})
     setSelectedSkipperId(typeof loaded.data.selectedSkipperId === 'string' ? loaded.data.selectedSkipperId : null)
@@ -358,7 +406,7 @@ export default function LiveLogView({
     }, UNDO_TIMEOUT_MS)
   }, [])
 
-  const runInit = useCallback(async () => {
+  const runInit = useCallback(async (targetEntryId?: string | null) => {
     const seq = ++initSeqRef.current
     setLoading(true)
     setError(null)
@@ -373,11 +421,13 @@ export default function LiveLogView({
     }
 
     try {
-      const id = await withTimeout(
-        findOrCreateTodayEntry(logbookId),
-        LIVE_LOG_INIT_TIMEOUT_MS,
-        t('logs.live_load_error')
-      )
+      const id = targetEntryId
+        ? targetEntryId
+        : await withTimeout(
+            findOrCreateTodayEntry(logbookId),
+            LIVE_LOG_INIT_TIMEOUT_MS,
+            t('logs.live_load_error')
+          )
       if (seq !== initSeqRef.current) return
       setEntryId(id)
 
@@ -410,6 +460,14 @@ export default function LiveLogView({
   }, [logbookId, applyLoadedEntry, t])
 
   useEffect(() => {
+    void runInit(selectedEntryIdProp ?? null)
+    return () => {
+      initSeqRef.current += 1
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runInit
+  }, [logbookId, selectedEntryIdProp])
+
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
     window.addEventListener('online', handleOnline)
@@ -419,15 +477,6 @@ export default function LiveLogView({
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
-
-  useEffect(() => {
-    void runInit()
-    return () => {
-      initSeqRef.current += 1
-    }
-    // Only re-init when the logbook changes — not when i18n `t` identity changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runInit
-  }, [logbookId])
 
   useEffect(() => {
     if (!loading && entryId) {
@@ -1307,31 +1356,59 @@ export default function LiveLogView({
   return (
     <>
     <div className="live-log-card">
-      <div className="section-title-bar mb-4">
-        <div className="form-header" style={{ margin: 0 }}>
-          <Radio size={24} className="form-icon" />
+      <div className="live-log-header">
+        <div className="live-log-header-main">
+          <Radio size={24} className="form-icon" aria-hidden />
           <div>
             <h2>{t('logs.live_title')}</h2>
             {date && (
               <p className="live-log-subtitle">
                 {t('logs.travel_day_number', { number: dayOfTravel })} · {new Date(date).toLocaleDateString()}
+                {departure && destination && (
+                  <> · {departure} → {destination}</>
+                )}
+                {departure && !destination && (
+                  <> · {departure}</>
+                )}
               </p>
             )}
           </div>
         </div>
-        <div className="section-toolbar">
-          <button type="button" className="btn secondary" onClick={onSwitchToList} style={{ width: 'auto', padding: '8px 16px' }}>
-            <ChevronLeft size={16} />
-            <span className="hide-mobile">{t('logs.view_list')}</span>
-          </button>
-          {entryId && (
-            <button type="button" className="btn secondary" onClick={() => onOpenEditor(entryId)} style={{ width: 'auto', padding: '8px 16px' }}>
-              <FileText size={16} />
-              <span className="hide-mobile">{t('logs.live_open_editor')}</span>
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          className="btn-icon live-log-overflow-trigger"
+          onClick={() => setOverflowOpen(true)}
+          aria-label={t('logs.more_actions')}
+        >
+          <MoreVertical size={20} />
+        </button>
       </div>
+
+      {dayChips.length > 0 && (
+        <div className="live-day-chips" role="tablist" aria-label={t('logs.live_switch_day')}>
+          {dayChips.map((chip) => {
+            const isToday = todayEntryId ? chip.id === todayEntryId : false
+            const isActive = chip.id === entryId
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`live-day-chip ${isActive ? 'is-active' : ''}`}
+                onClick={() => {
+                  if (chip.id !== entryId) onEntryChange?.(chip.id)
+                }}
+              >
+                {isToday ? t('logs.live_day_today') : t('logs.travel_day_number', { number: chip.dayOfTravel })}
+              </button>
+            )
+          })}
+          <button type="button" className="live-day-chip live-day-chip-all" onClick={onOpenAllDays}>
+            {t('logs.all_days')}
+          </button>
+        </div>
+      )}
 
       {error && <div className="auth-error mb-4">{error}</div>}
 
@@ -1343,120 +1420,56 @@ export default function LiveLogView({
       )}
 
       <div className="live-log-layout">
-        <aside className="live-log-actions" aria-label={t('logs.live_actions_label')}>
-          <button type="button" className={`live-log-action-btn ${motorRunning ? 'is-active' : ''}`} onClick={handleMotorToggle} disabled={busy}>
-            <Zap size={18} />
-            {motorRunning ? t('logs.live_motor_stop') : t('logs.live_motor_start')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={handleCastOff} disabled={busy}>
-            <Anchor size={18} />
-            {t('logs.live_cast_off')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={handleMoor} disabled={busy}>
-            <Anchor size={18} style={{ transform: 'scaleX(-1)' }} />
-            {t('logs.live_moor')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => { setSelectedSails([]); setModal('sails') }} disabled={busy}>
-            <Sailboat size={18} />
-            {t('logs.live_sails_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('course', lastCourseFromEvents(events))} disabled={busy}>
-            <Compass size={18} />
-            {t('logs.live_course_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => void openSogModal()} disabled={busy}>
-            <Gauge size={18} />
-            {t('logs.live_sog_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('stw')} disabled={busy}>
-            <Gauge size={18} style={{ transform: 'scaleX(-1)' }} />
-            {t('logs.live_stw_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('fuel')} disabled={busy}>
-            <Fuel size={18} />
-            {t('logs.live_fuel_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => openValueModal('water')} disabled={busy}>
-            <Droplets size={18} />
-            {t('logs.live_water_btn')}
-          </button>
+        <LiveActionToolbar
+          motorRunning={motorRunning}
+          hasLoggedPosition={hasLoggedPosition}
+          lastSailsLabel={lastSailsLabel || undefined}
+          busy={busy}
+          photoSaving={photoSaving}
+          voiceSaving={voiceSaving}
+          tidesLoading={tidesLoading}
+          weatherOwmLoading={weatherOwmLoading}
+          onMotorToggle={handleMotorToggle}
+          onCastOff={handleCastOff}
+          onMoor={handleMoor}
+          onOpenSails={() => { setSelectedSails([]); setModal('sails') }}
+          onOpenCourse={() => openValueModal('course', lastCourseFromEvents(events))}
+          onOpenSog={() => void openSogModal()}
+          onOpenStw={() => openValueModal('stw')}
+          onOpenFuel={() => openValueModal('fuel')}
+          onOpenWater={() => openValueModal('water')}
+          onOpenPosition={() => void openPositionModal()}
+          onFetchTides={handleFetchTides}
+          onOpenComment={() => { setCommentText(''); setModal('comment') }}
+          onOpenPhoto={openPhotoModal}
+          onOpenVoice={openVoiceModal}
+          onFetchOwmWeather={handleFetchOwmWeather}
+          onOpenWind={() => openValueModal('wind', lastWindDirectionFromEvents(events))}
+          onOpenTemp={() => openValueModal('temp')}
+          onOpenPressure={() => openValueModal('pressure')}
+          onOpenPrecip={() => openValueModal('precip')}
+          onOpenSeaState={() => openValueModal('sea_state')}
+          onOpenVisibility={() => openValueModal('visibility')}
+        />
 
-          <div className="live-log-weather-group">
-            <button
-              type="button"
-              className={`live-log-action-btn live-log-weather-toggle ${weatherExpanded ? 'is-expanded' : ''}`}
-              onClick={() => setWeatherExpanded((prev) => !prev)}
-              disabled={busy}
-              aria-expanded={weatherExpanded}
-            >
-              <CloudSun size={18} />
-              {t('logs.live_weather_btn')}
-              {weatherExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-            {weatherExpanded && (
-              <div className="live-log-weather-submenu">
-                <button
-                  type="button"
-                  className="live-log-subaction-btn live-log-subaction-btn-owm"
-                  onClick={handleFetchOwmWeather}
-                  disabled={busy || weatherOwmLoading}
-                  aria-busy={busy || weatherOwmLoading}
-                >
-                  {weatherOwmLoading ? t('logs.live_weather_owm_loading') : t('logs.live_weather_owm_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('wind', lastWindDirectionFromEvents(events))} disabled={busy}>
-                  {t('logs.live_wind_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('temp')} disabled={busy}>
-                  {t('logs.live_temp_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('pressure')} disabled={busy}>
-                  {t('logs.live_pressure_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('precip')} disabled={busy}>
-                  {t('logs.live_precip_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('sea_state')} disabled={busy}>
-                  {t('logs.live_sea_state_btn')}
-                </button>
-                <button type="button" className="live-log-subaction-btn" onClick={() => openValueModal('visibility')} disabled={busy}>
-                  {t('logs.live_visibility_btn')}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button type="button" className="live-log-action-btn" onClick={() => void openPositionModal()} disabled={busy}>
-            <MapPin size={18} />
-            {t('logs.live_position')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={handleFetchTides} disabled={busy || tidesLoading}>
-            <Waves size={18} />
-            {tidesLoading ? t('logs.tide_fetch_loading') : t('logs.tides')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={() => { setCommentText(''); setModal('comment') }} disabled={busy}>
-            <MessageSquare size={18} />
-            {t('logs.live_comment_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={openPhotoModal} disabled={busy || photoSaving}>
-            <Camera size={18} />
-            {t('logs.live_photo_btn')}
-          </button>
-          <button type="button" className="live-log-action-btn" onClick={openVoiceModal} disabled={busy || voiceSaving}>
-            <Mic size={18} />
-            {t('logs.live_voice_btn')}
-          </button>
-        </aside>
-
-        <section className="live-log-stream-panel" aria-label={t('logs.live_stream_label')}>
+        <section className="live-log-stream-panel" aria-label={t('logs.live_stream_label')} data-tour="entry-list">
           <h3 className="live-log-stream-title">{t('logs.live_stream_title')}</h3>
           {events.length === 0 ? (
             <p className="live-log-empty">{t('logs.live_no_events')}</p>
           ) : (
             <ol className="live-log-stream">
-              {events.map((event, index) => {
-                return (
-                  <li key={`${event.time}-${index}`} className="live-log-entry">
+              {events.map((event, index) => (
+                <li
+                  key={`${event.time}-${index}`}
+                  className="live-log-entry"
+                  data-tour={index === 0 ? 'entry-first' : undefined}
+                >
+                  <button
+                    type="button"
+                    className="live-log-entry-tap"
+                    onClick={() => setEditingEventIndex(index)}
+                    aria-label={t('logs.live_edit_event')}
+                  >
                     <time className="live-log-time">{event.time}</time>
                     <CreatorAvatar
                       creatorId={event.creatorId}
@@ -1471,15 +1484,51 @@ export default function LiveLogView({
                         readOnly={false}
                       />
                     </div>
-                  </li>
-                )
-              })}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-icon live-log-entry-edit"
+                    onClick={() => setEditingEventIndex(index)}
+                    title={t('logs.live_edit_event')}
+                    aria-label={t('logs.live_edit_event')}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                </li>
+              ))}
               <div ref={streamEndRef} />
             </ol>
           )}
         </section>
       </div>
     </div>
+
+    <LiveOverflowMenu
+      open={overflowOpen}
+      onClose={() => setOverflowOpen(false)}
+      onOpenAllDays={onOpenAllDays}
+      onOpenEditor={() => entryId && onOpenEditor(entryId)}
+      onDownloadCsv={() => onDownloadCsv?.()}
+      onShareCsv={() => onShareCsv?.()}
+      onDownloadPhotosZip={onDownloadPhotosZip ? () => onDownloadPhotosZip() : undefined}
+      onDownloadPdf={() => entryId && date && onDownloadPdf?.(entryId, date)}
+      onDeleteEntry={onDeleteEntry && entryId ? () => onDeleteEntry(entryId) : undefined}
+      exporting={exporting}
+      canExportPhotosZip={canExportPhotosZip}
+      hasEntries={hasLogbookEntries}
+      entryId={entryId}
+    />
+
+    <LiveEventSheet
+      open={editingEventIndex !== null}
+      event={editingEventIndex !== null ? events[editingEventIndex] ?? null : null}
+      eventIndex={editingEventIndex}
+      onClose={() => setEditingEventIndex(null)}
+      onSave={updateEvent}
+      onDelete={deleteEvent}
+      onOpenEditor={entryId ? () => onOpenEditor(entryId) : undefined}
+      busy={busy}
+    />
 
     {((undoVisible && events.length > 0) || modal !== 'none') && createPortal(
       <>

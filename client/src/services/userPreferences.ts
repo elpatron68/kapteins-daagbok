@@ -90,6 +90,25 @@ export function setOwmApiKey(userId: string, value: string): void {
   }
 }
 
+function logsViewModeKey(userId: string): string {
+  return `user_pref_logs_view_mode_${userId}`
+}
+
+export type LogsViewModePreference = 'list' | 'live'
+
+export function getLogsViewModePreference(userId?: string | null): LogsViewModePreference {
+  const id = resolveUserId(userId)
+  if (id) {
+    const value = localStorage.getItem(logsViewModeKey(id))
+    if (value === 'list' || value === 'live') return value
+  }
+  return 'live'
+}
+
+export function setLogsViewModePreference(userId: string, value: LogsViewModePreference): void {
+  localStorage.setItem(logsViewModeKey(userId), value)
+}
+
 function aiAuthorizedKey(userId: string): string {
   return `user_pref_ai_authorized_${userId}`
 }

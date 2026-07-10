@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { db } from '../services/db.js'
-import { getActiveMasterKey, hasUnlockedLocalCrypto } from '../services/auth.js'
+import { getActiveMasterKey } from '../services/auth.js'
 import { getLogbookKey } from '../services/logbookKeys.js'
-import { encryptJson, decryptJson } from '../services/crypto.js'
+import { encryptJson } from '../services/crypto.js'
 import { syncLogbook } from '../services/sync.js'
-import { downloadCsv, shareCsv } from '../services/csvExport.js'
-import { downloadLogbookPagePdf } from '../services/pdfExport.js'
-import { buildZipArchive } from '../services/logbookBackup/zipArchive.js'
 import { PlausibleEvents, trackPlausibleEvent } from '../services/analytics.js'
 import { getErrorMessage } from '../utils/errors.js'
 import { findTodayEntryId, pruneEmptyTodayDuplicates, tryDecryptEntryPayload } from '../services/quickEventLog.js'
 import { localDateString } from '../utils/logEntryPayload.js'
+import {
+  getLogsViewModePreference,
+  setLogsViewModePreference,
+  getActiveUserId
+} from '../services/userPreferences.js'
+import { useLogExport } from '../hooks/useLogExport.js'
 import LogEntryEditor from './LogEntryEditor.tsx'
-import LiveLogView from './LiveLogView.tsx'
+import LiveLogView, { type LiveEntrySummary } from './LiveLogView.tsx'
 import EntrySkipperSignBadge from './EntrySkipperSignBadge.tsx'
 import { useDialog } from './ModalDialog.tsx'
 import { getSkipperSignStatus, type SkipperSignStatus } from '../utils/signatures.js'
@@ -23,7 +26,7 @@ import {
   putEntryRecord
 } from '../utils/entryListCache.js'
 import { forEachInBatches } from '../utils/yieldToMain.js'
-import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2, Radio, List } from 'lucide-react'
+import { FileText, Plus, Trash2, ChevronRight, Calendar, Download, Share2, Radio, ChevronLeft } from 'lucide-react'
 import {
   carryOverFromPreviousDay,
   compareTravelDaysChronological,
@@ -60,42 +63,6 @@ interface DecryptedEntryItem {
   skipperSignStatus: SkipperSignStatus
 }
 
-// Helper to convert data URL to Uint8Array for zip packaging
-function dataUrlToUint8Array(dataUrl: string): { data: Uint8Array; ext: string } {
-  const parts = dataUrl.split(',')
-  if (parts.length < 2) {
-    throw new Error('Invalid data URL')
-  }
-  const meta = parts[0]
-  const base64Data = parts[1]
-
-  let ext = 'jpg'
-  const mimeMatch = meta.match(/data:([^;]+)/)
-  if (mimeMatch) {
-    const mime = mimeMatch[1]
-    if (mime === 'image/png') ext = 'png'
-    else if (mime === 'image/gif') ext = 'gif'
-    else if (mime === 'image/webp') ext = 'webp'
-    else if (mime === 'image/heic') ext = 'heic'
-    else if (mime === 'image/heif') ext = 'heif'
-  }
-
-  const binaryString = atob(base64Data)
-  const bytes = new Uint8Array(binaryString.length)
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
-  }
-  return { data: bytes, ext }
-}
-
-function sanitizeFilename(str: string): string {
-  return str
-    .replace(/[^\w\s-]/gi, '')
-    .trim()
-    .replace(/\s+/g, '_')
-    .slice(0, 30)
-}
-
 export default function LogEntriesList({
   logbookId,
   readOnly = false,
@@ -124,11 +91,38 @@ export default function LogEntriesList({
     }
   }
   const [loading, setLoading] = useState(false)
-  const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<LogsViewMode>('list')
+  const [viewMode, setViewModeState] = useState<LogsViewMode>(() =>
+    readOnly ? 'list' : getLogsViewModePreference(getActiveUserId())
+  )
+  const [liveSelectedEntryId, setLiveSelectedEntryId] = useState<string | null>(null)
+  const [todayEntryId, setTodayEntryId] = useState<string | null>(null)
   const [returnToLiveAfterEditor, setReturnToLiveAfterEditor] = useState(false)
   const prevSelectedEntryIdRef = useRef<string | null | undefined>(undefined)
+
+  const setViewMode = useCallback((mode: LogsViewMode) => {
+    setViewModeState(mode)
+    if (!readOnly) {
+      const userId = getActiveUserId()
+      if (userId) setLogsViewModePreference(userId, mode)
+    }
+  }, [readOnly])
+
+  const {
+    exporting: exportBusy,
+    error: exportError,
+    handleDownloadCsv,
+    handleShareCsv,
+    handleDownloadPdf,
+    handleDownloadPhotosZip,
+    canExportPhotosZip
+  } = useLogExport({
+    logbookId,
+    entries,
+    readOnly,
+    preloadedYacht,
+    preloadedEntries
+  })
 
   const loadEntries = useCallback(async () => {
     setLoading(true)
@@ -161,9 +155,10 @@ export default function LogEntriesList({
       const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
       if (!masterKey) throw new Error('Encryption key not found. Please log in.')
 
-      const todayEntryId = await findTodayEntryId(logbookId)
-      if (todayEntryId) {
-        await pruneEmptyTodayDuplicates(logbookId, todayEntryId)
+      const todayId = await findTodayEntryId(logbookId)
+      setTodayEntryId(todayId)
+      if (todayId) {
+        await pruneEmptyTodayDuplicates(logbookId, todayId)
       }
 
       const local = await db.entries.where({ logbookId }).toArray()
@@ -212,9 +207,8 @@ export default function LogEntriesList({
   }, [logbookId, readOnly, preloadedEntries])
 
   useEffect(() => {
-    if (viewMode === 'live') return
     loadEntries()
-  }, [loadEntries, viewMode])
+  }, [loadEntries])
 
   useEffect(() => {
     if (viewMode === 'live') return
@@ -225,158 +219,6 @@ export default function LogEntriesList({
       loadEntries()
     }
   }, [selectedEntryId, loadEntries, viewMode])
-
-  const handleDownloadCsv = async () => {
-    setExporting(true)
-    setError(null)
-    try {
-      const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
-      if (readOnly && preloadedEntries && preloadedYacht) {
-        await downloadCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
-      } else {
-        await downloadCsv(logbookId, title)
-      }
-      trackPlausibleEvent(PlausibleEvents.CSV_EXPORTED)
-    } catch (err: any) {
-      console.error('Failed to download CSV:', err)
-      setError(getErrorMessage(err, t('errors.export_failed')))
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleShareCsv = async () => {
-    setExporting(true)
-    setError(null)
-    try {
-      const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
-      if (readOnly && preloadedEntries && preloadedYacht) {
-        await shareCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
-      } else {
-        await shareCsv(logbookId, title)
-      }
-      trackPlausibleEvent(PlausibleEvents.CSV_SHARED)
-    } catch (err: any) {
-      if (err.message === 'share_unsupported') {
-        const title = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
-        if (readOnly && preloadedEntries && preloadedYacht) {
-          await downloadCsv(logbookId, title, { yacht: preloadedYacht, entries: preloadedEntries })
-        } else {
-          await downloadCsv(logbookId, title)
-        }
-        setError(t('logs.share_unsupported'))
-      } else {
-        console.error('Failed to share CSV:', err)
-        setError(getErrorMessage(err, t('errors.export_failed')))
-      }
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleDownloadPdf = async (entryId: string, date: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setExporting(true)
-    setError(null)
-    try {
-      if (readOnly && preloadedEntries && preloadedYacht) {
-        const fullEntry = preloadedEntries.find(entry => (entry.payloadId || entry.id) === entryId)
-        await downloadLogbookPagePdf(logbookId, entryId, date, { yacht: preloadedYacht, entry: fullEntry })
-      } else {
-        await downloadLogbookPagePdf(logbookId, entryId, date)
-      }
-      trackPlausibleEvent(PlausibleEvents.PDF_EXPORTED, { scope: 'entry' })
-    } catch (err: any) {
-      console.error('Failed to download PDF:', err)
-      setError(getErrorMessage(err, t('errors.export_failed')))
-    } finally {
-      setExporting(false)
-    }
-  }
-
-  const handleDownloadPhotosZip = async () => {
-    setExporting(true)
-    setError(null)
-    try {
-      const masterKey = await getLogbookKey(logbookId) || getActiveMasterKey()
-      if (!masterKey) throw new Error('Encryption key not found. Please log in.')
-
-      // Fetch all photos for this logbook from IndexedDB
-      const localPhotos = await db.photos.where({ logbookId }).toArray()
-      if (localPhotos.length === 0) {
-        setError(t('logs.no_photos_to_download'))
-        return
-      }
-
-      // Build a map of entry ID to entry info for filename lookup
-      const entryMap = new Map<string, DecryptedEntryItem>()
-      entries.forEach((e) => entryMap.set(e.id, e))
-
-      const files: Record<string, Uint8Array> = {}
-      const usedNames = new Set<string>()
-
-      for (const photo of localPhotos) {
-        // Decrypt photo payload (contains base64 image data and caption)
-        const decrypted = await decryptJson(photo.encryptedData, photo.iv, photo.tag, masterKey)
-        if (!decrypted || !decrypted.image) continue
-
-        const { data, ext } = dataUrlToUint8Array(decrypted.image)
-
-        // Construct unique, friendly filename
-        let fileBase = `photo_${photo.payloadId}`
-        const entry = entryMap.get(photo.entryId)
-        if (entry) {
-          const dateStr = entry.date || 'unknown-date'
-          const travelDay = entry.dayOfTravel ? `day-${entry.dayOfTravel}` : ''
-          const sanitizedCaption = decrypted.caption ? sanitizeFilename(decrypted.caption) : ''
-
-          const parts = [dateStr]
-          if (travelDay) parts.push(travelDay)
-          if (sanitizedCaption) parts.push(sanitizedCaption)
-
-          fileBase = parts.join('_')
-        } else if (decrypted.caption) {
-          fileBase = `photo_${sanitizeFilename(decrypted.caption)}`
-        }
-
-        // De-duplicate name
-        let candidate = `${fileBase}.${ext}`
-        let counter = 1
-        while (usedNames.has(candidate.toLowerCase())) {
-          candidate = `${fileBase}_${counter}.${ext}`
-          counter++
-        }
-        usedNames.add(candidate.toLowerCase())
-
-        files[candidate] = data
-      }
-
-      if (Object.keys(files).length === 0) {
-        setError(t('logs.no_photos_to_download'))
-        return
-      }
-
-      const zipBytes = buildZipArchive(files)
-      const blob = new Blob([zipBytes as any], { type: 'application/zip' })
-      const url = URL.createObjectURL(blob)
-
-      const yachtName = preloadedYacht?.name || localStorage.getItem('active_logbook_title') || 'Logbook'
-      const safeTitle = yachtName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'logbook'
-      const datePart = new Date().toISOString().slice(0, 10)
-      const filename = `${safeTitle}-photos-${datePart}.zip`
-
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = filename
-      anchor.click()
-      URL.revokeObjectURL(url)
-    } catch (err: any) {
-      console.error('Failed to download photos ZIP:', err)
-      setError(getErrorMessage(err, t('errors.export_failed')))
-    } finally {
-      setExporting(false)
-    }
-  }
 
   const handleCreate = async () => {
     if (readOnly) return
@@ -488,17 +330,13 @@ export default function LogEntriesList({
     }
   }
 
-  const handleDelete = async (entryId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleDeleteEntry = async (entryId: string) => {
     if (readOnly) return
-    
     if (await showConfirm(t('logs.delete_confirm'), t('logs.delete_entry'), t('logs.confirm_yes'), t('logs.confirm_no'))) {
       setError(null)
       try {
         const now = new Date().toISOString()
-        
         await db.entries.delete(entryId)
-        
         await db.syncQueue.put({
           action: 'delete',
           type: 'entry',
@@ -507,15 +345,32 @@ export default function LogEntriesList({
           data: '',
           updatedAt: now
         })
-
         setEntries((prev) => prev.filter((item) => item.id !== entryId))
+        if (liveSelectedEntryId === entryId) {
+          setLiveSelectedEntryId(null)
+        }
         syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to delete log entry:', err)
         setError(getErrorMessage(err, t('errors.delete_failed')))
       }
     }
   }
+
+  const handleDelete = async (entryId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await handleDeleteEntry(entryId)
+  }
+
+  const entrySummaries: LiveEntrySummary[] = entries.map((e) => ({
+    id: e.id,
+    date: e.date,
+    dayOfTravel: e.dayOfTravel,
+    departure: e.departure,
+    destination: e.destination
+  }))
+
+  const combinedError = error || exportError
 
   if (selectedEntryId) {
     return (
@@ -540,17 +395,32 @@ export default function LogEntriesList({
 
   if (viewMode === 'live' && !readOnly) {
     return (
-      <LiveLogView
-        logbookId={logbookId}
-        onOpenEditor={(entryId) => {
-          setReturnToLiveAfterEditor(true)
-          setSelectedEntryId(entryId)
-        }}
-        onSwitchToList={() => {
-          setViewMode('list')
-          void loadEntries()
-        }}
-      />
+      <>
+        {combinedError && <div className="auth-error mb-4" style={{ margin: '0 0 12px' }}>{combinedError}</div>}
+        <LiveLogView
+          logbookId={logbookId}
+          selectedEntryId={liveSelectedEntryId}
+          entrySummaries={entrySummaries}
+          todayEntryId={todayEntryId}
+          onEntryChange={setLiveSelectedEntryId}
+          onOpenEditor={(entryId) => {
+            setReturnToLiveAfterEditor(true)
+            setSelectedEntryId(entryId)
+          }}
+          onOpenAllDays={() => {
+            setViewMode('list')
+            void loadEntries()
+          }}
+          onDeleteEntry={handleDeleteEntry}
+          onDownloadCsv={() => void handleDownloadCsv()}
+          onShareCsv={() => void handleShareCsv()}
+          onDownloadPhotosZip={() => void handleDownloadPhotosZip()}
+          onDownloadPdf={(entryId, date) => void handleDownloadPdf(entryId, date)}
+          exporting={exportBusy}
+          canExportPhotosZip={canExportPhotosZip}
+          hasLogbookEntries={entries.length > 0}
+        />
+      </>
     )
   }
 
@@ -577,55 +447,46 @@ export default function LogEntriesList({
         </div>
         <div className="section-toolbar">
           {!readOnly && (
-            <div className="logs-view-toggle" role="group" aria-label={t('logs.view_mode_label')}>
-              <button
-                type="button"
-                className={`btn secondary logs-view-toggle-btn ${viewMode === 'list' ? 'is-active' : ''}`}
-                onClick={() => setViewMode('list')}
-                title={t('logs.view_list')}
-              >
-                <List size={16} />
-                <span className="hide-mobile">{t('logs.view_list')}</span>
-              </button>
-              <button
-                type="button"
-                className={`btn secondary logs-view-toggle-btn ${viewMode === 'live' ? 'is-active' : ''}`}
-                onClick={() => setViewMode('live')}
-                title={t('logs.live_mode')}
-              >
-                <Radio size={16} />
-                <span className="hide-mobile">{t('logs.live_mode')}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => setViewMode('live')}
+              style={{ width: 'auto', padding: '8px 16px' }}
+              title={t('logs.live_mode')}
+            >
+              <ChevronLeft size={16} />
+              <Radio size={16} />
+              <span className="hide-mobile">{t('logs.back_to_live')}</span>
+            </button>
           )}
 
-          <button className="btn secondary" onClick={handleDownloadCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.export_csv')}>
+          <button className="btn secondary" onClick={() => void handleDownloadCsv()} disabled={loading || exportBusy || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.export_csv')}>
             <Download size={16} />
-            <span className="hide-mobile">{exporting ? t('logs.exporting') : t('logs.export_csv')}</span>
+            <span className="hide-mobile">{exportBusy ? t('logs.exporting') : t('logs.export_csv')}</span>
           </button>
           
-          <button className="btn secondary" onClick={handleShareCsv} disabled={loading || exporting || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.share_csv')}>
+          <button className="btn secondary" onClick={() => void handleShareCsv()} disabled={loading || exportBusy || entries.length === 0} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.share_csv')}>
             <Share2 size={16} />
             <span className="hide-mobile">{t('logs.share_csv')}</span>
           </button>
 
-          {hasUnlockedLocalCrypto() && (
+          {canExportPhotosZip && (
             <button
               className="btn secondary"
-              onClick={handleDownloadPhotosZip}
-              disabled={loading || exporting || entries.length === 0}
+              onClick={() => void handleDownloadPhotosZip()}
+              disabled={loading || exportBusy || entries.length === 0}
               style={{ width: 'auto', padding: '8px 16px' }}
               title={t('logs.export_photos_zip')}
             >
               <Download size={16} />
               <span className="hide-mobile">
-                {exporting ? t('logs.exporting_photos_zip') : t('logs.export_photos_zip')}
+                {exportBusy ? t('logs.exporting_photos_zip') : t('logs.export_photos_zip')}
               </span>
             </button>
           )}
 
           {!readOnly && (
-            <button className="btn primary" onClick={handleCreate} disabled={loading || exporting} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.new_entry')}>
+            <button className="btn primary" onClick={handleCreate} disabled={loading || exportBusy} style={{ width: 'auto', padding: '8px 16px' }} title={t('logs.new_entry')}>
               <Plus size={16} />
               <span className="hide-mobile">{t('logs.new_entry')}</span>
             </button>
@@ -633,7 +494,7 @@ export default function LogEntriesList({
         </div>
       </div>
 
-      {error && <div className="auth-error mb-4">{error}</div>}
+      {combinedError && <div className="auth-error mb-4">{combinedError}</div>}
 
       {entries.length === 0 ? (
         <div className="dashboard-status-msg">{t('logs.no_entries')}</div>
@@ -648,7 +509,14 @@ export default function LogEntriesList({
               <button
                 type="button"
                 className="logbook-card-select"
-                onClick={() => setSelectedEntryId(item.id)}
+                onClick={() => {
+                  if (readOnly) {
+                    setSelectedEntryId(item.id)
+                  } else {
+                    setLiveSelectedEntryId(item.id)
+                    setViewMode('live')
+                  }
+                }}
                 aria-label={
                   item.departure && item.destination
                     ? `${item.departure} → ${item.destination}, ${t('logs.travel_day_number', { number: item.dayOfTravel })}`
@@ -678,7 +546,7 @@ export default function LogEntriesList({
               </div>
 
               <div className="logbook-card-right-group">
-                <button className="btn-pdf" onClick={(e) => handleDownloadPdf(item.id, item.date, e)} title={t('logs.export_pdf')} disabled={exporting}>
+                <button className="btn-pdf" onClick={(e) => { e.stopPropagation(); void handleDownloadPdf(item.id, item.date) }} title={t('logs.export_pdf')} disabled={exportBusy}>
                   <Download size={18} />
                 </button>
                 {!readOnly && (

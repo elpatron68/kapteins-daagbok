@@ -469,6 +469,26 @@ async function persistEntry(
   syncLogbook(logbookId).catch((err) => console.warn('Background sync failed:', err))
 }
 
+export async function patchEntryEvents(
+  logbookId: string,
+  entryId: string,
+  events: LogEventPayload[],
+  options?: { clearSignatures?: boolean }
+): Promise<{ hadSignature: boolean }> {
+  const loaded = await loadEntry(logbookId, entryId)
+  if (!loaded) throw new Error('Entry not found')
+
+  const hadSignature = !!(loaded.data.signSkipper || loaded.data.signCrew)
+  const nextEvents = sortLogEventsByTime(events.map((e) => normalizeLogEvent({ ...e })))
+
+  await persistEntry(logbookId, entryId, loaded.data, {
+    events: nextEvents,
+    clearSignatures: options?.clearSignatures ?? hadSignature
+  })
+
+  return { hadSignature }
+}
+
 export async function removeLastEvent(
   logbookId: string,
   entryId: string
